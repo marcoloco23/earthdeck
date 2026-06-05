@@ -48,7 +48,7 @@ approval · respect API quotas/ToS · cap image size and always return stats wit
 
 Phase 0 — Scaffold: ✅ done
 Phase 1 — Zero-key slice: ✅ done
-Phase 2 — Fires: ✅ done (live FIRMS call deferred pending a free FIRMS_MAP_KEY)
+Phase 2 — Fires: ✅ done + live-verified (133 real detections over the Western US)
 
 Phase 3 — Copernicus core (current):
 - [ ] Write `.plans/2026-06-05_copernicus.md` (new external surface = Copernicus Sentinel Hub).

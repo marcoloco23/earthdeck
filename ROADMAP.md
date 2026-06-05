@@ -64,10 +64,10 @@ Endpoints:
       handles VIIRS & MODIS) + `fires_in` tool (`src/tools/fires.ts`) → fire-markers card
 - [x] Dashboard: GPU circle layer for fire points (`showFires` in `web/src/map.ts`) +
       `fires` feed card + `focusCard` wiring
-- **Done**: parser verified for both sensors + error path; `fires_in` registers and returns
-  a clean "set FIRMS_MAP_KEY" error when unconfigured; 90-point synthetic cluster rendered
-  as markers on the dashboard (screenshotted). **Deferred**: one live FIRMS call — needs a
-  free `FIRMS_MAP_KEY` (firms.modaps.eosdis.nasa.gov/api/map_key/).
+- **Done + live-verified**: parser handles both sensors + error path; `fires_in` registers
+  and errors cleanly without a key; **live FIRMS call returned 133 real detections over the
+  Western US (and 25,543 over central Africa), rendered as markers** (screenshotted). VIIRS
+  single-letter confidence (l/n/h) normalized to low/nominal/high.
 
 ## Phase 3 — Copernicus core 🔜 (next)
 

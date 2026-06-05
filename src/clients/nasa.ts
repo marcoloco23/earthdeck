@@ -184,6 +184,16 @@ function toNum(s: string | undefined): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+// VIIRS reports confidence as single letters; MODIS reports 0–100. Normalize the letters
+// to readable labels and keep numeric confidence as a number.
+const VIIRS_CONF: Record<string, string> = { l: "low", n: "nominal", h: "high" };
+function normalizeConfidence(raw: string): string | number | null {
+  if (raw === "") return null;
+  const n = Number(raw);
+  if (Number.isFinite(n)) return n;
+  return VIIRS_CONF[raw.toLowerCase()] ?? raw;
+}
+
 /** Parse a FIRMS CSV (VIIRS or MODIS) by header name so one parser handles both sensors. */
 export function parseFiresCsv(csv: string): FireDetection[] {
   const lines = csv.trim().split(/\r?\n/);
@@ -213,12 +223,11 @@ export function parseFiresCsv(csv: string): FireDetection[] {
     const lon = toNum(c[iLon]);
     if (lat === null || lon === null) continue;
     const rawConf = iConf >= 0 ? (c[iConf]?.trim() ?? "") : "";
-    const confNum = Number(rawConf);
     out.push({
       lat,
       lon,
       brightness: iBright >= 0 ? toNum(c[iBright]) : null,
-      confidence: rawConf === "" ? null : Number.isFinite(confNum) ? confNum : rawConf,
+      confidence: normalizeConfidence(rawConf),
       acqDate: iDate >= 0 ? (c[iDate]?.trim() ?? "") : "",
       acqTime: iTime >= 0 ? (c[iTime]?.trim() ?? null) : null,
       frp: iFrp >= 0 ? toNum(c[iFrp]) : null,

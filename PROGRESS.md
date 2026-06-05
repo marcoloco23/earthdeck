@@ -19,8 +19,9 @@ status, next priorities. The live task pointer is in [CONTINUITY.md](CONTINUITY.
 
 **Build/smoke**: build + typecheck green. Verified: parser (both sensors + "Invalid
 MAP_KEY" error path), `listTools` shows `fires_in`, no-key call returns isError with the
-help message, and a 90-point synthetic cluster renders as markers (screenshotted).
-**Deferred**: one live FIRMS fetch — needs a free `FIRMS_MAP_KEY`.
+help message. **Live FIRMS verified** with a real `FIRMS_MAP_KEY`: `fires_in` returned 133
+detections over the Western US (25,543 over central Africa), rendered as markers
+(screenshotted). VIIRS confidence letters (l/n/h) normalized to low/nominal/high.
 
 **Next**: Phase 3 — Copernicus core (OAuth + `eo_render`/`eo_index`/`eo_search`).
 
