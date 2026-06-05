@@ -55,11 +55,13 @@ Phase 3 — Copernicus core: ✅ done + live-verified (Sentinel-2 render + NDVI 
 Phase 4 — Change detection: ✅ done + live-verified (São Félix do Xingu NDVI −0.146, 2019→2025)
 
 Phase 5 — Polish & ship (current):
-- [ ] (optional) `geo_resolve(place)` via OSM Nominatim (≤1 req/s, descriptive UA).
-- [ ] Dashboard design pass (use the `frontend-design` skill).
-- [ ] README: free-keys setup (FIRMS + CDSE), tool table, worked transcript, install snippet.
-- [ ] `.env.example` documenting the env vars.
-- [ ] Push public to GitHub; flip inventions idea 0005 → `shipped`; log a note.
+- [x] `geo_resolve(place)` via OSM Nominatim — live-verified (Manaus → bbox).
+- [x] README + `.env.example`.
+- [~] Dashboard design pass — already polished; skipped full redesign.
+- [ ] **Push public to GitHub** — awaiting user confirmation (repo name/visibility).
+- [ ] Flip inventions idea 0005 → `shipped`; log a note.
+
+8 tools total now (added `geo_resolve`). Build + typecheck green.
 
 Useful test fixtures: Amazon near Manaus bbox `[-60.2,-3.3,-59.8,-2.9]`; events smoke
 returns Tropical Storm Amanda. Run the dashboard on a non-default port to avoid clashes:

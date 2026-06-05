@@ -88,10 +88,13 @@ Endpoints:
   **NDVI mean −0.146** with both renders clearly showing forest → cleared land. Also probed
   Novo Progresso (−0.112). Mechanism + dashboard compare card confirmed (screenshot).
 
-## Phase 5 — Polish & ship 🔜 (next)
+## Phase 5 — Polish & ship 🚧
 
-- [ ] `geo_resolve` (Nominatim, ToS-safe) so tools accept place names
-- [ ] Dashboard design pass (use the `frontend-design` skill)
-- [ ] README setup howto + worked transcript
-- [ ] Push public to GitHub; flip inventions idea 0005 → `shipped`; log a note
+- [x] `geo_resolve` (OSM Nominatim, ToS-safe) — place name → bbox; live-verified (Manaus)
+- [x] README (pitch, tool table, install snippet, free-keys howto, transcript, attribution)
+- [x] `.env.example`
+- [~] Dashboard design pass — current UI already polished; skipped a full redesign to avoid
+      regressions (revisit only if desired)
+- [ ] **Push public to GitHub** — awaiting user go-ahead (repo name + visibility)
+- [ ] Flip inventions idea 0005 → `shipped`; log a note
 - **Done when**: a fresh clone installs, builds, and runs the full demo from the README.
