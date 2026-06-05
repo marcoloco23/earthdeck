@@ -40,6 +40,11 @@ approval · respect API quotas/ToS · cap image size and always return stats wit
 - Build + typecheck green. Dashboard server works (ingest → SSE → `/img` verified). MCP
   server lists `eo_snapshot` + `events`; both call live NASA APIs and push cards.
 - Two real tools, zero keys: `eo_snapshot` (Worldview/GIBS imagery) and `events` (EONET).
+- **Reviewed + hardened + visually verified** (2026-06-05): all imagery types and both
+  dashboard map paths screenshotted and confirmed; fixed WebGL-kills-feed bug, duplicate
+  SSE connect, false-color swath gaps; hardened the HTTP server (loopback-only bind,
+  `/ingest` allow-list validation, malformed-URL 400, SSE/process safety nets). See
+  PROGRESS.md for the full list. Build + typecheck green.
 - Next: **Phase 2 — Fires.** Add a FIRMS client + `fires_in` tool. Needs a free
   `FIRMS_MAP_KEY` to smoke-test (get one at firms.modaps.eosdis.nasa.gov/api/map_key/).
 

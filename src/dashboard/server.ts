@@ -12,6 +12,47 @@ const WEB_ROOT = join(__dirname, "..", "web"); // dist/web after build
 const MAX_CARDS = 200;
 const MAX_IMAGES = 200;
 
+const CARD_TYPES = new Set<string>(["imagery", "index", "fires", "events", "compare", "search"]);
+const ALLOWED_IMAGE_MIME = new Set<string>(["image/jpeg", "image/png"]);
+
+/**
+ * Validate an untrusted /ingest body into an IngestPayload. Throws on anything malformed.
+ * This is the trust boundary: `type` and `image.mimeType` are allow-listed so a crafted
+ * POST can't inject unknown card types (which the browser turns into CSS classes) or get
+ * an arbitrary Content-Type served back from /img.
+ */
+function validateIngest(obj: unknown): IngestPayload {
+  if (typeof obj !== "object" || obj === null) throw new Error("body must be an object");
+  const o = obj as Record<string, unknown>;
+  if (typeof o.id !== "string" || !o.id) throw new Error("id required");
+  if (typeof o.type !== "string" || !CARD_TYPES.has(o.type)) throw new Error("invalid type");
+  if (typeof o.ts !== "string") throw new Error("ts required");
+  if (typeof o.title !== "string") throw new Error("title required");
+  if (typeof o.payload !== "object" || o.payload === null) throw new Error("payload required");
+  const out: IngestPayload = {
+    id: o.id,
+    type: o.type as IngestPayload["type"],
+    ts: o.ts,
+    title: o.title,
+    payload: o.payload as Record<string, unknown>,
+  };
+  if (o.bbox !== undefined) {
+    if (!Array.isArray(o.bbox) || o.bbox.length !== 4 || !o.bbox.every((n) => typeof n === "number")) {
+      throw new Error("bbox must be 4 numbers");
+    }
+    out.bbox = o.bbox as IngestPayload["bbox"];
+  }
+  if (o.image !== undefined) {
+    const img = o.image as Record<string, unknown>;
+    if (typeof img.mimeType !== "string" || !ALLOWED_IMAGE_MIME.has(img.mimeType)) {
+      throw new Error("image.mimeType must be image/jpeg or image/png");
+    }
+    if (typeof img.dataBase64 !== "string") throw new Error("image.dataBase64 required");
+    out.image = { mimeType: img.mimeType, dataBase64: img.dataBase64 };
+  }
+  return out;
+}
+
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -65,7 +106,13 @@ class DashboardState {
 
   broadcast(card: Card): void {
     const line = `data: ${JSON.stringify(card)}\n\n`;
-    for (const res of this.clients) res.write(line);
+    for (const res of this.clients) {
+      try {
+        res.write(line);
+      } catch {
+        this.clients.delete(res); // drop a dead client instead of breaking the loop
+      }
+    }
   }
 }
 
@@ -94,7 +141,14 @@ async function readBody(req: IncomingMessage, limitBytes = 32 * 1024 * 1024): Pr
 
 async function serveStatic(res: ServerResponse, urlPath: string): Promise<void> {
   // Map "/" → index.html; strip query; prevent path traversal.
-  const clean = normalize(decodeURIComponent(urlPath.split("?")[0] ?? "/")).replace(/^(\.\.[/\\])+/, "");
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(urlPath.split("?")[0] ?? "/");
+  } catch {
+    send(res, 400, "text/plain", "bad request");
+    return;
+  }
+  const clean = normalize(decoded).replace(/^(\.\.[/\\])+/, "");
   let rel = clean === "/" || clean === "" ? "index.html" : clean.replace(/^\/+/, "");
   let filePath = join(WEB_ROOT, rel);
 
@@ -159,31 +213,45 @@ export function startDashboard(port = dashboardPort()): void {
       });
       res.write(`retry: 3000\n\n`);
       for (const card of state.cards) res.write(`data: ${JSON.stringify(card)}\n\n`);
-      const ping = setInterval(() => res.write(`: ping\n\n`), 25_000);
-      state.clients.add(res);
-      req.on("close", () => {
+      const drop = () => {
         clearInterval(ping);
         state.clients.delete(res);
-      });
+      };
+      const ping = setInterval(() => {
+        try {
+          res.write(`: ping\n\n`);
+        } catch {
+          drop();
+        }
+      }, 25_000);
+      state.clients.add(res);
+      req.on("close", drop);
+      res.on("error", drop);
       return;
     }
 
     if (url.startsWith("/img/")) {
-      const id = url.slice("/img/".length);
+      let id: string;
+      try {
+        id = decodeURIComponent(url.slice("/img/".length).split("?")[0] ?? "");
+      } catch {
+        send(res, 400, "text/plain", "bad request");
+        return;
+      }
       const img = state.images.get(id);
       if (!img) {
         send(res, 404, "text/plain", "no such image");
         return;
       }
-      send(res, 200, img.mimeType, img.buf);
+      res.writeHead(200, { "content-type": img.mimeType, "cache-control": "private, max-age=3600" });
+      res.end(img.buf);
       return;
     }
 
     if (url === "/ingest" && method === "POST") {
       readBody(req)
         .then((body) => {
-          const payload = JSON.parse(body) as IngestPayload;
-          if (!payload.id || !payload.type) throw new Error("card missing id/type");
+          const payload = validateIngest(JSON.parse(body));
           const card = state.addCard(payload);
           send(res, 200, "application/json", JSON.stringify({ ok: true, id: card.id }));
         })
@@ -194,14 +262,22 @@ export function startDashboard(port = dashboardPort()): void {
     }
 
     if (method === "GET") {
-      void serveStatic(res, url);
+      serveStatic(res, url).catch(() => {
+        try {
+          send(res, 500, "text/plain", "error");
+        } catch {
+          /* response already gone */
+        }
+      });
       return;
     }
 
     send(res, 404, "text/plain", "not found");
   });
 
-  server.listen(port, () => {
+  // Bind to loopback only: the dashboard is unauthenticated with permissive CORS, so it
+  // must not be reachable from other machines on the network.
+  server.listen(port, "127.0.0.1", () => {
     process.stderr.write(
       `${SERVER_NAME} dashboard running at http://localhost:${port}  (open it in your browser)\n`,
     );
@@ -211,6 +287,10 @@ export function startDashboard(port = dashboardPort()): void {
       );
     }
   });
+
+  // Last-resort safety net: a single malformed request must never take the server down.
+  process.on("uncaughtException", (err) => process.stderr.write(`[dashboard] uncaughtException: ${err}\n`));
+  process.on("unhandledRejection", (err) => process.stderr.write(`[dashboard] unhandledRejection: ${err}\n`));
 }
 
 /** Minimal shell served when the Vite build hasn't been produced yet. */

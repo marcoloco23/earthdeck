@@ -5,36 +5,50 @@ import type { BBox, Card, EventItem } from "./types";
 const GIBS_BASEMAP =
   "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg";
 
-let map: maplibregl.Map;
-let overlayCount = 0;
+let map: maplibregl.Map | null = null;
 const overlayIds: string[] = [];
 let eventMarkers: maplibregl.Marker[] = [];
 
-export function createMap(): maplibregl.Map {
-  map = new maplibregl.Map({
-    container: "map",
-    style: {
-      version: 8,
-      sources: {
-        gibs: {
-          type: "raster",
-          tiles: [GIBS_BASEMAP],
-          tileSize: 256,
-          maxzoom: 8,
-          attribution: "NASA EOSDIS GIBS",
+/**
+ * Initialize the MapLibre map. Returns false (without throwing) if the browser can't
+ * create a WebGL context, so the rest of the dashboard (the live feed) keeps working.
+ */
+export function createMap(): boolean {
+  try {
+    map = new maplibregl.Map({
+      container: "map",
+      style: {
+        version: 8,
+        sources: {
+          gibs: {
+            type: "raster",
+            tiles: [GIBS_BASEMAP],
+            tileSize: 256,
+            maxzoom: 8,
+            attribution: "NASA EOSDIS GIBS",
+          },
         },
+        layers: [{ id: "gibs", type: "raster", source: "gibs" }],
       },
-      layers: [{ id: "gibs", type: "raster", source: "gibs" }],
-    },
-    center: [0, 20],
-    zoom: 1.4,
-    attributionControl: { compact: true },
-  });
-  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
-  return map;
+      center: [0, 20],
+      zoom: 1.4,
+      attributionControl: { compact: true },
+    });
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+    return true;
+  } catch (err) {
+    console.error("map init failed (WebGL unavailable?) — feed still works:", err);
+    map = null;
+    return false;
+  }
+}
+
+export function mapReady(): boolean {
+  return map !== null;
 }
 
 function fitBBox(bbox: BBox): void {
+  if (!map) return;
   const [w, s, e, n] = bbox;
   map.fitBounds(
     [
@@ -47,7 +61,7 @@ function fitBBox(bbox: BBox): void {
 
 /** Drop a rendered image as a georeferenced overlay and fly to it. */
 export function showImagery(card: Card): void {
-  if (!card.bbox || !card.imageUrl) return;
+  if (!map || !card.bbox || !card.imageUrl) return;
   const [w, s, e, n] = card.bbox;
   const id = `ov-${card.id}`;
   if (map.getSource(id)) return;
@@ -64,7 +78,6 @@ export function showImagery(card: Card): void {
   });
   map.addLayer({ id, type: "raster", source: id, paint: { "raster-opacity": 0.92, "raster-fade-duration": 300 } });
   overlayIds.push(id);
-  overlayCount++;
 
   // Cap overlays to keep the map light.
   while (overlayIds.length > 12) {
@@ -88,6 +101,7 @@ const CATEGORY_COLOR: Record<string, string> = {
 
 /** Plot event points as colored markers, replacing the previous event layer. */
 export function showEvents(card: Card): void {
+  if (!map) return;
   for (const m of eventMarkers) m.remove();
   eventMarkers = [];
 
@@ -118,6 +132,10 @@ export function showEvents(card: Card): void {
 }
 
 export function clearOverlays(): void {
+  if (!map) {
+    overlayIds.length = 0;
+    return;
+  }
   for (const id of overlayIds) {
     if (map.getLayer(id)) map.removeLayer(id);
     if (map.getSource(id)) map.removeSource(id);

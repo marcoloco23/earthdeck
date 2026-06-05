@@ -6,11 +6,17 @@ import { assertBBox, clampWidth, heightFor } from "../util.js";
 const WORLDVIEW_SNAPSHOT = "https://wvs.earthdata.nasa.gov/api/v1/snapshot";
 const EONET_EVENTS = "https://eonet.gsfc.nasa.gov/api/v3/events";
 
-/** Friendly view name → ordered GIBS layer ids (first = bottom). No API key needed. */
+/**
+ * Friendly view name → ordered GIBS layer ids (first = bottom). No API key needed.
+ * VIIRS layers are preferred over MODIS where possible: VIIRS has a wider daily swath, so
+ * single-day snapshots avoid the black "no-data" wedges MODIS leaves at low latitudes.
+ */
 export const SNAPSHOT_LAYERS: Record<string, string[]> = {
   trueColor: ["VIIRS_SNPP_CorrectedReflectance_TrueColor"],
   trueColorModis: ["MODIS_Terra_CorrectedReflectance_TrueColor"],
-  falseColor: ["MODIS_Terra_CorrectedReflectance_Bands721"],
+  // VIIRS vegetation false-color (M11-I2-I1): healthy vegetation reds/oranges, water dark.
+  falseColor: ["VIIRS_SNPP_CorrectedReflectance_BandsM11-I2-I1"],
+  falseColorModis: ["MODIS_Terra_CorrectedReflectance_Bands721"],
   fires: [
     "VIIRS_SNPP_CorrectedReflectance_TrueColor",
     "VIIRS_SNPP_Thermal_Anomalies_375m_All",

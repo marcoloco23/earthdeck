@@ -1,6 +1,6 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./styles.css";
-import { createMap, showImagery, showEvents, clearOverlays } from "./map";
+import { createMap, mapReady, showImagery, showEvents, clearOverlays } from "./map";
 import { renderCard } from "./cards";
 import type { Card } from "./types";
 
@@ -9,9 +9,19 @@ const empty = document.getElementById("empty") as HTMLDivElement;
 const statusEl = document.getElementById("status") as HTMLSpanElement;
 const clearBtn = document.getElementById("clear") as HTMLButtonElement;
 
-createMap();
+// Connect the live feed FIRST so it works even if the map (WebGL) fails to initialize.
+connect();
+
+// Initialize the map; if WebGL is unavailable, show a notice but keep the feed alive.
+if (!createMap()) {
+  const note = document.createElement("div");
+  note.className = "map-fallback";
+  note.textContent = "Map unavailable (WebGL not supported here) — the live feed still works.";
+  document.getElementById("map")?.appendChild(note);
+}
 
 function focusCard(card: Card): void {
+  if (!mapReady()) return;
   if (card.type === "imagery") showImagery(card);
   else if (card.type === "events") showEvents(card);
 }
@@ -57,5 +67,3 @@ clearBtn.addEventListener("click", () => {
   clearOverlays();
   empty.style.display = "";
 });
-
-connect();

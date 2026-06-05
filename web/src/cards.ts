@@ -9,6 +9,11 @@ const TYPE_LABEL: Record<Card["type"], string> = {
   search: "SEARCH",
 };
 
+/** Coerce an untrusted card type to a known one so it can't be injected into class names. */
+function safeType(type: string): Card["type"] {
+  return (Object.prototype.hasOwnProperty.call(TYPE_LABEL, type) ? type : "search") as Card["type"];
+}
+
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
@@ -20,12 +25,13 @@ function timeOf(iso: string): string {
 
 /** Build the DOM node for a card in the feed. Newest cards are prepended by the caller. */
 export function renderCard(card: Card, onFocus: (card: Card) => void): HTMLElement {
+  const t = safeType(card.type);
   const el = document.createElement("article");
-  el.className = `card card--${card.type}`;
+  el.className = `card card--${t}`;
 
   const head = document.createElement("div");
   head.className = "card-head";
-  head.innerHTML = `<span class="badge badge--${card.type}">${TYPE_LABEL[card.type]}</span>
+  head.innerHTML = `<span class="badge badge--${t}">${TYPE_LABEL[t]}</span>
     <span class="card-title">${escapeHtml(card.title)}</span>
     <span class="card-time">${timeOf(card.ts)}</span>`;
   el.appendChild(head);
