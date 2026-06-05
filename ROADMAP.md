@@ -106,3 +106,6 @@ Endpoints:
 - `eo_compare` swipe slider on the map (currently overlays the "after" image).
 - Publish to npm (currently `npx github:` install); add CI.
 - More FIRMS sources / MODIS false-color option; antimeridian bbox support.
+- Transient-failure retry for the no-key NASA fetches (EONET occasionally throttles under
+  hammering). Sub-2-day stats-window guard (`P{n}D` overshoot). Evict images by card, not
+  count, so old compare-card thumbnails don't 404. (All from the final review — low priority.)

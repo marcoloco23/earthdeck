@@ -5,6 +5,34 @@ status, next priorities. The live task pointer is in [CONTINUITY.md](CONTINUITY.
 
 ---
 
+## Session: 2026-06-05 (final deep review + full E2E) ✅
+
+**Focus**: Independent deep review of the shipped code + end-to-end test of everything.
+
+**Found + fixed**:
+- **Critical XSS** (compare card): server-built image URLs embed the card `id`, which was
+  interpolated into `innerHTML`, and `/ingest` validated `id` only as a non-empty string
+  with `*` CORS → a malicious page could POST a compare card with `id="x\" onerror=..."` for
+  a drive-by XSS. Fixed both layers: `validateIngest` constrains `id` to
+  `^[A-Za-z0-9._-]{1,128}$`; `cards.ts` builds `<img>` via DOM nodes. Exploit payload now
+  rejected ("invalid id"); legit UUID accepted. Commit `f9d7d43`.
+- Robustness: `handleCard` try/catch (a bad card can't break the feed); `CopernicusClient`
+  de-dupes concurrent token refreshes (eo_compare's 4 calls) via an in-flight promise.
+
+**Verified**:
+- All 8 tools live via MCP (geo_resolve, eo_snapshot, events, fires_in, eo_search, eo_index,
+  eo_render, eo_compare −0.146). Combined dashboard screenshot shows every card type.
+- Edge paths graceful: invalid/out-of-range bbox, dashboard-off (best-effort), unknown place,
+  no-key. Build + typecheck green.
+- **Fresh clone of the public repo installs + builds + runs** (verified on the pushed commit).
+- Secret scan of tracked files: clean; `.env` never tracked.
+
+Review verdict: solid, well-engineered; the one critical XSS is fixed. Remaining items are
+backlog (see ROADMAP post-ship): transient-EONET retry, sub-2-day stat window guard,
+evict-by-card.
+
+---
+
 ## Session: 2026-06-05 (Phase 5 — polish & SHIPPED) ✅
 
 **Focus**: geo_resolve, README, and publishing.
