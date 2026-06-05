@@ -119,6 +119,91 @@ export function registerAnalysisTools(server: McpServer): void {
       }),
   );
 
+  // ---- eo_compare: change detection between two dates ---------------------------------
+  server.registerTool(
+    "eo_compare",
+    {
+      title: "Change detection (Sentinel-2, two dates)",
+      description:
+        "Compare the same place at two dates: renders both and computes the index delta " +
+        "(e.g. mean-NDVI drop → deforestation, flood, or burn). Returns both images and the " +
+        "change statistics, and posts a before/after card to the dashboard. Requires CDSE creds.",
+      inputSchema: {
+        bbox: bboxSchema,
+        dateA: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Earlier (before) date YYYY-MM-DD."),
+        dateB: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Later (after) date YYYY-MM-DD."),
+        index: z.enum(INDEX_NAMES as [string, ...string[]]).optional().describe("Delta index: NDVI (default), NDWI, NBR."),
+        view: z.enum(RENDER_VIEWS).optional().describe("Image view: trueColor (default), falseColor, ndvi."),
+        windowDays: z.number().int().min(1).max(120).optional().describe("Composite window per date (default 25)."),
+        width: z.number().int().min(64).max(1536).optional().describe("Image width px (default 640)."),
+      },
+    },
+    async ({ bbox, dateA, dateB, index, view, windowDays, width }) =>
+      safeResult(async () => {
+        const client = getCopernicus();
+        const box = bbox as BBox;
+        const idx = index ?? "NDVI";
+        const v = view ?? "trueColor";
+        const win = windowDays ?? 25;
+        const w = clampWidth(width ?? 640);
+        const h = heightFor(box, w);
+
+        const one = async (date: string) => {
+          const from = addDays(date, -win);
+          const png = await client.process(box, { dateFrom: from, dateTo: date, evalscript: RENDER_EVALSCRIPTS[v]!, width: w, height: h });
+          const stats = await client.statistics(box, { dateFrom: from, dateTo: date, evalscript: statEvalscript(idx) });
+          return { date, from, b64: png.toString("base64"), stats };
+        };
+        const [a, b] = await Promise.all([one(dateA), one(dateB)]);
+
+        const delta = {
+          meanChange: b.stats.mean - a.stats.mean,
+          medianChange: (b.stats.p50 ?? b.stats.mean) - (a.stats.p50 ?? a.stats.mean),
+        };
+        const dir = delta.meanChange < 0 ? "decrease" : "increase";
+
+        await pushCard({
+          id: newId(),
+          type: "compare",
+          ts: nowIso(),
+          title: `${idx} ${dir} ${delta.meanChange.toFixed(3)} · ${dateA} → ${dateB}`,
+          bbox: box,
+          payload: {
+            index: idx,
+            view: v,
+            dateA,
+            dateB,
+            statsA: a.stats,
+            statsB: b.stats,
+            delta,
+          },
+          images: [
+            { mimeType: "image/png", dataBase64: a.b64 },
+            { mimeType: "image/png", dataBase64: b.b64 },
+          ],
+        });
+
+        const meta = {
+          index: idx,
+          view: v,
+          dateA,
+          dateB,
+          windowDays: win,
+          [`${idx}_mean_A`]: a.stats.mean,
+          [`${idx}_mean_B`]: b.stats.mean,
+          delta,
+          interpretation: `${idx} mean ${dir}d by ${Math.abs(delta.meanChange).toFixed(3)} from ${dateA} to ${dateB}`,
+        };
+        return {
+          content: [
+            { type: "image", data: a.b64, mimeType: "image/png" },
+            { type: "image", data: b.b64, mimeType: "image/png" },
+            { type: "text", text: JSON.stringify(meta, null, 2) },
+          ],
+        };
+      }),
+  );
+
   // ---- eo_search: Sentinel-2 scene archive search -------------------------------------
   server.registerTool(
     "eo_search",

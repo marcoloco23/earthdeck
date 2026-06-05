@@ -42,15 +42,21 @@ function validateIngest(obj: unknown): IngestPayload {
     }
     out.bbox = o.bbox as IngestPayload["bbox"];
   }
-  if (o.image !== undefined) {
-    const img = o.image as Record<string, unknown>;
-    if (typeof img.mimeType !== "string" || !ALLOWED_IMAGE_MIME.has(img.mimeType)) {
-      throw new Error("image.mimeType must be image/jpeg or image/png");
-    }
-    if (typeof img.dataBase64 !== "string") throw new Error("image.dataBase64 required");
-    out.image = { mimeType: img.mimeType, dataBase64: img.dataBase64 };
+  if (o.image !== undefined) out.image = validateImage(o.image);
+  if (o.images !== undefined) {
+    if (!Array.isArray(o.images) || o.images.length > 4) throw new Error("images must be an array (max 4)");
+    out.images = o.images.map(validateImage);
   }
   return out;
+}
+
+function validateImage(v: unknown): { mimeType: string; dataBase64: string } {
+  const img = v as Record<string, unknown>;
+  if (typeof img.mimeType !== "string" || !ALLOWED_IMAGE_MIME.has(img.mimeType)) {
+    throw new Error("image.mimeType must be image/jpeg or image/png");
+  }
+  if (typeof img.dataBase64 !== "string") throw new Error("image.dataBase64 required");
+  return { mimeType: img.mimeType, dataBase64: img.dataBase64 };
 }
 
 const MIME: Record<string, string> = {
@@ -80,7 +86,7 @@ class DashboardState {
   clients = new Set<ServerResponse>();
 
   addCard(payload: IngestPayload): Card {
-    const { image, ...rest } = payload;
+    const { image, images, ...rest } = payload;
     const card: Card = { ...rest };
     if (image?.dataBase64) {
       this.images.set(card.id, {
@@ -88,8 +94,15 @@ class DashboardState {
         mimeType: image.mimeType,
       });
       card.imageUrl = `/img/${card.id}`;
-      this.evictImages();
     }
+    if (images && images.length > 0) {
+      card.imageUrls = images.map((im, i) => {
+        const key = `${card.id}::${i}`;
+        this.images.set(key, { buf: Buffer.from(im.dataBase64, "base64"), mimeType: im.mimeType });
+        return `/img/${key}`;
+      });
+    }
+    if (image?.dataBase64 || (images && images.length > 0)) this.evictImages();
     this.cards.push(card);
     if (this.cards.length > MAX_CARDS) this.cards.shift();
     this.broadcast(card);

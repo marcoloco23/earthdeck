@@ -11,6 +11,11 @@ export type CardType =
   | "compare"
   | "search";
 
+export interface ImageData {
+  mimeType: string;
+  dataBase64: string;
+}
+
 /** A unit of visual output streamed to the dashboard. */
 export interface Card {
   id: string;
@@ -19,15 +24,14 @@ export interface Card {
   title: string;
   bbox?: BBox;
   payload: Record<string, unknown>;
-  imageUrl?: string; // set by the dashboard server when an image was attached
+  imageUrl?: string; // set by the server when a single image was attached
+  imageUrls?: string[]; // set by the server when multiple images were attached (e.g. compare)
 }
 
-/** What a tool POSTs to the dashboard /ingest endpoint (image inlined as base64). */
-export interface IngestPayload extends Omit<Card, "imageUrl"> {
-  image?: {
-    mimeType: string;
-    dataBase64: string;
-  };
+/** What a tool POSTs to the dashboard /ingest endpoint (images inlined as base64). */
+export interface IngestPayload extends Omit<Card, "imageUrl" | "imageUrls"> {
+  image?: ImageData; // single image (imagery)
+  images?: ImageData[]; // multiple images (compare before/after)
 }
 
 /** A normalized EONET natural-disaster event. */

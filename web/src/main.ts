@@ -1,6 +1,6 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./styles.css";
-import { createMap, mapReady, showImagery, showEvents, showFires, clearOverlays } from "./map";
+import { createMap, mapReady, showImagery, showEvents, showFires, showCompare, clearOverlays } from "./map";
 import { renderCard } from "./cards";
 import type { Card } from "./types";
 
@@ -25,6 +25,7 @@ function focusCard(card: Card): void {
   if (card.type === "imagery") showImagery(card);
   else if (card.type === "events") showEvents(card);
   else if (card.type === "fires") showFires(card);
+  else if (card.type === "compare") showCompare(card);
 }
 
 const seen = new Set<string>();

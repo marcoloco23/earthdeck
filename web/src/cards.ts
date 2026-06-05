@@ -93,6 +93,26 @@ export function renderCard(card: Card, onFocus: (card: Card) => void): HTMLEleme
     }
   }
 
+  if (card.type === "compare" && card.imageUrls && card.imageUrls.length >= 2) {
+    const delta = card.payload.delta as { meanChange: number } | undefined;
+    const index = String(card.payload.index ?? "NDVI");
+    const dateA = String(card.payload.dateA ?? "A");
+    const dateB = String(card.payload.dateB ?? "B");
+    const pair = document.createElement("div");
+    pair.className = "cmp-pair";
+    pair.innerHTML =
+      `<figure><img class="card-img" loading="lazy" src="${card.imageUrls[0]}"><figcaption>${escapeHtml(dateA)}</figcaption></figure>` +
+      `<figure><img class="card-img" loading="lazy" src="${card.imageUrls[1]}"><figcaption>${escapeHtml(dateB)}</figcaption></figure>`;
+    el.appendChild(pair);
+    if (delta) {
+      const dv = delta.meanChange;
+      const d = document.createElement("div");
+      d.className = `cmp-delta ${dv < 0 ? "down" : "up"}`;
+      d.textContent = `Δ ${escapeHtml(index)} mean ${dv >= 0 ? "+" : ""}${dv.toFixed(3)}`;
+      el.appendChild(d);
+    }
+  }
+
   if (card.type === "search") {
     const scenes = (card.payload.scenes as Array<{ datetime: string; cloudCover: number | null }> | undefined) ?? [];
     const list = document.createElement("ul");

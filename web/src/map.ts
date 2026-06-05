@@ -132,6 +132,12 @@ export function showEvents(card: Card): void {
   }
 }
 
+/** Overlay the "after" image of a compare card on the map so the location is visible. */
+export function showCompare(card: Card): void {
+  if (!map || !card.bbox || !card.imageUrls || card.imageUrls.length < 2) return;
+  showImagery({ ...card, imageUrl: card.imageUrls[1] });
+}
+
 /** Plot fire detections as a GPU circle layer (handles hundreds of points cheaply). */
 export function showFires(card: Card): void {
   const m = map;

@@ -10,7 +10,7 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
 
 - Agent read full file: YES
 - Current task understood: YES
-- Current task: **Phase 4 — Change detection** (`eo_compare`: two renders + index delta)
+- Current task: **Phase 5 — Polish & ship** (geo_resolve, design pass, README, go public)
 - Session started: 2026-06-05
 
 ---
@@ -37,13 +37,14 @@ approval · respect API quotas/ToS · cap image size and always return stats wit
 
 - Repo at `~/code/tools/overview-mcp`. **Phases 0–3 complete; reviewed, hardened, and
   live-verified.** All three credentials live in `.env` (gitignored): FIRMS + CDSE.
-- **Six tools now**: `eo_snapshot`, `events` (zero key); `fires_in` (FIRMS); `eo_render`,
-  `eo_index`, `eo_search` (Copernicus Sentinel-2). Build + typecheck green. Dashboard
-  renders imagery overlays, event/fire markers, NDVI index panel, and scene lists (all
-  screenshotted). Commits through `69d8135` + the Phase 3 commit.
-- Next: **Phase 4 — Change detection.** `eo_compare(bbox, dateA, dateB, index)`: two renders
-  + an index delta (e.g. mean-NDVI drop → deforestation). Reuses the Copernicus client; add
-  a `compare` card (side-by-side / swipe) to the dashboard. Write a `.plans/` entry first.
+- **Seven tools now**: `eo_snapshot`, `events` (zero key); `fires_in` (FIRMS); `eo_render`,
+  `eo_index`, `eo_search`, `eo_compare` (Copernicus Sentinel-2). Build + typecheck green.
+  Dashboard renders imagery overlays, event/fire markers, NDVI index panel, scene lists,
+  and before/after compare cards (all screenshotted). Commits through the Phase 4 commit.
+- Next: **Phase 5 — Polish & ship.** Optional `geo_resolve` (Nominatim, ToS-safe) so tools
+  accept place names; a dashboard design pass (`frontend-design` skill); a README with the
+  free-keys howto + a worked transcript; then push public to GitHub and flip inventions
+  idea 0005 → `shipped`.
 
 ## TASK QUEUE
 
@@ -51,15 +52,14 @@ Phase 0 — Scaffold: ✅ done
 Phase 1 — Zero-key slice: ✅ done
 Phase 2 — Fires: ✅ done + live-verified (133 real detections, Western US)
 Phase 3 — Copernicus core: ✅ done + live-verified (Sentinel-2 render + NDVI 0.279 + search)
+Phase 4 — Change detection: ✅ done + live-verified (São Félix do Xingu NDVI −0.146, 2019→2025)
 
-Phase 4 — Change detection (current):
-- [ ] Write `.plans/2026-06-05_compare.md`.
-- [ ] `eo_compare(bbox, dateA, dateB, index="NDVI")` tool: render both dates + `statistics`
-      at each → delta (mean/median NDVI change). Reuse `CopernicusClient`.
-- [ ] Dashboard `compare` card: side-by-side or swipe of the two renders + the delta stat.
-- [ ] Live-verify over a known deforestation site (mean-NDVI drop); update ledgers.
-
-Later: ROADMAP Phase 5 (geo_resolve, design pass, README, publish public → idea 0005 shipped).
+Phase 5 — Polish & ship (current):
+- [ ] (optional) `geo_resolve(place)` via OSM Nominatim (≤1 req/s, descriptive UA).
+- [ ] Dashboard design pass (use the `frontend-design` skill).
+- [ ] README: free-keys setup (FIRMS + CDSE), tool table, worked transcript, install snippet.
+- [ ] `.env.example` documenting the env vars.
+- [ ] Push public to GitHub; flip inventions idea 0005 → `shipped`; log a note.
 
 Useful test fixtures: Amazon near Manaus bbox `[-60.2,-3.3,-59.8,-2.9]`; events smoke
 returns Tropical Storm Amanda. Run the dashboard on a non-default port to avoid clashes:
@@ -69,6 +69,14 @@ returns Tropical Storm Amanda. Run the dashboard on a non-default port to avoid 
 ---
 
 ## SESSION LOG
+
+### 2026-06-05 — Session 4 (Phase 4 change detection)
+- Extended the card model to carry multiple images (`IngestPayload.images` /
+  `Card.imageUrls`; server stores at `/img/{id}::{n}`, validated).
+- `eo_compare(bbox, dateA, dateB, index)`: 2 renders + 2 index stats (parallel) → delta;
+  dashboard `compare` card (before/after + Δ) + `showCompare` map overlay.
+- Live-verified: São Félix do Xingu 2019→2025 NDVI mean −0.146 (Novo Progresso −0.112);
+  before/after renders clearly show forest → cleared land; dashboard card screenshotted.
 
 ### 2026-06-05 — Session 3 (Phase 3 Copernicus core)
 - Grounded all CDSE API shapes with live calls (OAuth 1800s; Process PNG; Statistical

@@ -5,6 +5,25 @@ status, next priorities. The live task pointer is in [CONTINUITY.md](CONTINUITY.
 
 ---
 
+## Session: 2026-06-05 (Phase 4 — change detection) ✅
+
+**Focus**: `eo_compare` — render two dates + index delta (deforestation/flood/burn).
+
+**Done**:
+- [x] Card model carries multiple images (`IngestPayload.images`, `Card.imageUrls`); server
+      stores/validates each at `/img/{id}::{n}`. Single-image path unchanged.
+- [x] `eo_compare(bbox, dateA, dateB, index, view, windowDays)` in `tools/analysis.ts`:
+      2 renders + 2 index stats (parallel) → mean/median delta; returns both images + delta.
+- [x] Dashboard `compare` card (before/after thumbnails + colored Δ) + `showCompare` overlay.
+
+**Build/smoke**: build + typecheck green. **Live-verified**: São Félix do Xingu (Pará)
+2019→2025 → **NDVI mean −0.146**; before/after renders clearly show forest → cleared land
+(also probed Novo Progresso −0.112, Apuí ~0). Dashboard compare card screenshotted.
+
+**Next**: Phase 5 — polish & ship (geo_resolve, design pass, README, publish public).
+
+---
+
 ## Session: 2026-06-05 (Phase 3 — Copernicus core) ✅
 
 **Focus**: High-res Sentinel-2 imagery + index statistics + scene search via Copernicus.

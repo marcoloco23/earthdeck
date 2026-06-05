@@ -1,7 +1,7 @@
 # ROADMAP — overview-mcp
 
-**Status**: Phases 0–3 ✅ — zero-key slice, fires, and Copernicus core all live-verified
-(2026-06-05). Six tools. Next: Phase 4 (change detection).
+**Status**: Phases 0–4 ✅ — through change detection, all live-verified (2026-06-05).
+Seven tools. Next: Phase 5 (polish & ship public).
 **Goal**: ship a free, open-data Earth-observation MCP + live mission-control dashboard,
 public and `npx`-installable, mirroring the knuspr-mcp pattern.
 
@@ -80,12 +80,15 @@ Endpoints:
   solved: catalog `Accept: */*` (406 otherwise); stats need `dataFilter.timeRange` +
   `FLOAT32` output + a bucket that fits inside the window.
 
-## Phase 4 — Change detection 🔜 (next)
+## Phase 4 — Change detection ✅
 
-- [ ] `eo_compare` (two renders + index delta) → compare (swipe / side-by-side) card
-- **Done when**: `eo_compare` over a known deforestation site shows a mean-NDVI drop.
+- [x] `eo_compare` (two renders + index delta) → before/after compare card (card model
+      extended to carry multiple images) + map overlay of the "after" image
+- **Done + live-verified**: `eo_compare` over São Félix do Xingu (Pará) 2019→2025 returned
+  **NDVI mean −0.146** with both renders clearly showing forest → cleared land. Also probed
+  Novo Progresso (−0.112). Mechanism + dashboard compare card confirmed (screenshot).
 
-## Phase 5 — Polish & ship
+## Phase 5 — Polish & ship 🔜 (next)
 
 - [ ] `geo_resolve` (Nominatim, ToS-safe) so tools accept place names
 - [ ] Dashboard design pass (use the `frontend-design` skill)

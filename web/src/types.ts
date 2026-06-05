@@ -8,6 +8,7 @@ export interface Card {
   bbox?: BBox;
   payload: Record<string, unknown>;
   imageUrl?: string;
+  imageUrls?: string[];
 }
 
 export interface EventItem {

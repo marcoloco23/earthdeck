@@ -158,6 +158,14 @@ body {
 }
 .idx-row { font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 
+.cmp-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.5rem; }
+.cmp-pair figure { margin: 0; }
+.cmp-pair figcaption { font-size: 0.66rem; color: var(--muted); text-align: center; margin-top: 0.2rem; }
+.cmp-pair .card-img { margin-top: 0; }
+.cmp-delta { margin-top: 0.45rem; font-weight: 700; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.cmp-delta.down { color: #f87171; }
+.cmp-delta.up { color: #34d399; }
+
 .evt-list { list-style: none; margin: 0.45rem 0 0; padding: 0; font-size: 0.76rem; }
 .evt-list li { padding: 0.12rem 0; color: var(--text); display: flex; align-items: center; gap: 0.35rem; }
 .evt-list em { color: var(--muted); font-style: normal; font-size: 0.68rem; }
