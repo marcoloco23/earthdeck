@@ -10,7 +10,7 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
 
 - Agent read full file: YES
 - Current task understood: YES
-- Current task: **Phase 5 — Polish & ship** (geo_resolve, design pass, README, go public)
+- Current task: **SHIPPED** ✅ — v0.1.0 public. Optional post-ship backlog in ROADMAP.md.
 - Session started: 2026-06-05
 
 ---

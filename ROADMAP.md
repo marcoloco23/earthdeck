@@ -1,7 +1,7 @@
 # ROADMAP — overview-mcp
 
-**Status**: Phases 0–4 ✅ — through change detection, all live-verified (2026-06-05).
-Seven tools. Next: Phase 5 (polish & ship public).
+**Status**: ✅ SHIPPED v0.1.0 — public at https://github.com/marcoloco23/overview-mcp
+(2026-06-05). All 5 phases done, 8 tools, all live-verified; fresh `npx` install confirmed.
 **Goal**: ship a free, open-data Earth-observation MCP + live mission-control dashboard,
 public and `npx`-installable, mirroring the knuspr-mcp pattern.
 
@@ -95,6 +95,14 @@ Endpoints:
 - [x] `.env.example`
 - [~] Dashboard design pass — current UI already polished; skipped a full redesign to avoid
       regressions (revisit only if desired)
-- [ ] **Push public to GitHub** — awaiting user go-ahead (repo name + visibility)
-- [ ] Flip inventions idea 0005 → `shipped`; log a note
-- **Done when**: a fresh clone installs, builds, and runs the full demo from the README.
+- [x] **Pushed public**: https://github.com/marcoloco23/overview-mcp (MIT, public)
+- [x] Fresh `npx -y github:marcoloco23/overview-mcp --help` verified (clones + builds + runs)
+- [x] Inventions idea 0005 → `shipped`
+- **Done** ✅: a fresh `npx` install builds and runs.
+
+## Post-ship backlog (optional)
+
+- Dashboard design pass (frontend-design skill) if a visual refresh is wanted.
+- `eo_compare` swipe slider on the map (currently overlays the "after" image).
+- Publish to npm (currently `npx github:` install); add CI.
+- More FIRMS sources / MODIS false-color option; antimeridian bbox support.

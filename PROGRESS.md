@@ -5,6 +5,24 @@ status, next priorities. The live task pointer is in [CONTINUITY.md](CONTINUITY.
 
 ---
 
+## Session: 2026-06-05 (Phase 5 — polish & SHIPPED) ✅
+
+**Focus**: geo_resolve, README, and publishing.
+
+**Done**:
+- [x] `geo_resolve` (OSM Nominatim, no key) — place → bbox; live-verified (Manaus). 8 tools.
+- [x] README (pitch, tool table, install snippet, free-keys howto, transcript, attribution)
+      + `.env.example`.
+- [x] Secret scan of tracked files (clean), then **published public**:
+      https://github.com/marcoloco23/overview-mcp (MIT).
+- [x] Verified a fresh `npx -y github:marcoloco23/overview-mcp --help` (clones + builds + runs).
+- [x] Inventions idea 0005 → `shipped`.
+
+**Status**: SHIPPED v0.1.0. Dashboard design pass skipped (already polished) — see ROADMAP
+post-ship backlog for optional follow-ups.
+
+---
+
 ## Session: 2026-06-05 (Phase 4 — change detection) ✅
 
 **Focus**: `eo_compare` — render two dates + index delta (deforestation/flood/burn).
