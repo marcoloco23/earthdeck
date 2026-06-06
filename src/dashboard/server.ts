@@ -21,7 +21,7 @@ const ALLOWED_IMAGE_MIME = new Set<string>(["image/jpeg", "image/png"]);
  * POST can't inject unknown card types (which the browser turns into CSS classes) or get
  * an arbitrary Content-Type served back from /img.
  */
-function validateIngest(obj: unknown): IngestPayload {
+export function validateIngest(obj: unknown): IngestPayload {
   if (typeof obj !== "object" || obj === null) throw new Error("body must be an object");
   const o = obj as Record<string, unknown>;
   // Constrain id to a safe charset: it becomes an /img/{id} key and is embedded in the UI.

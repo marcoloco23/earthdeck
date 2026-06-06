@@ -90,10 +90,14 @@ panel, and the before/after comparison.
 pnpm install
 pnpm build            # tsc (server -> dist/) + vite build (web -> dist/web/)
 pnpm typecheck
+pnpm test             # offline test suite (node:test) — no network or API keys needed
 pnpm dev              # MCP server on stdio (from source)
 pnpm dev:dashboard    # dashboard server (from source)
 pnpm dev:web          # vite dev server for the dashboard UI
 ```
+
+Tests mock the network, so the whole suite runs with zero credentials — CI
+(`.github/workflows/ci.yml`) runs typecheck + test + build on every push.
 
 ## Data sources & attribution
 

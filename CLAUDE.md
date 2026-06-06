@@ -42,13 +42,33 @@ One package, two commands (dispatched in `src/cli.ts`):
 ```bash
 pnpm install              # installs; prepare runs tsc + vite build
 pnpm build                # tsc (server → dist/) + vite build (web → dist/web/)
-pnpm typecheck            # tsc --noEmit
+pnpm typecheck            # tsc --noEmit (server)
+pnpm typecheck:test       # tsc -p tsconfig.test.json (src + test/)
+pnpm test                 # node:test suite via tsx — FULLY OFFLINE (network is mocked)
+pnpm test:watch           # same, re-running on change
 pnpm dev                  # run MCP server from source (tsx)
 pnpm dev:dashboard        # run dashboard server from source (tsx)
 pnpm dev:web              # vite dev server for the frontend (HMR, :5173)
 node dist/cli.js          # built MCP server (stdio)
 node dist/cli.js dashboard
 ```
+
+## Testing (offline-first)
+
+`test/` holds a Node-built-in (`node:test`) suite that runs with **zero network and zero
+creds** — every HTTP client is exercised through a `fetch` mock (`test/helpers.ts`) against
+recorded response fixtures, so the data APIs are never hit. This is the way to make verified
+progress in a sandbox with no outbound network / no keys (e.g. Claude Code on the web).
+
+- Pure logic is tested directly: `parseFiresCsv`, `parseStacFeatures`, `statEvalscript`/SCL
+  mask, `s2Provenance`, the `util` helpers, and the `/ingest` security validator.
+- Clients are tested via the mock, asserting the **bug-prone transforms** (Worldview/EONET/
+  FIRMS bbox axis order, Copernicus OAuth token cache + 401 refresh, STAC parsing, geocode).
+- New behavior should land with a test here. Live-API verification is still valuable when
+  creds/network exist, but is no longer the *only* way to prove a change.
+
+Run: `pnpm test` (+ `pnpm typecheck:test`). CI (`.github/workflows/ci.yml`) runs typecheck →
+test → build on every push/PR.
 
 ## Configuration (env vars)
 

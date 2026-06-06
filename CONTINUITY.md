@@ -10,10 +10,11 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
 
 - Agent read full file: YES
 - Current task understood: YES
-- Current task: **Horizon 1 in progress.** Provenance block (item 3) + internal STAC layer
-  (item 6, `stac_search`) shipped this session. Remaining items (cloud masking #1, SAR #2,
-  classic change detection #4) all need live CDSE creds + outbound network — neither of which
-  this container has. Strategy in [VISION.md](VISION.md).
+- Current task: **Horizon 1 in progress + offline test infra landed.** This session shipped:
+  provenance block (item 3), internal STAC layer (item 6, `stac_search`), and an **offline
+  test suite + CI** so we can make *verified* progress with no network/creds. Remaining
+  Horizon 1 items (cloud masking #1, SAR #2, classic change detection #4) still need live
+  CDSE creds + outbound network. Strategy in [VISION.md](VISION.md).
 - Session started: 2026-06-06 (Session 5)
 
 ---
@@ -56,6 +57,15 @@ approval · respect API quotas/ToS · cap image size and always return stats wit
   `OVERVIEW_STAC_URL` (→ Planetary Computer / self-hosted). Now **9 tools**. The parser
   `parseStacFeatures()` is pure + fixture-tested (15 checks); the no-network error path is
   graceful (`isError`, clean message).
+- **Also this session: offline test infrastructure.** New `test/` suite on Node's built-in
+  runner (`node:test`, **zero new deps**), run via `tsx`: **53 tests across 9 files**, all
+  green with **no network and no creds** — every HTTP client goes through a `fetch` mock
+  (`test/helpers.ts`) against fixtures. Covers pure logic (FIRMS/STAC parsers, SCL mask,
+  provenance, util) + the bug-prone client transforms (Worldview/EONET/FIRMS bbox axis order,
+  Copernicus OAuth token cache + 401 refresh, geocode) + the `/ingest` XSS security boundary
+  (`validateIngest`, now exported). `pnpm test` / `pnpm typecheck:test`; **GitHub Actions CI**
+  (`.github/workflows/ci.yml`) runs typecheck → test → build on push/PR. This is the answer to
+  "how do we work offline" — verified progress no longer depends on live APIs.
 - **This container has NO `.env`/creds and NO outbound network** (all hosts 403 via policy —
   even the open STAC endpoints), so ALL live API verification is deferred this session. The
   provenance + STAC-parser work is pure, fully offline-verifiable logic.
@@ -84,7 +94,11 @@ Horizon 1 — Trustworthy analyst (current):
 - [ ] **Sentinel-1 SAR** (item 2) — GRD backscatter render + flood/water mapping. ⚠️ needs creds.
 - [ ] Classic change detection (#4) · consume GFW alerts (#5) · STAC-backed render path (see ROADMAP).
 
-9 tools total (added `stac_search`). Build + typecheck green.
+9 tools total (added `stac_search`). Build + typecheck green. **53 offline tests green** (`pnpm test`).
+
+Engineering quality (cross-cutting):
+- [x] Offline `node:test` suite (53 tests, network mocked) + GitHub Actions CI. (this session)
+- [ ] Publish to npm (currently `npx github:` install).
 
 Useful test fixtures: Amazon near Manaus bbox `[-60.2,-3.3,-59.8,-2.9]`; events smoke
 returns Tropical Storm Amanda. Run the dashboard on a non-default port to avoid clashes:
@@ -94,6 +108,18 @@ returns Tropical Storm Amanda. Run the dashboard on a non-default port to avoid 
 ---
 
 ## SESSION LOG
+
+### 2026-06-06 — Session 5 (offline test suite + CI)
+- Built the thing that unblocks all future offline work: a `node:test` suite (zero new deps,
+  run via `tsx`) with a `fetch` mock so HTTP clients are tested without network. **53 tests,
+  9 files**, all green offline. Covered pure logic + the bug-prone transforms + the `/ingest`
+  security validator (exported `validateIngest`).
+- Added `tsconfig.test.json` (type-checks src+test; the `tsc` build still only emits
+  src→dist — verified no test files leak to `dist/`), `pnpm test`/`test:watch`/`typecheck:test`
+  scripts, and `.github/workflows/ci.yml` (typecheck → typecheck:test → test → build).
+- CLAUDE.md now documents the offline-first testing approach; ROADMAP "add CI" ticked.
+- Verified the full CI sequence locally: all green; the only failure found was a wrong
+  expectation in my own test (heightFor), fixed — the code was right.
 
 ### 2026-06-06 — Session 5 (Horizon 1: internal STAC layer)
 - Second Horizon 1 step (item 6). With no creds AND no outbound network (all hosts 403),

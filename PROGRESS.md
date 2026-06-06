@@ -5,6 +5,41 @@ status, next priorities. The live task pointer is in [CONTINUITY.md](CONTINUITY.
 
 ---
 
+## Session: 2026-06-06 (offline test suite + CI) ✅
+
+**Focus**: A way to make **verified progress fully offline** (no network, no creds) — the
+thing this sandbox needs. Stand up real test infrastructure (the repo had none).
+
+**Done**:
+- [x] Node built-in `node:test` suite (**zero new deps**), run through the existing `tsx`:
+      `node --import tsx --test test/*.test.ts`. **53 tests, 9 files**, all green offline.
+- [x] `test/helpers.ts` — a `fetch` mock returning real `Response` objects + call capture, so
+      HTTP clients are tested without ever touching the network.
+- [x] Coverage: pure logic (`util`, `evalscripts`/SCL mask + byte-identical refactor guard,
+      `provenance`, `parseFiresCsv`, `parseStacFeatures`) and clients via the mock — asserting
+      the bug-prone bits: Worldview `S,W,N,E` / EONET `W,N,E,S` / FIRMS `W,S,E,N` bbox axis
+      order + dayRange clamp; Copernicus OAuth **token cache + single 401-refresh** + stats
+      `validPct` + "no valid data" throw + catalog `Accept: */*`; geocode `[S,N,W,E]→[W,S,E,N]`;
+      and the `/ingest` **XSS security boundary** (`validateIngest`, now exported — id charset,
+      type/mime allow-lists, images cap).
+- [x] `tsconfig.test.json` + `pnpm typecheck:test` (type-checks src+test; the `tsc` build still
+      only emits `src→dist`, verified no test artifacts leak to `dist/`).
+- [x] `.github/workflows/ci.yml` — typecheck → typecheck:test → test → build on push/PR.
+- [x] CLAUDE.md documents the offline-first testing approach; ROADMAP "add CI" ticked.
+
+**Build/smoke**: full CI sequence run locally — `tsc` (server) ✅, `tsc -p tsconfig.test.json`
+✅, **53/53 tests** ✅, `tsc && vite build` ✅, no test files in `dist/` ✅. The only failure
+encountered was a wrong expectation in a test I wrote (heightFor), fixed; the code was correct.
+
+**Why it matters**: live-API verification is great when creds/network exist, but it's no
+longer the *only* way to prove a change — Horizon 1 logic work (and refactors) can now land
+with regression-proof tests in any sandbox.
+
+**Next**: cloud-masking upgrade (#1) + Sentinel-1 SAR (#2) still need live CDSE; new pure
+logic should land with tests here.
+
+---
+
 ## Session: 2026-06-06 (Horizon 1 — internal STAC layer) ✅
 
 **Focus**: Second Horizon 1 step — a provider-independent **STAC search** against the open,

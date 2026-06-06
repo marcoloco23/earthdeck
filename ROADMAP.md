@@ -143,7 +143,8 @@ see [VISION.md](VISION.md) §7.
 
 - Dashboard design pass (frontend-design skill) if a visual refresh is wanted.
 - `eo_compare` swipe slider on the map (currently overlays the "after" image).
-- Publish to npm (currently `npx github:` install); add CI.
+- [done 2026-06-06] Offline `node:test` suite (53 tests, network mocked) + GitHub Actions CI
+  (typecheck → test → build). Publish to npm still TODO (currently `npx github:` install).
 - More FIRMS sources / MODIS false-color option; antimeridian bbox support.
 - Transient-failure retry for the no-key NASA fetches (EONET occasionally throttles under
   hammering). Sub-2-day stats-window guard. Evict images by card, not count.
