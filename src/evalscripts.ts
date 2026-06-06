@@ -36,25 +36,49 @@ const INDEX_BANDS: Record<string, [string, string]> = {
 export const INDEX_NAMES = Object.keys(INDEX_BANDS);
 
 /**
- * Build a FLOAT32 + dataMask stat evalscript for a normalized-difference index.
- *
- * Uses the Sentinel-2 Scene Classification (SCL) band to exclude polluting pixels from the
- * statistics so the numbers are trustworthy:
- *   - always mask defective (1), cloud shadow (3), cloud (8,9), and cirrus (10),
- *   - for vegetation/burn indices also mask open water (6) so seasonal river/lake level
- *     doesn't dilute the result — but NEVER for NDWI, where water is the signal.
+ * The Sentinel-2 Scene Classification (SCL) classes excluded from index statistics, kept
+ * here as the SINGLE source of truth so the evalscript mask and the human-readable
+ * provenance description (src/provenance.ts) can never drift apart.
+ *   - `always` is masked for every index (defective, shadow, cloud, cirrus),
+ *   - `waterForNonWater` (open water, class 6) is additionally masked for vegetation/burn
+ *     indices so seasonal river/lake level doesn't dilute the result — but NEVER for NDWI,
+ *     where water is the signal.
  * Masked pixels become noDataCount, which the tool surfaces as a "% valid" quality flag.
  */
+export const SCL_CLEAR_MASK = {
+  always: [
+    { id: 1, label: "defective" },
+    { id: 3, label: "cloud shadow" },
+    { id: 8, label: "cloud (medium prob.)" },
+    { id: 9, label: "cloud (high prob.)" },
+    { id: 10, label: "thin cirrus" },
+  ],
+  waterForNonWater: { id: 6, label: "open water" },
+} as const;
+
+/** The human-readable SCL classes masked for a given index (drives the provenance block). */
+export function maskedClassesFor(index: string): string[] {
+  const labels = SCL_CLEAR_MASK.always.map((c) => `${c.label} (SCL ${c.id})`);
+  if (index !== "NDWI") {
+    const w = SCL_CLEAR_MASK.waterForNonWater;
+    labels.push(`${w.label} (SCL ${w.id})`);
+  }
+  return labels;
+}
+
+/** Build a FLOAT32 + dataMask stat evalscript for a normalized-difference index. */
 export function statEvalscript(index: string): string {
   const pair = INDEX_BANDS[index];
   if (!pair) throw new Error(`unknown index '${index}'. Options: ${INDEX_NAMES.join(", ")}`);
   const [a, b] = pair;
-  const water = index !== "NDWI" ? " && s.SCL !== 6" : "";
+  const ids: number[] = SCL_CLEAR_MASK.always.map((c) => c.id);
+  if (index !== "NDWI") ids.push(SCL_CLEAR_MASK.waterForNonWater.id);
+  const clear = ids.map((id) => `s.SCL!==${id}`).join(" && ");
   return `//VERSION=3
 function setup(){return {input:[{bands:["${a}","${b}","SCL","dataMask"]}],output:[{id:"data",bands:1,sampleType:"FLOAT32"},{id:"dataMask",bands:1}]}}
 function evaluatePixel(s){
   var v=(s.${a}-s.${b})/(s.${a}+s.${b});
-  var clear=(s.SCL!==1 && s.SCL!==3 && s.SCL!==8 && s.SCL!==9 && s.SCL!==10${water})?1:0;
+  var clear=(${clear})?1:0;
   return {data:[v],dataMask:[s.dataMask*clear]};
 }`;
 }

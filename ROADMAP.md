@@ -113,8 +113,11 @@ All free / low-or-no GPU. Highest-leverage first:
       `eo_index`/`eo_render`/`eo_compare` (big reliability jump over SCL; keep %-valid flag).
 - [ ] **Sentinel-1 SAR** — GRD backscatter render + flood/water mapping (`sar_*` tools).
       The start of all-weather; SAR sees through cloud/smoke/night. (Closes our #1 weakness.)
-- [ ] **Provenance block** on every numeric output (scene IDs, dates, sensor, baseline,
-      mask method, % valid) — reframe outputs as decision-support.
+- [x] **Provenance block** on every numeric/imagery output (data source, sensor/collection,
+      composite window + mosaicking, cloud-mask method + masked SCL classes, % valid,
+      best-effort contributing scene IDs, bbox, retrieved-at, decision-support disclaimer).
+      Shared SCL-mask constant keeps the reported mask honest. In `eo_render`/`eo_index`/
+      `eo_compare` output + dashboard cards. Offline-verified (27 checks); live CDSE deferred.
 - [ ] **Classic change detection** as tools: temporal median compositing, CCDC/BFAST/LandTrendr.
 - [ ] **Consume GFW alerts** (GLAD-L/GLAD-S2/RADD/DIST-ALERT) instead of rebuilding deforestation.
 - [ ] **Internal STAC + COG layer** (Earth Search + Planetary Computer); GEE as research backend.

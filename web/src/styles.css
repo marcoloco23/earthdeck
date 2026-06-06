@@ -165,6 +165,35 @@ body {
 .cmp-pair .card-img { margin-top: 0; }
 .cmp-delta { margin-top: 0.45rem; font-weight: 700; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
 .cmp-delta.down { color: #f87171; }
+
+.card-prov { margin-top: 0.45rem; cursor: default; }
+.card-prov > summary {
+  font-size: 0.64rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+  list-style: none;
+}
+.card-prov > summary::before { content: "▸ "; }
+.card-prov[open] > summary::before { content: "▾ "; }
+.prov-dl {
+  margin: 0.35rem 0 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 0.5rem;
+  row-gap: 0.15rem;
+  font-size: 0.66rem;
+}
+.prov-dl dt { color: var(--muted); }
+.prov-dl dd { margin: 0; color: var(--text); word-break: break-word; }
+.prov-note {
+  margin: 0.4rem 0 0;
+  font-size: 0.64rem;
+  font-style: italic;
+  color: var(--muted);
+  line-height: 1.35;
+}
 .cmp-delta.up { color: #34d399; }
 
 .evt-list { list-style: none; margin: 0.45rem 0 0; padding: 0; font-size: 0.76rem; }

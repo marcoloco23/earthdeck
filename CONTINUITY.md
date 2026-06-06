@@ -10,9 +10,10 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
 
 - Agent read full file: YES
 - Current task understood: YES
-- Current task: **v0.1 shipped (Horizon 0).** Strategy set in [VISION.md](VISION.md);
-  **Horizon 1 is next** (cloud masking upgrade, Sentinel-1 SAR, provenance, AlphaEarth embeddings).
-- Session started: 2026-06-05
+- Current task: **Horizon 1 in progress.** Provenance block shipped (item 3). Next:
+  cloud-masking upgrade (item 1) + Sentinel-1 SAR (item 2) — both need live CDSE creds to
+  verify, which this container lacks. Strategy in [VISION.md](VISION.md).
+- Session started: 2026-06-06 (Session 5)
 
 ---
 
@@ -34,18 +35,25 @@ approval · respect API quotas/ToS · cap image size and always return stats wit
 
 ---
 
-## CURRENT STATE (2026-06-05)
+## CURRENT STATE (2026-06-06)
 
-- Repo at `~/code/tools/overview-mcp`. **Phases 0–3 complete; reviewed, hardened, and
-  live-verified.** All three credentials live in `.env` (gitignored): FIRMS + CDSE.
-- **Seven tools now**: `eo_snapshot`, `events` (zero key); `fires_in` (FIRMS); `eo_render`,
-  `eo_index`, `eo_search`, `eo_compare` (Copernicus Sentinel-2). Build + typecheck green.
-  Dashboard renders imagery overlays, event/fire markers, NDVI index panel, scene lists,
-  and before/after compare cards (all screenshotted). Commits through the Phase 4 commit.
-- Next: **Phase 5 — Polish & ship.** Optional `geo_resolve` (Nominatim, ToS-safe) so tools
-  accept place names; a dashboard design pass (`frontend-design` skill); a README with the
-  free-keys howto + a worked transcript; then push public to GitHub and flip inventions
-  idea 0005 → `shipped`.
+- **v0.1 (Horizon 0) shipped + public.** 8 tools, all live-verified in earlier sessions.
+  Now in **Horizon 1 — Trustworthy analyst**.
+- **This session (5): Provenance block (Horizon 1 item 3).** Every Copernicus output
+  (`eo_render`/`eo_index`/`eo_compare`) now carries a structured `provenance` block — data
+  source, sensor/collection, composite window + mosaicking, cloud-mask method + the exact
+  masked SCL classes, % valid, best-effort contributing scene IDs, bbox, retrieved-at, and a
+  decision-support disclaimer — in the tool output **and** the dashboard cards.
+  New `src/provenance.ts`; SCL masked-class list now a single shared constant in
+  `evalscripts.ts` (`SCL_CLEAR_MASK` + `maskedClassesFor`) so the reported mask can't drift
+  from the applied mask. Build + typecheck green; 27 offline checks pass (incl. byte-identical
+  mask refactor); MCP lists all 8 tools.
+- **This container has NO `.env`/creds and no network to CDSE**, so live API verification of
+  imagery/stats is deferred. The provenance work is pure, fully offline-verifiable logic.
+- Next (need live CDSE creds to verify): **cloud-masking upgrade** (Cloud Score+ /
+  s2cloudless / OmniCloudMask, Horizon 1 item 1 — highest leverage) and **Sentinel-1 SAR**
+  (item 2). The shared mask constant + provenance `cloudMask.method` field are already set up
+  to make the masking upgrade a localized change.
 
 ## TASK QUEUE
 
@@ -55,14 +63,16 @@ Phase 2 — Fires: ✅ done + live-verified (133 real detections, Western US)
 Phase 3 — Copernicus core: ✅ done + live-verified (Sentinel-2 render + NDVI 0.279 + search)
 Phase 4 — Change detection: ✅ done + live-verified (São Félix do Xingu NDVI −0.146, 2019→2025)
 
-Phase 5 — Polish & ship (current):
-- [x] `geo_resolve(place)` via OSM Nominatim — live-verified (Manaus → bbox).
-- [x] README + `.env.example`.
-- [~] Dashboard design pass — already polished; skipped full redesign.
-- [ ] **Push public to GitHub** — awaiting user confirmation (repo name/visibility).
-- [ ] Flip inventions idea 0005 → `shipped`; log a note.
+Phases 0–5 (Horizon 0): ✅ done + shipped public. 8 tools, all live-verified.
 
-8 tools total now (added `geo_resolve`). Build + typecheck green.
+Horizon 1 — Trustworthy analyst (current):
+- [x] **Provenance block** on every numeric/imagery output (this session) — offline-verified.
+- [ ] **Better cloud masking** (item 1, highest leverage) — Cloud Score+ / s2cloudless /
+      OmniCloudMask behind `eo_index`/`eo_render`/`eo_compare`. ⚠️ needs live CDSE to verify.
+- [ ] **Sentinel-1 SAR** (item 2) — GRD backscatter render + flood/water mapping. ⚠️ needs creds.
+- [ ] Classic change detection · consume GFW alerts · internal STAC+COG layer (see ROADMAP).
+
+8 tools total. Build + typecheck green.
 
 Useful test fixtures: Amazon near Manaus bbox `[-60.2,-3.3,-59.8,-2.9]`; events smoke
 returns Tropical Storm Amanda. Run the dashboard on a non-default port to avoid clashes:
@@ -72,6 +82,24 @@ returns Tropical Storm Amanda. Run the dashboard on a non-default port to avoid 
 ---
 
 ## SESSION LOG
+
+### 2026-06-06 — Session 5 (Horizon 1: provenance block)
+- First Horizon 1 step. Chose the **provenance block** (item 3) because it's the
+  highest-leverage item that's **fully offline-verifiable** — this container has no CDSE
+  creds, so the cloud-masking (item 1) and SAR (item 2) upgrades can't be live-verified yet.
+- New `src/provenance.ts`: `Provenance` type + `s2Provenance({kind:"stats"|"image",…})`.
+  Extracted the SCL masked-class list into one shared `SCL_CLEAR_MASK` constant +
+  `maskedClassesFor()` in `evalscripts.ts`, and rebuilt `statEvalscript` from it — so the
+  provenance description and the applied mask share one source of truth (verified
+  byte-identical to the old hardcoded condition).
+- Wired provenance into `eo_render` (image), `eo_index` (stats), `eo_compare` (per-date) —
+  in the tool text/meta AND the card payload. Contributing scene IDs are a **best-effort**
+  catalog lookup (free metadata, runs in parallel, 4s-timeout + swallow → never blocks/breaks
+  a tool). Dashboard cards gained a safe, collapsible provenance footer (`web/src/cards.ts` +
+  CSS), built via DOM nodes/textContent (scene ids come from upstream).
+- Verified: `tsc` + `vite build` green; 27 offline checks pass (mask integrity + provenance
+  shapes); MCP lists all 8 tools. Live CDSE imagery/stats verification deferred to a session
+  with creds.
 
 ### 2026-06-05 — Session 4 (Phase 4 change detection)
 - Extended the card model to carry multiple images (`IngestPayload.images` /

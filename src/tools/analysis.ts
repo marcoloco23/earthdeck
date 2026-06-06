@@ -1,8 +1,9 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { getCopernicus } from "../clients/copernicus.js";
+import { CopernicusClient, getCopernicus, type SceneInfo } from "../clients/copernicus.js";
 import { INDEX_NAMES, RENDER_EVALSCRIPTS, statEvalscript } from "../evalscripts.js";
 import { pushCard } from "../dashboard/push.js";
+import { s2Provenance } from "../provenance.js";
 import { imageResult, safe, safeResult } from "../result.js";
 import type { BBox } from "../types.js";
 import { addDays, clampWidth, heightFor, isoDate, newId, nowIso } from "../util.js";
@@ -12,6 +13,30 @@ const bboxSchema = z
   .describe("Bounding box [west, south, east, north] in degrees (EPSG:4326)");
 
 const RENDER_VIEWS = Object.keys(RENDER_EVALSCRIPTS) as [string, ...string[]];
+
+/**
+ * Best-effort: list the scenes that fed a composite, for the provenance block. The catalog
+ * search is free metadata (no processing units), runs in parallel with the main call, and is
+ * capped + swallowed so a slow/failed lookup never blocks or breaks the tool.
+ */
+async function scenesFor(
+  client: CopernicusClient,
+  box: BBox,
+  from: string,
+  to: string,
+): Promise<SceneInfo[] | undefined> {
+  try {
+    return await Promise.race([
+      client.search(box, { dateFrom: from, dateTo: to, limit: 8 }),
+      new Promise<never>((_, reject) => {
+        const t = setTimeout(() => reject(new Error("scene lookup timeout")), 4000);
+        if (typeof t.unref === "function") t.unref();
+      }),
+    ]);
+  } catch {
+    return undefined;
+  }
+}
 
 /** Register Copernicus Sentinel-2 tools: eo_render, eo_index, eo_search. Need CDSE creds. */
 export function registerAnalysisTools(server: McpServer): void {
@@ -43,28 +68,33 @@ export function registerAnalysisTools(server: McpServer): void {
         const dateFrom = addDays(dateTo, -(windowDays ?? 14));
         const w = clampWidth(width ?? 1024);
         const h = heightFor(box, w);
-        const png = await client.process(box, {
-          dateFrom,
-          dateTo,
-          evalscript: RENDER_EVALSCRIPTS[v]!,
-          width: w,
-          height: h,
-          maxCloud,
-        });
+        const [png, scenes] = await Promise.all([
+          client.process(box, {
+            dateFrom,
+            dateTo,
+            evalscript: RENDER_EVALSCRIPTS[v]!,
+            width: w,
+            height: h,
+            maxCloud,
+          }),
+          scenesFor(client, box, dateFrom, dateTo),
+        ]);
         const dataBase64 = png.toString("base64");
+        const provenance = s2Provenance({ bbox: box, from: dateFrom, to: dateTo, kind: "image", scenes });
         const meta = {
           source: "Copernicus Sentinel-2 L2A",
           view: v,
           window: { from: dateFrom, to: dateTo },
           bbox: box,
           dimensions: { width: w, height: h },
+          provenance,
           dashboard: (await pushCard({
             id: newId(),
             type: "imagery",
             ts: nowIso(),
             title: `Sentinel-2 ${v} · ${dateFrom}…${dateTo}`,
             bbox: box,
-            payload: { source: "Copernicus Sentinel-2 L2A", view: v },
+            payload: { source: "Copernicus Sentinel-2 L2A", view: v, provenance },
             image: { mimeType: "image/png", dataBase64 },
           }))
             ? "pushed"
@@ -97,10 +127,18 @@ export function registerAnalysisTools(server: McpServer): void {
         const idx = index ?? "NDVI";
         const dateTo = date ?? isoDate(0);
         const dateFrom = addDays(dateTo, -(windowDays ?? 30));
-        const stats = await client.statistics(box, {
-          dateFrom,
-          dateTo,
-          evalscript: statEvalscript(idx),
+        const [stats, scenes] = await Promise.all([
+          client.statistics(box, { dateFrom, dateTo, evalscript: statEvalscript(idx) }),
+          scenesFor(client, box, dateFrom, dateTo),
+        ]);
+        const provenance = s2Provenance({
+          bbox: box,
+          from: dateFrom,
+          to: dateTo,
+          kind: "stats",
+          index: idx,
+          validPct: stats.validPct,
+          scenes,
         });
         const pushed = await pushCard({
           id: newId(),
@@ -108,12 +146,13 @@ export function registerAnalysisTools(server: McpServer): void {
           ts: nowIso(),
           title: `${idx} · mean ${stats.mean.toFixed(3)} · ${dateFrom}…${dateTo}`,
           bbox: box,
-          payload: { index: idx, stats, window: { from: dateFrom, to: dateTo } },
+          payload: { index: idx, stats, window: { from: dateFrom, to: dateTo }, provenance },
         });
         return {
           index: idx,
           window: { from: dateFrom, to: dateTo },
           stats,
+          provenance,
           dashboard: pushed ? "pushed" : "dashboard offline",
         };
       }),
@@ -150,9 +189,13 @@ export function registerAnalysisTools(server: McpServer): void {
 
         const one = async (date: string) => {
           const from = addDays(date, -win);
-          const png = await client.process(box, { dateFrom: from, dateTo: date, evalscript: RENDER_EVALSCRIPTS[v]!, width: w, height: h });
-          const stats = await client.statistics(box, { dateFrom: from, dateTo: date, evalscript: statEvalscript(idx) });
-          return { date, from, b64: png.toString("base64"), stats };
+          const [png, stats, scenes] = await Promise.all([
+            client.process(box, { dateFrom: from, dateTo: date, evalscript: RENDER_EVALSCRIPTS[v]!, width: w, height: h }),
+            client.statistics(box, { dateFrom: from, dateTo: date, evalscript: statEvalscript(idx) }),
+            scenesFor(client, box, from, date),
+          ]);
+          const provenance = s2Provenance({ bbox: box, from, to: date, kind: "stats", index: idx, validPct: stats.validPct, scenes });
+          return { date, from, b64: png.toString("base64"), stats, provenance };
         };
         const [a, b] = await Promise.all([one(dateA), one(dateB)]);
 
@@ -176,6 +219,8 @@ export function registerAnalysisTools(server: McpServer): void {
             statsA: a.stats,
             statsB: b.stats,
             delta,
+            provenanceA: a.provenance,
+            provenanceB: b.provenance,
           },
           images: [
             { mimeType: "image/png", dataBase64: a.b64 },
@@ -196,6 +241,8 @@ export function registerAnalysisTools(server: McpServer): void {
           validPctA: a.stats.validPct,
           validPctB: b.stats.validPct,
           delta,
+          provenanceA: a.provenance,
+          provenanceB: b.provenance,
           interpretation:
             `${idx} mean ${dir}d by ${Math.abs(delta.meanChange).toFixed(3)} from ${dateA} to ${dateB}` +
             ` (clear pixels: ${a.stats.validPct}% / ${b.stats.validPct}% after cloud+water masking).` +

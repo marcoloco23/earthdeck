@@ -5,6 +5,43 @@ status, next priorities. The live task pointer is in [CONTINUITY.md](CONTINUITY.
 
 ---
 
+## Session: 2026-06-06 (Horizon 1 — provenance block) ✅
+
+**Focus**: First Horizon 1 step — make every Copernicus output decision-support by attaching
+a structured **provenance block** (VISION §5.4 "verification by default"; ROADMAP Horizon 1
+item 3).
+
+**Why this item first**: this container has no CDSE creds/network, so the cloud-masking
+upgrade (item 1) and Sentinel-1 SAR (item 2) can't be live-verified — and the project's
+discipline is "build → live-verify against real APIs". Provenance is the highest-leverage
+item that is **fully offline-verifiable** (pure logic over known parameters).
+
+**Done**:
+- [x] New `src/provenance.ts`: `Provenance` type + `s2Provenance({bbox,from,to,kind,index,
+      validPct,scenes})` builder. `kind:"stats"` (masked composite → lists excluded SCL
+      classes + % valid) vs `kind:"image"` (least-cloudy mosaic, not per-pixel masked).
+- [x] Extracted the SCL masked-class list into one shared `SCL_CLEAR_MASK` constant +
+      `maskedClassesFor()` in `evalscripts.ts`; rebuilt `statEvalscript` from it so the
+      reported mask can't drift from the applied mask (verified byte-identical to the old
+      hardcoded condition).
+- [x] Wired provenance into `eo_render`/`eo_index`/`eo_compare` (tool text + card payload).
+      Contributing scene IDs via a **best-effort** parallel catalog lookup (free metadata;
+      4 s timeout + try/catch → never blocks or breaks the tool, mirroring the dashboard-push
+      rule).
+- [x] Dashboard: safe collapsible provenance footer on imagery/index/compare cards
+      (`web/src/cards.ts` + CSS), built via DOM nodes/textContent (scene ids are upstream).
+
+**Build/smoke**: `tsc` + `vite build` green; 27 offline checks pass (mask integrity incl.
+NDWI-keeps-water, byte-identical refactor, provenance shapes for both kinds); MCP server
+lists all 8 tools. **Live CDSE imagery/stats verification deferred** (no creds in this
+container).
+
+**Next**: cloud-masking upgrade (Cloud Score+ / s2cloudless / OmniCloudMask — item 1) and
+Sentinel-1 SAR (item 2). Both need live CDSE creds to verify. The shared mask constant +
+`provenance.cloudMask.method` field are set up to make the masking upgrade localized.
+
+---
+
 ## Session: 2026-06-05 (final deep review + full E2E) ✅
 
 **Focus**: Independent deep review of the shipped code + end-to-end test of everything.

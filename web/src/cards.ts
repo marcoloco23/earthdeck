@@ -23,6 +23,59 @@ function timeOf(iso: string): string {
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString();
 }
 
+interface ProvenanceView {
+  sensor?: string;
+  composite?: { from?: string; to?: string; mosaicking?: string };
+  cloudMask?: { method?: string; excludedClasses?: string[]; validPct?: number };
+  scenes?: Array<{ id?: string; datetime?: string; cloudCover?: number | null }>;
+  disclaimer?: string;
+}
+
+/**
+ * A collapsible provenance footer. Built entirely from DOM nodes + textContent (never
+ * innerHTML) since some fields (scene ids) originate from the upstream API.
+ */
+function renderProvenance(prov: ProvenanceView, label?: string): HTMLElement {
+  const det = document.createElement("details");
+  det.className = "card-prov";
+  det.addEventListener("click", (e) => e.stopPropagation()); // expanding shouldn't focus the card
+  const sum = document.createElement("summary");
+  sum.textContent = label ? `provenance · ${label}` : "provenance";
+  det.appendChild(sum);
+
+  const dl = document.createElement("dl");
+  dl.className = "prov-dl";
+  const row = (k: string, v: string): void => {
+    if (!v) return;
+    const dt = document.createElement("dt");
+    dt.textContent = k;
+    const dd = document.createElement("dd");
+    dd.textContent = v;
+    dl.append(dt, dd);
+  };
+  row("sensor", prov.sensor ?? "");
+  if (prov.composite) {
+    row("composite", `${prov.composite.from ?? "?"} … ${prov.composite.to ?? "?"} (${prov.composite.mosaicking ?? "leastCC"})`);
+  }
+  if (prov.cloudMask) {
+    row("cloud mask", prov.cloudMask.method ?? "");
+    if (typeof prov.cloudMask.validPct === "number") row("valid pixels", `${prov.cloudMask.validPct}%`);
+    if (prov.cloudMask.excludedClasses?.length) row("excluded", prov.cloudMask.excludedClasses.join(", "));
+  }
+  if (prov.scenes?.length) {
+    const ids = prov.scenes.map((s) => (s.datetime || s.id || "").slice(0, 10)).filter(Boolean);
+    row("scenes", ids.join(", "));
+  }
+  det.appendChild(dl);
+  if (prov.disclaimer) {
+    const note = document.createElement("p");
+    note.className = "prov-note";
+    note.textContent = prov.disclaimer;
+    det.appendChild(note);
+  }
+  return det;
+}
+
 /** Build the DOM node for a card in the feed. Newest cards are prepended by the caller. */
 export function renderCard(card: Card, onFocus: (card: Card) => void): HTMLElement {
   const t = safeType(card.type);
@@ -138,6 +191,14 @@ export function renderCard(card: Card, onFocus: (card: Card) => void): HTMLEleme
     }
     el.appendChild(list);
   }
+
+  // Provenance footer(s): single block for imagery/index, before/after pair for compare.
+  const prov = card.payload.provenance as ProvenanceView | undefined;
+  if (prov) el.appendChild(renderProvenance(prov));
+  const provA = card.payload.provenanceA as ProvenanceView | undefined;
+  const provB = card.payload.provenanceB as ProvenanceView | undefined;
+  if (provA) el.appendChild(renderProvenance(provA, String(card.payload.dateA ?? "A")));
+  if (provB) el.appendChild(renderProvenance(provB, String(card.payload.dateB ?? "B")));
 
   if (card.bbox) {
     const bb = document.createElement("div");
