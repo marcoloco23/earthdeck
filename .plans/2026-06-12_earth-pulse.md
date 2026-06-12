@@ -4,7 +4,7 @@
 
 ## Goal
 
-Grow overview-mcp from "satellite imagery + events" into the **data layer for the Earth
+Grow earthdeck from "satellite imagery + events" into the **data layer for the Earth
 system**: ocean temperatures over time (El Niño tracking), CO₂, the global temperature
 record, sea ice, earthquakes, air quality, river discharge, and per-place climate history —
 all free/no-key, all with **historic time series** (trends matter), all visualized on the

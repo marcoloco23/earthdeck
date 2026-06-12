@@ -1,4 +1,4 @@
-# overview-mcp
+# earthdeck
 
 **Give Claude eyes on Earth.** An [MCP](https://modelcontextprotocol.io) server plus a live
 mission-control dashboard — **the data layer for the Earth system**, over free, open data.
@@ -17,7 +17,7 @@ dashboard lights up with what it's seeing.
 ## Try it in 30 seconds (zero keys, zero config)
 
 ```bash
-npx -y overview-mcp demo
+npx -y earthdeck demo
 ```
 
 That's it. A dashboard opens in your browser and fills with the planet, live: CO₂, global
@@ -28,7 +28,7 @@ no config file. (Needs Node ≥ 20.)
 ## Use it from Claude (one command)
 
 ```bash
-claude mcp add overview -- npx -y overview-mcp
+claude mcp add earthdeck -- npx -y earthdeck
 ```
 
 Then just ask: *"What's the state of the planet right now?"* · *"Is El Niño coming?"* ·
@@ -65,6 +65,7 @@ Then just ask: *"What's the state of the planet right now?"* · *"Is El Niño co
 | `climate_history` | How a place's climate changed: ERA5 temperature/precip/wind, annual trend per decade | 1940→ |
 | `air_quality` | PM2.5 / PM10 / O₃ / NO₂ / US AQI for any point (Copernicus CAMS), WHO-guideline flags | 48 h |
 | `river_discharge` | Daily river flow at any point (GloFAS) — flood/drought signal vs the period mean | 1984→ |
+| `earthdata_search` | Discover datasets across NASA's full Earth-science archive (~50k collections, CMR) by topic/bbox/time | catalog |
 
 The Earth is one interconnected system — and these tools are built to be cross-referenced:
 ENSO ↔ fires, floods and SST anomalies; river discharge ↔ SAR flood mapping; climate trends
@@ -80,7 +81,7 @@ planetary-indicator tools) work with no setup at all.
 
 ## Setup details
 
-Want the dashboard alongside Claude? Run `npx -y overview-mcp dashboard`
+Want the dashboard alongside Claude? Run `npx -y earthdeck dashboard`
 in a second terminal and watch the map light up as Claude works (it's optional — tools
 behave identically without it).
 
@@ -90,9 +91,9 @@ behave identically without it).
 ```json
 {
   "mcpServers": {
-    "overview": {
+    "earthdeck": {
       "command": "npx",
-      "args": ["-y", "overview-mcp"]
+      "args": ["-y", "earthdeck"]
     }
   }
 }
@@ -102,7 +103,7 @@ behave identically without it).
 
 ## Unlock the satellite tools (2 free keys, ~5 minutes)
 
-14 of the 22 tools need nothing. The rest want free credentials:
+15 of the 23 tools need nothing. The rest want free credentials:
 
 | Key | Unlocks | How to get it |
 | --- | --- | --- |
@@ -112,14 +113,14 @@ behave identically without it).
 Pass them where your MCP client expects env vars, e.g.:
 
 ```bash
-claude mcp add overview -e FIRMS_MAP_KEY=xxx -e CDSE_CLIENT_ID=xxx -e CDSE_CLIENT_SECRET=xxx \
-  -- npx -y overview-mcp
+claude mcp add earthdeck -e FIRMS_MAP_KEY=xxx -e CDSE_CLIENT_ID=xxx -e CDSE_CLIENT_SECRET=xxx \
+  -- npx -y earthdeck
 ```
 
 Then verify everything in one shot:
 
 ```bash
-npx -y overview-mcp doctor
+npx -y earthdeck doctor
 ```
 
 ```
@@ -127,11 +128,21 @@ npx -y overview-mcp doctor
   Optional keys:
     ✓ Copernicus CDSE   OAuth token OK
     ✓ NASA FIRMS        key valid (0/5000 transactions used)
-  All zero-key sources reachable — 22/22 tools ready to use.
+  All zero-key sources reachable — 23/23 tools ready to use.
 ```
 
 `doctor` checks every upstream source and tells you exactly what's ready and what's missing
 (with the link to fix it). See [.env.example](.env.example) for all variables.
+
+### Goes well with: NASA's Earthdata MCP
+
+earthdeck's `earthdata_search` discovers datasets across NASA's catalog; for granule-level
+file search, variables, and citations, NASA hosts its own MCP server over the same catalog —
+the two compose nicely (NASA's finds the files, earthdeck analyzes the world):
+
+```bash
+claude mcp add --transport http earthdata https://cmr.earthdata.nasa.gov/mcp/v1
+```
 
 ## The dashboard
 

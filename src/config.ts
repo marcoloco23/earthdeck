@@ -1,20 +1,25 @@
 // Centralized environment configuration.
 
-export const SERVER_NAME = "overview-mcp";
-export const SERVER_VERSION = "0.2.0";
+export const SERVER_NAME = "earthdeck";
+export const SERVER_VERSION = "0.3.1";
 
 /** Descriptive User-Agent — required/encouraged by NASA and Nominatim. */
 export const USER_AGENT =
-  "overview-mcp/0.2.0 (+https://github.com/marcoloco23/overview-mcp)";
+  "earthdeck/0.3.1 (+https://github.com/marcoloco23/earthdeck)";
+
+/** EARTHDECK_* is the documented prefix; OVERVIEW_* still works (pre-rename installs). */
+function env(name: string): string | undefined {
+  return process.env[`EARTHDECK_${name}`] ?? process.env[`OVERVIEW_${name}`];
+}
 
 /** Where tools push dashboard cards. */
 export function dashboardUrl(): string {
-  return process.env.OVERVIEW_DASHBOARD_URL ?? `http://127.0.0.1:${dashboardPort()}`;
+  return env("DASHBOARD_URL") ?? `http://127.0.0.1:${dashboardPort()}`;
 }
 
 /** Port the dashboard server listens on. */
 export function dashboardPort(): number {
-  const raw = process.env.OVERVIEW_DASHBOARD_PORT;
+  const raw = env("DASHBOARD_PORT");
   const n = raw ? Number.parseInt(raw, 10) : NaN;
   return Number.isFinite(n) ? n : 5005;
 }
@@ -42,5 +47,5 @@ export function firmsMapKey(): string | null {
  * which is anonymous (no key). Override to swap in Planetary Computer or a self-hosted STAC.
  */
 export function stacUrl(): string {
-  return process.env.OVERVIEW_STAC_URL ?? "https://earth-search.aws.element84.com/v1";
+  return env("STAC_URL") ?? "https://earth-search.aws.element84.com/v1";
 }

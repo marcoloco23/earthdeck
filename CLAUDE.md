@@ -1,4 +1,4 @@
-# CLAUDE.md — overview-mcp
+# CLAUDE.md — earthdeck
 
 > Agent reference for this repo. **If you are picking up work, read
 > [CONTINUITY.md](CONTINUITY.md) FIRST** — it holds the current task and the
@@ -6,7 +6,7 @@
 
 ## What this is
 
-`overview-mcp` is **the data layer for the Earth system**: an MCP server plus a **live
+`earthdeck` is **the data layer for the Earth system**: an MCP server plus a **live
 mission-control dashboard**, over free, open data. Two tool families:
 
 - **Earth observation** — pull satellite imagery for any place/date; compute vegetation/
@@ -26,7 +26,7 @@ so you watch the map light up as Claude works.
 ## Architecture
 
 ```
-  Claude Code  ──stdio──►  overview-mcp (MCP server, src/index.ts)
+  Claude Code  ──stdio──►  earthdeck (MCP server, src/index.ts)
                                 │  tool: call open API → return to Claude
                                 │  AND best-effort POST a card (src/dashboard/push.ts) ↓
                                 ▼
@@ -39,8 +39,8 @@ so you watch the map light up as Claude works.
 ```
 
 One package, two commands (dispatched in `src/cli.ts`):
-- `overview-mcp` → stdio MCP server (what Claude Code launches).
-- `overview-mcp dashboard` → dashboard server + serves the built UI (default `:5005`).
+- `earthdeck` → stdio MCP server (what Claude Code launches).
+- `earthdeck dashboard` → dashboard server + serves the built UI (default `:5005`).
 
 ## Commands
 
@@ -81,8 +81,8 @@ test → build on every push/PR.
 | --- | --- | --- |
 | `CDSE_CLIENT_ID` / `CDSE_CLIENT_SECRET` | `eo_search`, `eo_render`, `eo_index`, `eo_compare` | Free Copernicus Data Space OAuth client |
 | `FIRMS_MAP_KEY` | `fires_in` | Free NASA FIRMS map key |
-| `OVERVIEW_DASHBOARD_URL` | card push target | default `http://127.0.0.1:5005` |
-| `OVERVIEW_DASHBOARD_PORT` | dashboard server | default `5005` |
+| `EARTHDECK_DASHBOARD_URL` | card push target | default `http://127.0.0.1:5005` |
+| `EARTHDECK_DASHBOARD_PORT` | dashboard server | default `5005` |
 
 **`eo_snapshot` and `events` need zero keys** — the zero-setup demo path.
 

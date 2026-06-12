@@ -1,32 +1,42 @@
 {
-  "name": "overview-mcp",
-  "version": "0.2.0",
-  "description": "Earth-observation MCP server + live mission-control dashboard. Give Claude eyes on Earth: pull satellite imagery, compute vegetation/water/burn indices, surface live wildfires and disasters, and diff a place across time — over free, open Copernicus and NASA data.",
+  "name": "earthdeck",
+  "version": "0.3.1",
+  "description": "The Earth-system data layer: an MCP server + live mission-control dashboard over free, open data. Satellite imagery, NDVI, SAR flood mapping, wildfires, El Niño tracking, ocean temperatures, CO₂, the global temperature record, sea ice, earthquakes, air quality, climate history — with trends, charts, and provenance. Zero-key demo: `npx earthdeck demo`.",
   "license": "MIT",
   "author": "marcoloco23",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/marcoloco23/overview-mcp.git"
+    "url": "git+https://github.com/marcoloco23/earthdeck.git"
   },
-  "homepage": "https://github.com/marcoloco23/overview-mcp#readme",
-  "bugs": "https://github.com/marcoloco23/overview-mcp/issues",
+  "homepage": "https://github.com/marcoloco23/earthdeck#readme",
+  "bugs": "https://github.com/marcoloco23/earthdeck/issues",
   "keywords": [
     "mcp",
     "model-context-protocol",
     "claude",
+    "earth",
     "satellite",
     "earth-observation",
     "remote-sensing",
     "sentinel",
     "copernicus",
     "nasa",
+    "noaa",
+    "climate",
+    "el-nino",
+    "enso",
+    "co2",
+    "sea-ice",
+    "earthquakes",
     "ndvi",
+    "sar",
     "wildfire",
     "dashboard"
   ],
   "type": "module",
   "main": "dist/index.js",
   "bin": {
+    "earthdeck": "dist/cli.js",
     "overview-mcp": "dist/cli.js"
   },
   "files": [

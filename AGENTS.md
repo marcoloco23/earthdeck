@@ -1,4 +1,4 @@
-# AGENTS.md — overview-mcp
+# AGENTS.md — earthdeck
 
 Generic agent guidance. For the full reference see [CLAUDE.md](CLAUDE.md); for the live
 task state read [CONTINUITY.md](CONTINUITY.md) **first**.

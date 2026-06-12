@@ -1,4 +1,4 @@
-# VISION — overview-mcp → the open AI Earth-observation analyst
+# VISION — earthdeck → the open AI Earth-observation analyst
 
 > **Status:** north-star + multi-year roadmap (drafted 2026-06-05). This is the strategic
 > plan we iterate against over the next 1–2 years and steer by over ~5. The near-term,
@@ -14,7 +14,7 @@
 at this place, and is it real?" into a cited, defensible answer — and let the accumulated
 record of those answers become the moat.**
 
-Today `overview-mcp` is a capable demo: 8 tools that fetch imagery, indices, fires, events,
+Today `earthdeck` is a capable demo: 8 tools that fetch imagery, indices, fires, events,
 and a 2-date change comparison, streamed to a live dashboard. That's the *doorway*. The
 product is the **analyst and the monitoring system of record** behind it.
 

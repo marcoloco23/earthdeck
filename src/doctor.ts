@@ -1,4 +1,4 @@
-// `overview-mcp doctor` — setup checker. Verifies Node, env keys, and live reachability of
+// `earthdeck doctor` — setup checker. Verifies Node, env keys, and live reachability of
 // every upstream data source, then says exactly which tool families are ready and how to
 // unlock the rest. Friendly output, no jargon, exits 0 unless a zero-key source is down.
 
@@ -22,6 +22,7 @@ const ZERO_KEY_CHECKS: Check[] = [
   { name: "NSIDC (sea_ice)", url: "https://noaadata.apps.nsidc.org/NOAA/G02135/north/daily/data/" },
   { name: "ERDDAP OISST (ocean_temp)", url: "https://coastwatch.pfeg.noaa.gov/erddap/griddap/index.html", anyResponse: true },
   { name: "USGS (quakes)", url: "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&limit=1" },
+  { name: "NASA CMR (earthdata_search)", url: "https://cmr.earthdata.nasa.gov/search/collections.json?keyword=test&page_size=1" },
   { name: "Open-Meteo (climate/air/river)", url: "https://archive-api.open-meteo.com/v1/archive?latitude=0&longitude=0&start_date=2024-01-01&end_date=2024-01-01&daily=temperature_2m_mean" },
 ];
 
@@ -96,7 +97,7 @@ async function probeFirms(): Promise<{ ok: boolean; detail: string }> {
 
 export async function runDoctor(): Promise<void> {
   out("");
-  out(`  overview-mcp doctor — v${SERVER_VERSION}, node ${process.version}`);
+  out(`  earthdeck doctor — v${SERVER_VERSION}, node ${process.version}`);
   out("");
 
   out("  Zero-key data sources (events, stac_search, geo_resolve, eo_snapshot + all 10 planetary indicators):");
@@ -131,13 +132,13 @@ export async function runDoctor(): Promise<void> {
   }
 
   out("");
-  const readyTools = 14 + (cdse.ok ? 7 : 0) + (firms.ok ? 1 : 0);
+  const readyTools = 15 + (cdse.ok ? 7 : 0) + (firms.ok ? 1 : 0);
   out(
     zeroKeyDown === 0
-      ? `  All zero-key sources reachable — ${readyTools}/22 tools ready to use.`
+      ? `  All zero-key sources reachable — ${readyTools}/23 tools ready to use.`
       : `  ⚠️ ${zeroKeyDown} zero-key source(s) unreachable (network/proxy?) — some tools will fail.`,
   );
-  out("  Try it now:  npx -y overview-mcp demo");
+  out("  Try it now:  npx -y earthdeck demo");
   out("");
   if (zeroKeyDown > 0) process.exitCode = 1;
 }

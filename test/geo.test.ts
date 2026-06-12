@@ -23,7 +23,7 @@ test("geocode maps Nominatim boundingbox [S,N,W,E] to our bbox [W,S,E,N]", async
 
   // Sends a descriptive User-Agent (Nominatim ToS) and limit=1.
   const call = fetchMock.calls[0]!;
-  assert.match(call.headers["user-agent"] ?? "", /overview-mcp/);
+  assert.match(call.headers["user-agent"] ?? "", /earthdeck/);
   assert.ok(new URL(call.url).searchParams.get("q") === "Manaus, Brazil");
   assert.equal(new URL(call.url).searchParams.get("limit"), "1");
 });

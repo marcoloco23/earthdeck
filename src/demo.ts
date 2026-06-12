@@ -1,4 +1,4 @@
-// `overview-mcp demo` — the zero-setup wow path. Starts the dashboard, runs the real MCP
+// `earthdeck demo` — the zero-setup wow path. Starts the dashboard, runs the real MCP
 // server in-process (in-memory transport, no stdio), and calls the zero-key tools so the
 // map lights up with live planet data. No keys, no config, one command.
 
@@ -25,10 +25,10 @@ const out = (s: string) => process.stdout.write(s + "\n");
 export async function runDemo(): Promise<void> {
   const port = dashboardPort();
   const url = `http://127.0.0.1:${port}`;
-  process.env.OVERVIEW_DASHBOARD_URL = url; // tools push to the dashboard we just started
+  process.env.EARTHDECK_DASHBOARD_URL = url; // tools push to the dashboard we just started
 
   out("");
-  out("  overview-mcp demo — live Earth data, zero keys");
+  out("  earthdeck demo — live Earth data, zero keys");
   out("");
   startDashboard(port);
   openBrowser(url);
@@ -37,7 +37,7 @@ export async function runDemo(): Promise<void> {
 
   const server = buildServer();
   const [serverT, clientT] = InMemoryTransport.createLinkedPair();
-  const client = new Client({ name: "overview-demo", version: "0.0.0" });
+  const client = new Client({ name: "earthdeck-demo", version: "0.0.0" });
   await Promise.all([server.connect(serverT), client.connect(clientT)]);
 
   // Zero-key calls only, ordered so the most striking cards land last (feed shows newest first).
@@ -63,8 +63,8 @@ export async function runDemo(): Promise<void> {
   out("");
   out("  That's the planet right now — charts, quakes, and vital signs on the map.");
   out("  Next steps:");
-  out("    • Use it from Claude:  claude mcp add overview -- npx -y overview-mcp");
-  out("    • Check your setup:    npx -y overview-mcp doctor");
+  out("    • Use it from Claude:  claude mcp add earthdeck -- npx -y earthdeck");
+  out("    • Check your setup:    npx -y earthdeck doctor");
   out("    • Free keys for satellite imagery + fires: see README → 'Free keys'");
   out("");
   out("  Ctrl+C to stop.");

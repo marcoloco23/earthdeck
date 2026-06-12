@@ -12,7 +12,7 @@ function main(): void {
   const cmd = process.argv[2];
 
   if (cmd === "dashboard") {
-    // Optional explicit port: `overview-mcp dashboard 5005`
+    // Optional explicit port: `earthdeck dashboard 5005`
     const portArg = process.argv[3];
     const port = portArg ? Number.parseInt(portArg, 10) : dashboardPort();
     startDashboard(Number.isFinite(port) ? port : dashboardPort());
@@ -33,17 +33,17 @@ function main(): void {
   if (cmd === "--help" || cmd === "-h" || cmd === "help") {
     process.stdout.write(
       [
-        "overview-mcp — the Earth-system data layer: MCP server + live dashboard",
+        "earthdeck — the Earth-system data layer: MCP server + live dashboard",
         "",
         "Usage:",
-        "  overview-mcp              start the MCP server on stdio (for Claude Code/Desktop)",
-        "  overview-mcp demo         ★ zero-key demo: dashboard + live planet data, one command",
-        "  overview-mcp doctor       check your setup (env keys + data-source reachability)",
-        "  overview-mcp dashboard    start the dashboard server (default :5005)",
-        "  overview-mcp dashboard <port>",
+        "  earthdeck              start the MCP server on stdio (for Claude Code/Desktop)",
+        "  earthdeck demo         ★ zero-key demo: dashboard + live planet data, one command",
+        "  earthdeck doctor       check your setup (env keys + data-source reachability)",
+        "  earthdeck dashboard    start the dashboard server (default :5005)",
+        "  earthdeck dashboard <port>",
         "",
         "Env (all optional): CDSE_CLIENT_ID, CDSE_CLIENT_SECRET, FIRMS_MAP_KEY,",
-        "                    OVERVIEW_DASHBOARD_URL, OVERVIEW_DASHBOARD_PORT",
+        "                    EARTHDECK_DASHBOARD_URL, EARTHDECK_DASHBOARD_PORT, EARTHDECK_STAC_URL",
         "",
       ].join("\n"),
     );

@@ -1,7 +1,35 @@
-# PROGRESS — overview-mcp
+# PROGRESS — earthdeck
 
 Session-by-session history, newest first. Each entry: focus, what got done, build/smoke
 status, next priorities. The live task pointer is in [CONTINUITY.md](CONTINUITY.md).
+
+---
+
+## Session: 2026-06-12 (later) — npm · rename to earthdeck · s2cloudless masking · NASA CMR ✅
+
+**Focus**: ship the simple-setup story end-to-end (npm), give the project a findable name,
+land Horizon 1's cloud-masking upgrade, and integrate NASA's Earthdata catalog.
+
+**Done**:
+- [x] **Published to npm**: `overview-mcp@0.2.0`, then renamed → **`earthdeck`** (user-picked
+      from vetted options; zero collisions on npm + GitHub). GitHub repo renamed (redirects);
+      `overview-mcp` deprecated with a pointer; `overview-mcp` bin alias kept. `npx -y
+      earthdeck` installs instantly (prebuilt dist). Env prefix `EARTHDECK_*` (+ `OVERVIEW_*`
+      fallback).
+- [x] **s2cloudless cloud masking (Horizon 1 #1, rung 1)** — CDSE CLM/CLP bands confirmed
+      live, layered on top of SCL in stat evalscripts (either flags → excluded; CLP ≥ 40%).
+      Shared constants keep mask ↔ provenance honest. Live: Manaus validPct 64→61%, NDVI
+      0.667→0.675. Tests updated to pin the exact combined condition.
+- [x] **`earthdata_search` (tool #23)** — NASA CMR collections search, keyless: topic/bbox/
+      time → most-used datasets (concept ids, providers, coverage, landing pages); dashboard
+      search card lists collections. CMR granule endpoint was down all day → granule search
+      delegated to NASA's hosted Earthdata MCP (`https://cmr.earthdata.nasa.gov/mcp/v1`,
+      documented in README). doctor now probes 10 zero-key sources.
+
+**Build/smoke**: 91 offline tests green; earthdata_search live-verified (5 real collections
+for "soil moisture" over Manaus); fresh `npx -y earthdeck --help` verified from the registry.
+
+**Next**: temporal-median compositing (#4) · GFW alerts (#5) · Horizon 2 (AlphaEarth).
 
 ---
 
@@ -49,16 +77,16 @@ GISTEMP +1.12 °C · Arctic ice −1.282 M km² vs climatology (below p10), Anta
 (consistent with sar_flood's +2 pts!). Dashboard screenshotted: pulse grid, charts, quake
 markers over the GIBS basemap.
 
-**Also this session — onboarding ("make it super simple")**: new `overview-mcp demo`
+**Also this session — onboarding ("make it super simple")**: new `earthdeck demo`
 (zero-key: dashboard + in-process MCP over InMemoryTransport + 7 live tool calls + browser
-auto-open — verified with a clean env, all ✓, screenshotted) and `overview-mcp doctor`
+auto-open — verified with a clean env, all ✓, screenshotted) and `earthdeck doctor`
 (probes all 9 zero-key sources with 1 retry, validates CDSE OAuth + FIRMS key incl. quota;
 verified both no-key and full-key paths — 22/22 ready). README restructured: 30-second
 demo + `claude mcp add` one-liner above the fold, free-keys table with links, doctor sample.
 
 **Next**: Horizon 1 leftovers — cloud masking (#1), temporal-median compositing (#4), GFW
 alerts (#5); then Horizon 2 (AlphaEarth embeddings → `eo_similar`). Tidy-up candidates:
-**npm publish** (would turn `npx -y github:…` into `npx overview-mcp` — needs user's npm
+**npm publish** (would turn `npx -y github:…` into `npx earthdeck` — needs user's npm
 account); ERDDAP first-hit latency note (multi-decade strided reads ~60 s, cached after).
 
 ---
@@ -194,7 +222,7 @@ offline-verifiable foundational item — its core is a pure parser (fixture-test
 - [x] `src/tools/stac.ts` — `stac_search` tool (no key) → result with source/endpoint/COG
       assets + a `search` dashboard card. Registered in `index.ts` (9 tools); server
       instructions updated.
-- [x] `config.stacUrl()` (`OVERVIEW_STAC_URL` ?? Earth Search) so Planetary Computer / a
+- [x] `config.stacUrl()` (`EARTHDECK_STAC_URL` ?? Earth Search) so Planetary Computer / a
       self-hosted STAC drop in. README tool table + `.env.example` updated.
 
 **Build/smoke**: `tsc` + `vite build` green; **15 parser fixture checks pass** (3D-bbox
@@ -282,8 +310,8 @@ evict-by-card.
 - [x] README (pitch, tool table, install snippet, free-keys howto, transcript, attribution)
       + `.env.example`.
 - [x] Secret scan of tracked files (clean), then **published public**:
-      https://github.com/marcoloco23/overview-mcp (MIT).
-- [x] Verified a fresh `npx -y github:marcoloco23/overview-mcp --help` (clones + builds + runs).
+      https://github.com/marcoloco23/earthdeck (MIT).
+- [x] Verified a fresh `npx -y github:marcoloco23/earthdeck --help` (clones + builds + runs).
 - [x] Inventions idea 0005 → `shipped`.
 
 **Status**: SHIPPED v0.1.0. Dashboard design pass skipped (already polished) — see ROADMAP

@@ -15,8 +15,8 @@ try {
     if (m) env[m[1]] = m[2];
   }
 } catch {}
-env.OVERVIEW_DASHBOARD_URL = `http://127.0.0.1:${PORT}`;
-env.OVERVIEW_DASHBOARD_PORT = String(PORT);
+env.EARTHDECK_DASHBOARD_URL = `http://127.0.0.1:${PORT}`;
+env.EARTHDECK_DASHBOARD_PORT = String(PORT);
 
 const dash = spawn("node", ["dist/cli.js", "dashboard"], { env, stdio: "ignore" });
 await new Promise((r) => setTimeout(r, 800));
@@ -46,6 +46,7 @@ const calls = [
   ["air_quality", { lat: 28.6, lon: 77.2 }], // Delhi
   ["river_discharge", { lat: -3.1, lon: -60.0 }], // Rio Negro at Manaus
   ["planet_pulse", {}],
+  ["earthdata_search", { keyword: "soil moisture", bbox: MANAUS, limit: 5 }],
 ];
 
 const { tools } = await client.listTools();

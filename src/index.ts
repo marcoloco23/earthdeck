@@ -12,6 +12,7 @@ import { registerOceanTools } from "./tools/ocean.js";
 import { registerIndicatorTools } from "./tools/indicators.js";
 import { registerClimateTools } from "./tools/climate.js";
 import { registerQuakeTools } from "./tools/quakes.js";
+import { registerEarthdataTools } from "./tools/earthdata.js";
 
 export function buildServer(): McpServer {
   const server = new McpServer(
@@ -26,8 +27,9 @@ export function buildServer(): McpServer {
         "El Niño tracking (enso), ocean temperature history since 1981 (ocean_temp), CO₂ since " +
         "1958 (co2), the global temperature record since 1880 (global_temp), polar sea ice " +
         "(sea_ice), earthquakes (quakes), air quality (air_quality), per-place climate history " +
-        "since 1940 (climate_history), river discharge (river_discharge), and planet_pulse — " +
-        "the planet's vital signs in one call. Historic series include trends; the Earth is one " +
+        "since 1940 (climate_history), river discharge (river_discharge), planet_pulse — " +
+        "the planet's vital signs in one call — and earthdata_search to discover datasets " +
+        "across NASA's full ~50k-collection archive. Historic series include trends; the Earth is one " +
         "interconnected system, so cross-reference (ENSO ↔ fires/floods/SST; discharge ↔ SAR " +
         "floods). Bounding boxes are [west, south, east, north] degrees. Results also stream to " +
         "a local dashboard if one is running (best-effort).",
@@ -45,6 +47,7 @@ export function buildServer(): McpServer {
   registerIndicatorTools(server);
   registerClimateTools(server);
   registerQuakeTools(server);
+  registerEarthdataTools(server);
 
   return server;
 }

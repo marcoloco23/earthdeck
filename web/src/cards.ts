@@ -193,6 +193,19 @@ export function renderCard(card: Card, onFocus: (card: Card) => void): HTMLEleme
       li.innerHTML = `<span class="evt-dot"></span>${escapeHtml((s.datetime || "").slice(0, 10))} <em>cloud ${cloud}</em>`;
       list.appendChild(li);
     }
+    // earthdata_search posts dataset collections instead of scenes.
+    const collections =
+      (card.payload.collections as Array<{ shortName: string; dataCenter: string; timeStart: string | null; timeEnd: string | null }> | undefined) ?? [];
+    for (const c of collections.slice(0, 10)) {
+      const li = document.createElement("li");
+      const dot = document.createElement("span");
+      dot.className = "evt-dot";
+      const em = document.createElement("em");
+      const span = `${(c.timeStart ?? "").slice(0, 4)}–${c.timeEnd ? c.timeEnd.slice(0, 4) : "now"}`;
+      em.textContent = `${c.dataCenter} · ${span}`;
+      li.append(dot, document.createTextNode(`${c.shortName} `), em);
+      list.appendChild(li);
+    }
     el.appendChild(list);
   }
 

@@ -32,12 +32,12 @@ call.
   break; STAC is a different (open, anonymous) API shape.
 - **B (chosen)**: a standalone `src/clients/stac.ts` with a pure, exported
   `parseStacFeatures()` (unit-testable without network, like `parseFiresCsv`) + a thin
-  `stacSearch()` fetch wrapper. Endpoint configurable (`OVERVIEW_STAC_URL`, default Earth
+  `stacSearch()` fetch wrapper. Endpoint configurable (`EARTHDECK_STAC_URL`, default Earth
   Search) so Planetary Computer / a self-hosted STAC drop in later.
 
 ## Implementation steps
 
-- [x] `config.ts`: `stacUrl()` → `OVERVIEW_STAC_URL` ?? Earth Search v1.
+- [x] `config.ts`: `stacUrl()` → `EARTHDECK_STAC_URL` ?? Earth Search v1.
 - [x] `src/clients/stac.ts`: `StacScene`/`StacAsset` types; `parseStacFeatures(json, maxCloud)`
       (normalize id/datetime/cloud/bbox[6→4]/data-COG assets/thumbnail, sort least-cloudy);
       `stacSearch(opts)` (POST /search, `query` cloud filter, graceful errors).

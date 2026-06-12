@@ -10,7 +10,10 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
 
 - Agent read full file: YES
 - Current task understood: YES
-- Current task: **Earth Pulse shipped (2026-06-12).** PR #1 (Session 5's blind-built
+- Current task: **Session 6 complete (2026-06-12): Earth Pulse → simple setup → npm → renamed to earthdeck.**
+  Latest: published to npm (earthdeck; overview-mcp deprecated w/ pointer), GitHub repo renamed
+  (redirects in place), s2cloudless cloud masking (Horizon 1 #1) shipped + live-verified, and
+  `earthdata_search` (NASA CMR catalog, 23rd tool) added. Previously this session: **Earth Pulse.** PR #1 (Session 5's blind-built
   SAR/STAC/provenance) live-verified with real creds and **merged**. Then the **planetary
   indicators layer** landed: 10 new zero-key tools (enso, ocean_temp, co2, global_temp,
   sea_ice, quakes, climate_history, air_quality, river_discharge, planet_pulse) + 3 new
@@ -85,7 +88,7 @@ approval · respect API quotas/ToS · cap image size and always return stats wit
   (`src/tools/stac.ts`, `src/clients/stac.ts`) hits the open, **no-auth Earth Search (Element
   84)** STAC API — a **zero-key** scene search (today's `eo_search` needs CDSE OAuth) that
   also returns **COG asset URLs** (the Horizon 2 substrate). Endpoint configurable via
-  `OVERVIEW_STAC_URL` (→ Planetary Computer / self-hosted). Now **9 tools**. The parser
+  `EARTHDECK_STAC_URL` (→ Planetary Computer / self-hosted). Now **9 tools**. The parser
   `parseStacFeatures()` is pure + fixture-tested (15 checks); the no-network error path is
   graceful (`isError`, clean message).
 - **Also this session: offline test infrastructure.** New `test/` suite on Node's built-in
@@ -147,9 +150,9 @@ Earth Pulse — planetary indicators (Session 6): ✅ done + live-verified (see 
 - [x] Offline tests 65 → 88; full 16-call live E2E green; dashboard screenshotted
 
 Onboarding (Session 6, "make it super simple"): ✅ done + live-verified
-- [x] `overview-mcp demo` — zero-key wow path: starts the dashboard, runs the real MCP
+- [x] `earthdeck demo` — zero-key wow path: starts the dashboard, runs the real MCP
       server in-process (InMemoryTransport), calls 7 zero-key tools, opens the browser.
-- [x] `overview-mcp doctor` — checks Node, env keys, and live reachability of all 9
+- [x] `earthdeck doctor` — checks Node, env keys, and live reachability of all 9
       zero-key sources + CDSE OAuth + FIRMS key status (with quota); 1 retry on transient
       throttles; prints exactly what's ready and the links to fix what isn't.
 - [x] README restructured: 30-second `npx … demo` quickstart + `claude mcp add` one-liner
@@ -164,12 +167,27 @@ Engineering quality (cross-cutting):
 
 Useful test fixtures: Amazon near Manaus bbox `[-60.2,-3.3,-59.8,-2.9]`; events smoke
 returns Tropical Storm Amanda. Run the dashboard on a non-default port to avoid clashes:
-`OVERVIEW_DASHBOARD_PORT=5009 node dist/cli.js dashboard`, then point tools at it with
-`OVERVIEW_DASHBOARD_URL=http://127.0.0.1:5009`.
+`EARTHDECK_DASHBOARD_PORT=5009 node dist/cli.js dashboard`, then point tools at it with
+`EARTHDECK_DASHBOARD_URL=http://127.0.0.1:5009`.
 
 ---
 
 ## SESSION LOG
+
+### 2026-06-12 — Session 6c (rename → earthdeck; npm; cloud masking; NASA CMR)
+- **Renamed the project to `earthdeck`** (user choice; npm/GitHub searchability). GitHub repo
+  renamed (old URLs redirect); npm `earthdeck@0.3.x` published; `overview-mcp` deprecated with
+  a pointer (kept installable; `overview-mcp` bin alias retained in the earthdeck package).
+  Env prefix is now `EARTHDECK_*` with `OVERVIEW_*` still honored (config.ts `env()` helper).
+- **Cloud masking rung 1 (Horizon 1 #1)**: stat evalscripts now mask SCL + s2cloudless
+  (CLM=1 or CLP≥102/255) — CDSE band support live-confirmed first. Provenance method/classes
+  updated via shared constants. Live: Manaus validPct 64→61%, NDVI 0.667→0.675.
+- **`earthdata_search` (tool #23)**: NASA CMR collections search (keyless) — topic/bbox/time
+  → most-used datasets with concept ids + landing pages; search card lists collections.
+  CMR *granule* endpoint was timing out repeatedly (2026-06-12) → granule-level search
+  delegated to NASA's hosted Earthdata MCP (documented in README "Goes well with").
+- `demo`/`doctor` commands added earlier this session (see 6b note in PROGRESS); doctor now
+  probes CMR too (10 zero-key sources).
 
 ### 2026-06-12 — Session 6 (PR #1 verification + merge; Earth Pulse)
 - Live-verified everything Session 5 built blind, with real creds: 65/65 offline tests, then
@@ -234,7 +252,7 @@ returns Tropical Storm Amanda. Run the dashboard on a non-default port to avoid 
 - Second Horizon 1 step (item 6). With no creds AND no outbound network (all hosts 403),
   chose the most offline-verifiable foundational item: a provider-independent STAC search.
 - New `src/clients/stac.ts` (pure `parseStacFeatures()` + thin `stacSearch()` fetch wrapper),
-  `src/tools/stac.ts` (`stac_search`, no key), `config.stacUrl()` (`OVERVIEW_STAC_URL` ??
+  `src/tools/stac.ts` (`stac_search`, no key), `config.stacUrl()` (`EARTHDECK_STAC_URL` ??
   Earth Search). Returns scene ids/dates/cloud + **COG asset URLs**; endpoint swappable to
   Planetary Computer / self-hosted. Registered in `index.ts` (9 tools); README + `.env.example`
   updated.

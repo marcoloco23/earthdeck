@@ -318,11 +318,11 @@ export function startDashboard(port = dashboardPort()): void {
 }
 
 /** Minimal shell served when the Vite build hasn't been produced yet. */
-const FALLBACK_HTML = `<!doctype html><html><head><meta charset="utf-8"><title>overview-mcp</title>
+const FALLBACK_HTML = `<!doctype html><html><head><meta charset="utf-8"><title>earthdeck</title>
 <style>body{font:14px ui-monospace,monospace;background:#0b0f17;color:#cbd5e1;margin:0;padding:2rem}
 #feed div{border:1px solid #1e293b;border-radius:8px;padding:.6rem .8rem;margin:.4rem 0}
 h1{color:#38bdf8;font-size:1rem}</style></head><body>
-<h1>overview-mcp dashboard (fallback shell)</h1>
+<h1>earthdeck dashboard (fallback shell)</h1>
 <p>Run <code>pnpm build</code> for the full map UI. Live cards stream below.</p>
 <div id="feed"></div>
 <script>const f=document.getElementById('feed');const es=new EventSource('/events');

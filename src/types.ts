@@ -1,4 +1,4 @@
-// Shared domain types for overview-mcp.
+// Shared domain types for earthdeck.
 
 /** Bounding box as [west, south, east, north] in EPSG:4326 lon/lat degrees. */
 export type BBox = [number, number, number, number];

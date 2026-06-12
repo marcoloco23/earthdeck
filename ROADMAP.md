@@ -1,11 +1,11 @@
-# ROADMAP — overview-mcp
+# ROADMAP — earthdeck
 
 > **The 5-year strategy lives in [VISION.md](VISION.md)** — north-star (the *AI Environmental
 > Watchdog*), the moat (cumulative monitoring history + trust), wedges (EUDR, methane), the
 > capability pillars, the data/AI stack, and the Horizon 0→5 plan. This file is the near-term
 > tactical tracker. v0.1 (Horizon 0) is shipped; **Horizon 1 is next (see bottom).**
 
-**Status**: ✅ SHIPPED v0.1.0 (Horizon 0) — public at https://github.com/marcoloco23/overview-mcp
+**Status**: ✅ SHIPPED v0.1.0 (Horizon 0) — public at https://github.com/marcoloco23/earthdeck
 (2026-06-05). All 5 phases done, 8 tools, all live-verified; fresh `npx` install confirmed.
 **Goal**: ship a free, open-data Earth-observation MCP + live mission-control dashboard,
 public and `npx`-installable, mirroring the knuspr-mcp pattern.
@@ -17,7 +17,7 @@ Status markers: `[ ]` todo · `[x]` done · `🚧` in progress · `🚫` blocked
 ## Tool / endpoint contract (single source of truth)
 
 Env: `CDSE_CLIENT_ID`/`CDSE_CLIENT_SECRET` (Copernicus), `FIRMS_MAP_KEY` (fires),
-`OVERVIEW_DASHBOARD_URL` (default `http://127.0.0.1:5005`), `OVERVIEW_DASHBOARD_PORT` (5005).
+`EARTHDECK_DASHBOARD_URL` (default `http://127.0.0.1:5005`), `EARTHDECK_DASHBOARD_PORT` (5005).
 
 | Tool | Backend | Auth | Card |
 | --- | --- | --- | --- |
@@ -43,6 +43,7 @@ Env: `CDSE_CLIENT_ID`/`CDSE_CLIENT_SECRET` (Copernicus), `FIRMS_MAP_KEY` (fires)
 | `air_quality(lat, lon)` | Open-Meteo air-quality (CAMS) | none | series |
 | `river_discharge(lat, lon, start?, end?)` | Open-Meteo flood (GloFAS, 1984→) | none | series |
 | `planet_pulse()` | all of the above + EONET + USGS, parallel best-effort | none | pulse |
+| `earthdata_search(keyword, bbox?, dateFrom?, dateTo?, limit=10)` | NASA CMR collections.json | none | search |
 
 Endpoints:
 - OAuth token: `POST https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token` (`client_credentials`)
@@ -52,7 +53,7 @@ Endpoints:
 - Worldview snapshot: `GET https://wvs.earthdata.nasa.gov/api/v1/snapshot?REQUEST=GetSnapshot&TIME=&BBOX=&CRS=EPSG:4326&LAYERS=&FORMAT=image/jpeg&WIDTH=&HEIGHT=`
 - FIRMS area: `GET https://firms.modaps.eosdis.nasa.gov/api/area/csv/{MAP_KEY}/{SOURCE}/{west,south,east,north}/{dayRange}/{date}`
 - EONET: `GET https://eonet.gsfc.nasa.gov/api/v3/events?status=open&bbox=&days=`
-- STAC: `POST https://earth-search.aws.element84.com/v1/search` (open, no key; `OVERVIEW_STAC_URL` overrides)
+- STAC: `POST https://earth-search.aws.element84.com/v1/search` (open, no key; `EARTHDECK_STAC_URL` overrides)
 
 ---
 
@@ -115,8 +116,8 @@ Endpoints:
 - [x] `.env.example`
 - [~] Dashboard design pass — current UI already polished; skipped a full redesign to avoid
       regressions (revisit only if desired)
-- [x] **Pushed public**: https://github.com/marcoloco23/overview-mcp (MIT, public)
-- [x] Fresh `npx -y github:marcoloco23/overview-mcp --help` verified (clones + builds + runs)
+- [x] **Pushed public**: https://github.com/marcoloco23/earthdeck (MIT, public)
+- [x] Fresh `npx -y github:marcoloco23/earthdeck --help` verified (clones + builds + runs)
 - [x] Inventions idea 0005 → `shipped`
 - **Done** ✅: a fresh `npx` install builds and runs.
 
@@ -124,8 +125,13 @@ Endpoints:
 
 All free / low-or-no GPU. Highest-leverage first:
 
-- [ ] **Better cloud masking** — Cloud Score+ / s2cloudless / OmniCloudMask behind
-      `eo_index`/`eo_render`/`eo_compare` (big reliability jump over SCL; keep %-valid flag).
+- [x] **Better cloud masking (rung 1, 2026-06-12)** — s2cloudless via CDSE's CLM/CLP bands
+      (support live-confirmed) layered ON TOP of SCL in the stat evalscripts: a pixel is
+      excluded if either flags it (SCL catches shadows; s2cloudless catches haze/small
+      cumulus). CLP cutoff 102/255 ≈ 40%. Shared `S2CLOUDLESS_MASK` + `STAT_MASK_METHOD`
+      constants keep evalscript ↔ provenance in lockstep. Live: Manaus validPct 64→61%,
+      NDVI mean 0.667→0.675 (haze removed). Rungs 2+ (Cloud Score+ / OmniCloudMask) need
+      GEE/GPU — revisit in Horizon 2+.
 - [x] **Sentinel-1 SAR** — `sar_render` (GRD backscatter, GAMMA0 terrain-corrected; VV/VH/
       false-color), `sar_water` (water/flood extent: water % from low VV backscatter), and
       `sar_flood` (flood onset: Δ water % between a pre-event baseline and a post-event date),
@@ -140,7 +146,7 @@ All free / low-or-no GPU. Highest-leverage first:
 - [ ] **Classic change detection** as tools: temporal median compositing, CCDC/BFAST/LandTrendr.
 - [ ] **Consume GFW alerts** (GLAD-L/GLAD-S2/RADD/DIST-ALERT) instead of rebuilding deforestation.
 - [~] **Internal STAC + COG layer** — `stac_search` against the open, no-auth Earth Search
-      (Element 84) STAC (endpoint configurable via `OVERVIEW_STAC_URL` → Planetary Computer /
+      (Element 84) STAC (endpoint configurable via `EARTHDECK_STAC_URL` → Planetary Computer /
       self-hosted). Zero-key scene search returning COG asset URLs; provider-independent
       companion to `eo_render` reads still TODO. Offline-verified (15 parser checks) **and
       live-verified 2026-06-12**: 5 real Sentinel-2 scenes with COG links over Manaus.
