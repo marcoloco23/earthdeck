@@ -13,6 +13,7 @@ import { registerIndicatorTools } from "./tools/indicators.js";
 import { registerClimateTools } from "./tools/climate.js";
 import { registerQuakeTools } from "./tools/quakes.js";
 import { registerEarthdataTools } from "./tools/earthdata.js";
+import { registerForestTools } from "./tools/forest.js";
 
 export function buildServer(): McpServer {
   const server = new McpServer(
@@ -22,7 +23,8 @@ export function buildServer(): McpServer {
         "The data layer for the Earth system, over free open data. Two families: " +
         "(1) Earth observation — render satellite imagery for a bounding box, list live " +
         "natural-disaster events, search open archives (STAC, no key), and (with keys) compute " +
-        "vegetation/water/burn indices, find active fires, render all-weather Sentinel-1 SAR, " +
+        "vegetation/water/burn indices, find active fires, surface deforestation alerts " +
+        "(forest_alerts), render all-weather Sentinel-1 SAR, " +
         "and compare a place across two dates. (2) Planetary indicators (all no-key) — ENSO/" +
         "El Niño tracking (enso), ocean temperature history since 1981 (ocean_temp), CO₂ since " +
         "1958 (co2), the global temperature record since 1880 (global_temp), polar sea ice " +
@@ -48,6 +50,7 @@ export function buildServer(): McpServer {
   registerClimateTools(server);
   registerQuakeTools(server);
   registerEarthdataTools(server);
+  registerForestTools(server);
 
   return server;
 }

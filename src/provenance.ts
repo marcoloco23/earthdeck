@@ -5,9 +5,17 @@
 // reason about trust and to reproduce the result.
 
 import type { SceneInfo } from "./clients/copernicus.js";
-import { maskedClassesFor, STAT_MASK_METHOD } from "./evalscripts.js";
+import { maskedClassesFor, maskedClassLabels, STAT_MASK_METHOD } from "./evalscripts.js";
 import type { BBox } from "./types.js";
 import { nowIso } from "./util.js";
+
+/** How a multi-scene window is collapsed into one result. */
+export type CompositeMethod = "leastCC" | "median";
+
+const MOSAICKING_TEXT: Record<CompositeMethod, string> = {
+  leastCC: "leastCC",
+  median: "ORBIT per-pixel median of clear observations",
+};
 
 export interface Provenance {
   /** Free, open data provider. */
@@ -38,15 +46,23 @@ const DATA_SOURCE = "Copernicus Data Space Ecosystem (Sentinel Hub)";
 const SENSOR = "Sentinel-2 MSI, Level-2A surface reflectance, 10 m";
 const COLLECTION = "sentinel-2-l2a";
 
-const STATS_DISCLAIMER =
-  "Decision-support, not decision. Statistics are computed over a least-cloudy composite " +
-  "with cloud/shadow/cirrus pixels removed via the Sentinel-2 SCL + s2cloudless masks; check " +
+const statsDisclaimer = (composite: CompositeMethod): string =>
+  "Decision-support, not decision. Statistics are computed over a " +
+  (composite === "median"
+    ? "per-pixel temporal-median composite of all clear observations"
+    : "least-cloudy composite") +
+  " with cloud/shadow/cirrus pixels removed via the Sentinel-2 SCL + s2cloudless masks; check " +
   "the % valid and the contributing scenes before acting on this result.";
 
-const IMAGE_DISCLAIMER =
-  "Decision-support, not decision. This is a least-cloudy mosaic of the window (not a single " +
-  "acquisition) and rendered pixels are not per-pixel cloud-masked; residual cloud/haze may " +
-  "remain. Use eo_index for masked, quantitative values.";
+const imageDisclaimer = (composite: CompositeMethod): string =>
+  composite === "median"
+    ? "Decision-support, not decision. This is a per-pixel temporal median of the clear " +
+      "observations in the window (not a single acquisition); residual cloud/haze is strongly " +
+      "suppressed, but pixels with no clear observation fall back to an unmasked median. Use " +
+      "eo_index for quantitative values."
+    : "Decision-support, not decision. This is a least-cloudy mosaic of the window (not a single " +
+      "acquisition) and rendered pixels are not per-pixel cloud-masked; residual cloud/haze may " +
+      "remain. Use eo_index for masked, quantitative values.";
 
 /**
  * Build the provenance block for a Sentinel-2 result.
@@ -60,30 +76,41 @@ export function s2Provenance(opts: {
   from: string;
   to: string;
   kind: "stats" | "image";
+  composite?: CompositeMethod;
   index?: string;
   validPct?: number;
   scenes?: SceneInfo[];
 }): Provenance {
   const masked = opts.kind === "stats";
+  const composite = opts.composite ?? "leastCC";
   const cloudMask = masked
     ? {
         method: STAT_MASK_METHOD,
         excludedClasses: maskedClassesFor(opts.index ?? "NDVI"),
         ...(opts.validPct != null ? { validPct: opts.validPct } : {}),
       }
-    : {
-        method: "least-cloudy mosaic (mosaickingOrder=leastCC); no per-pixel cloud mask",
-        excludedClasses: [] as string[],
-      };
+    : composite === "median"
+      ? {
+          // Median renders ARE per-pixel masked (water kept — it belongs in imagery);
+          // pixels with no clear observation fall back to an unmasked median.
+          method:
+            STAT_MASK_METHOD + " applied before the per-pixel median (open water kept); " +
+            "no-clear-observation pixels fall back to an unmasked median",
+          excludedClasses: maskedClassLabels(false),
+        }
+      : {
+          method: "least-cloudy mosaic (mosaickingOrder=leastCC); no per-pixel cloud mask",
+          excludedClasses: [] as string[],
+        };
   const prov: Provenance = {
     dataSource: DATA_SOURCE,
     sensor: SENSOR,
     collection: COLLECTION,
-    composite: { from: opts.from, to: opts.to, mosaicking: "leastCC" },
+    composite: { from: opts.from, to: opts.to, mosaicking: MOSAICKING_TEXT[composite] },
     cloudMask,
     bbox: opts.bbox,
     retrievedAt: nowIso(),
-    disclaimer: masked ? STATS_DISCLAIMER : IMAGE_DISCLAIMER,
+    disclaimer: masked ? statsDisclaimer(composite) : imageDisclaimer(composite),
   };
   if (opts.scenes && opts.scenes.length > 0) prov.scenes = opts.scenes;
   return prov;

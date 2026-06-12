@@ -43,13 +43,14 @@ Then just ask: *"What's the state of the planet right now?"* · *"Is El Niño co
 | `geo_resolve` | Turn a place name into a bounding box (OpenStreetMap) | — |
 | `stac_search` | Search open satellite archives (Sentinel-2/-1, Landsat) for scenes + COG asset URLs (Earth Search STAC) | — |
 | `fires_in` | Active fire / thermal-anomaly detections (NASA FIRMS), near-real-time | `FIRMS_MAP_KEY` |
-| `eo_render` | High-res (10 m) Sentinel-2 imagery — trueColor / falseColor / NDVI ramp | CDSE |
+| `forest_alerts` | Integrated deforestation alerts (GLAD-L + GLAD-S2 + RADD via Global Forest Watch) — daily, 10 m, tropics | `GFW_API_KEY` |
+| `eo_render` | High-res (10 m) Sentinel-2 imagery — trueColor / falseColor / NDVI ramp; `composite: median` for a cloud-free temporal-median composite | CDSE |
 | `sar_render` | All-weather Sentinel-1 SAR backscatter (sees through cloud/smoke/night) — VV / VH / false-color | CDSE |
 | `sar_water` | All-weather water / flood extent from Sentinel-1 (water % of the AOI via low VV backscatter) | CDSE |
 | `sar_flood` | Flood onset: SAR water extent before vs after an event, and the change (Δ water %) | CDSE |
-| `eo_index` | NDVI / NDWI / NBR statistics over a least-cloudy Sentinel-2 composite | CDSE |
+| `eo_index` | NDVI / NDWI / NBR statistics over a least-cloudy or temporal-median Sentinel-2 composite | CDSE |
 | `eo_search` | Search the Sentinel-2 archive for scenes + cloud cover | CDSE |
-| `eo_compare` | Change detection: render two dates + the index delta (deforestation/flood/burn) | CDSE |
+| `eo_compare` | Change detection: render two dates + the index delta (deforestation/flood/burn); `composite: median` suppresses residual-cloud noise | CDSE |
 
 ### Planetary indicators — the Earth system over time (all zero-key)
 
@@ -103,12 +104,13 @@ behave identically without it).
 
 ## Unlock the satellite tools (2 free keys, ~5 minutes)
 
-15 of the 23 tools need nothing. The rest want free credentials:
+15 of the 24 tools need nothing. The rest want free credentials:
 
 | Key | Unlocks | How to get it |
 | --- | --- | --- |
 | `FIRMS_MAP_KEY` | `fires_in` (live wildfire detections) | Enter your email at [firms.modaps.eosdis.nasa.gov/api/map_key](https://firms.modaps.eosdis.nasa.gov/api/map_key/) — emailed instantly |
 | `CDSE_CLIENT_ID` + `CDSE_CLIENT_SECRET` | `eo_render`, `eo_index`, `eo_search`, `eo_compare`, `sar_render`, `sar_water`, `sar_flood` (10 m Sentinel imagery + radar) | Free account at [dataspace.copernicus.eu](https://dataspace.copernicus.eu/) → User Settings → **OAuth clients** → Create (copy the secret immediately — it's shown once) |
+| `GFW_API_KEY` | `forest_alerts` (integrated deforestation alerts) | Free [GFW account](https://www.globalforestwatch.org/), then mint a key per the [API-key guide](https://www.globalforestwatch.org/help/developers/guides/create-and-use-an-api-key/) |
 
 Pass them where your MCP client expects env vars, e.g.:
 

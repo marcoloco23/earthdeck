@@ -143,8 +143,13 @@ All free / low-or-no GPU. Highest-leverage first:
       best-effort contributing scene IDs, bbox, retrieved-at, decision-support disclaimer).
       Shared SCL-mask constant keeps the reported mask honest. In `eo_render`/`eo_index`/
       `eo_compare` output + dashboard cards. Offline-verified (27 checks); live CDSE deferred.
-- [ ] **Classic change detection** as tools: temporal median compositing, CCDC/BFAST/LandTrendr.
-- [ ] **Consume GFW alerts** (GLAD-L/GLAD-S2/RADD/DIST-ALERT) instead of rebuilding deforestation.
+- [~] **Classic change detection** — temporal-median compositing ✅ (2026-06-12:
+      `composite: "median"` on eo_render/eo_index/eo_compare — ORBIT-mosaicking per-pixel
+      median of clear observations, same shared SCL+s2cloudless mask, live-verified: Manaus
+      render visibly cloud-free vs leastCC; compare 96%/96% valid). CCDC/BFAST/LandTrendr open.
+- [x] **Consume GFW alerts** — `forest_alerts` (integrated GLAD-L+GLAD-S2+RADD, daily 10 m
+      tropics) shipped + live-verified 2026-06-12 (São Félix 90 d: 3697 alerts/45.2 ha;
+      confidence breakdown + daily series card). DIST-ALERT still open.
 - [~] **Internal STAC + COG layer** — `stac_search` against the open, no-auth Earth Search
       (Element 84) STAC (endpoint configurable via `EARTHDECK_STAC_URL` → Planetary Computer /
       self-hosted). Zero-key scene search returning COG asset URLs; provider-independent

@@ -5,6 +5,48 @@ status, next priorities. The live task pointer is in [CONTINUITY.md](CONTINUITY.
 
 ---
 
+## Session: 2026-06-12 (later still) — temporal-median compositing (Horizon 1 #4) ✅
+
+**Focus**: classic change detection rung 1 — per-pixel temporal-median composites so
+residual cloud stops faking change.
+
+**Done**:
+- [x] **`composite: "leastCC" | "median"` on `eo_render`/`eo_index`/`eo_compare`** (default
+      unchanged). Median uses Sentinel Hub `mosaicking: "ORBIT"`: evaluatePixel gets every
+      acquisition in the window; per-pixel median over masked-clear samples. New
+      `medianRenderEvalscript()` (water kept; zero-clear pixels fall back to an unmasked
+      median — no black holes) + `medianStatEvalscript()` (dataMask=0 when no clear obs →
+      validPct reads "% pixels with ≥1 clear observation"). Shared `clearCondition()` means
+      the median mask is verbatim-identical to the leastCC stat mask (test-enforced).
+- [x] Provenance records the method (`ORBIT per-pixel median of clear observations`),
+      median renders list their excluded classes, disclaimers are composite-aware.
+- [x] Window defaults widen for median (render 14→45 d, compare 25→45 d; S2 revisit ≈5 d).
+- [x] 10 new offline tests (mask reuse byte-exact, water rules, channel order, the embedded
+      `median()` JS executed directly) → **101 tests green**.
+
+**Build/smoke**: build + typecheck green; **live-verified with real CDSE** (scripts/
+live-median.mjs): Manaus median trueColor visibly cloud-free vs the cumulus-peppered
+leastCC mosaic (45 d window, 12 s); NDVI median 0.670 / validPct 76 vs leastCC 0.675 / 61;
+eo_compare São Félix do Xingu 2019→2025 NDVI −0.111 at 96%/96% valid — clean change signal.
+
+**Also**: **`forest_alerts` (tool #24, GFW integrated deforestation alerts)** — grounded the
+GFW Data API live (OpenAPI + probes: x-api-key header, POST {sql, geometry} to
+/dataset/gfw_integrated_alerts/latest/query/json, fields + confidence values 2/3/4 =
+nominal/high/highest, keyless 403 message, /latest→daily-version 307). New
+`src/clients/gfw.ts` (SQL builders + parsers, pure + tested) and `src/tools/forest.ts`
+(summary + confidence breakdown + daily counts → series card; 4 deg² AOI cap; tropics
+coverage note). doctor probes the key with a tiny COUNT query. 9 new offline tests →
+**111 green**; MCP lists 24 tools; no-key error is clean. Key minted via
+/auth/token→/auth/apikey (me@marcsperzel.com, expires 2027-06-12) and **live-verified**:
+São Félix do Xingu 90 d = 3697 alerts / 45.2 ha (2546 high + 238 highest + 913 nominal),
+minConfidence=high → 2784 / 34.0 ha, doctor ✓. SQL-dialect quirks found live and encoded
+in client+tests: origin header required, IN unsupported (OR chain), AS aliases ignored,
+transient 403 → 1 retry.
+
+**Next**: Horizon 2 — AlphaEarth embeddings → eo_similar.
+
+---
+
 ## Session: 2026-06-12 (later) — npm · rename to earthdeck · s2cloudless masking · NASA CMR ✅
 
 **Focus**: ship the simple-setup story end-to-end (npm), give the project a findable name,

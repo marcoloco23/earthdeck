@@ -41,6 +41,37 @@ test("image-kind provenance is an unmasked mosaic: no validPct, no excluded clas
   assert.match(p.disclaimer, /^Decision-support/);
 });
 
+test("median stats provenance records the ORBIT median composite and a median disclaimer", () => {
+  const p = s2Provenance({
+    bbox: BBOX,
+    from: "2025-04-16",
+    to: "2025-05-31",
+    kind: "stats",
+    composite: "median",
+    index: "NDVI",
+    validPct: 97,
+  });
+  assert.equal(p.composite.mosaicking, "ORBIT per-pixel median of clear observations");
+  assert.match(p.disclaimer, /temporal-median composite/);
+  assert.equal(p.cloudMask.excludedClasses.length, 7, "same mask classes as leastCC stats");
+  assert.equal(p.cloudMask.validPct, 97);
+});
+
+test("median image provenance IS per-pixel masked (water kept) with a fallback note", () => {
+  const p = s2Provenance({ bbox: BBOX, from: "2025-04-16", to: "2025-05-31", kind: "image", composite: "median" });
+  assert.equal(p.composite.mosaicking, "ORBIT per-pixel median of clear observations");
+  assert.ok(p.cloudMask.excludedClasses.length > 0, "median renders list excluded classes");
+  assert.ok(!p.cloudMask.excludedClasses.some((l) => l.includes("open water")), "imagery keeps water");
+  assert.match(p.cloudMask.method, /unmasked median/);
+  assert.match(p.disclaimer, /temporal median/);
+});
+
+test("omitting composite keeps the legacy leastCC provenance byte-for-byte semantics", () => {
+  const p = s2Provenance({ bbox: BBOX, from: "2025-05-17", to: "2025-05-31", kind: "image" });
+  assert.equal(p.composite.mosaicking, "leastCC");
+  assert.match(p.cloudMask.method, /no per-pixel cloud mask/);
+});
+
 test("sarProvenance describes an all-weather sensor with no cloud mask", () => {
   const p = sarProvenance({ bbox: BBOX, from: "2025-05-17", to: "2025-05-31", polarization: "DV", orbitDirection: "ASCENDING" });
   assert.equal(p.collection, "sentinel-1-grd");

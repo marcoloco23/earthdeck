@@ -10,17 +10,15 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
 
 - Agent read full file: YES
 - Current task understood: YES
-- Current task: **Session 6 complete (2026-06-12): Earth Pulse → simple setup → npm → renamed to earthdeck.**
-  Latest: published to npm (earthdeck; overview-mcp deprecated w/ pointer), GitHub repo renamed
-  (redirects in place), s2cloudless cloud masking (Horizon 1 #1) shipped + live-verified, and
-  `earthdata_search` (NASA CMR catalog, 23rd tool) added. Previously this session: **Earth Pulse.** PR #1 (Session 5's blind-built
-  SAR/STAC/provenance) live-verified with real creds and **merged**. Then the **planetary
-  indicators layer** landed: 10 new zero-key tools (enso, ocean_temp, co2, global_temp,
-  sea_ice, quakes, climate_history, air_quality, river_discharge, planet_pulse) + 3 new
-  dashboard card types (series/quakes/pulse). **22 tools, 88 offline tests, all 16 E2E calls
-  live-verified, dashboard screenshotted.** Next: Horizon 1 leftovers — cloud masking (#1),
-  classic change detection (#4), GFW alerts (#5) — then Horizon 2 (AlphaEarth embeddings).
-- Session started: 2026-06-12 (Session 6)
+- Current task: **Session 7 (2026-06-12): temporal-median compositing (Horizon 1 #4) shipped +
+  live-verified.** `composite: "median"` on eo_render/eo_index/eo_compare — ORBIT-mosaicking
+  per-pixel median of clear observations (shared clearCondition keeps the mask identical to
+  the leastCC stat mask, test-enforced). Live: Manaus median render visibly cloud-free vs
+  leastCC; NDVI 0.670 @ 76% valid; compare São Félix 2019→2025 −0.111 @ 96%/96% valid.
+  **101 offline tests green.** GFW alerts (#5) also DONE + live-verified (forest_alerts, tool #24;
+  key minted + stored in .env). **111 offline tests, 24 tools.** Next: Horizon 2 —
+  AlphaEarth embeddings → eo_similar.
+- Session started: 2026-06-12 (Session 7)
 
 ---
 
@@ -140,8 +138,18 @@ Horizon 1 — Trustworthy analyst (current):
       generalized multi-collection client (this session). ⚠️ live render/stats + threshold/viz-gain tuning deferred.
 - [ ] **Better cloud masking** (item 1, highest leverage) — Cloud Score+ / s2cloudless /
       OmniCloudMask behind `eo_index`/`eo_render`/`eo_compare`. ⚠️ needs live CDSE to verify.
-- [ ] Classic change detection (#4, temporal-median compositing) · consume GFW alerts (#5) ·
-      STAC-backed render path (see ROADMAP).
+- [x] **Temporal-median compositing** (#4, Session 7) — `composite: "median"` on
+      eo_render/eo_index/eo_compare (ORBIT mosaicking, per-pixel median of clear samples,
+      shared mask, composite-aware provenance). Live-verified: cloud-free Manaus render,
+      compare at 96%/96% valid. Live driver: `node scripts/live-median.mjs`.
+- [x] **GFW alerts (#5, Session 7)** — `forest_alerts` (tool #24) shipped + LIVE-VERIFIED:
+      GFW integrated deforestation alerts (GLAD-L+GLAD-S2+RADD, daily 10 m, 30°N–30°S) via
+      the Data API SQL endpoint; summary + confidence breakdown + daily counts → series
+      card; doctor probe ✓. Key in .env (GFW_API_KEY, account me@marcsperzel.com, expires
+      2027-06-12). Live: São Félix 90 d = 3697 alerts/45.2 ha; high+ = 2784/34.0 ha.
+      Gateway quirks encoded in src/clients/gfw.ts: origin header required, IN unsupported
+      (OR chain), AS aliases ignored, transient 403 → 1 retry.
+- [ ] STAC-backed render path (see ROADMAP).
 
 Earth Pulse — planetary indicators (Session 6): ✅ done + live-verified (see ROADMAP section).
 - [x] 10 zero-key tools: enso · ocean_temp · co2 · global_temp · sea_ice · quakes ·

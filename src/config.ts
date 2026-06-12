@@ -42,6 +42,11 @@ export function firmsMapKey(): string | null {
   return process.env.FIRMS_MAP_KEY ?? null;
 }
 
+/** Global Forest Watch Data API key (forest_alerts), or null if not configured. */
+export function gfwApiKey(): string | null {
+  return process.env.GFW_API_KEY ?? null;
+}
+
 /**
  * Base URL of the open STAC API used by `stac_search`. Defaults to Earth Search (Element 84),
  * which is anonymous (no key). Override to swap in Planetary Computer or a self-hosted STAC.

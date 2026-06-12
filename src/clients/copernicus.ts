@@ -7,7 +7,8 @@ const TOKEN_URL =
   "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token";
 const SH = "https://sh.dataspace.copernicus.eu/api/v1";
 const CRS = "http://www.opengis.net/def/crs/EPSG/0/4326";
-const COLLECTION = "sentinel-2-l2a";
+export const S2_COLLECTION = "sentinel-2-l2a";
+const COLLECTION = S2_COLLECTION;
 
 const startIso = (d: string) => `${d}T00:00:00Z`;
 const endIso = (d: string) => `${d}T23:59:59Z`;

@@ -2,7 +2,7 @@
 // every upstream data source, then says exactly which tool families are ready and how to
 // unlock the rest. Friendly output, no jargon, exits 0 unless a zero-key source is down.
 
-import { cdseCreds, firmsMapKey, SERVER_VERSION, USER_AGENT } from "./config.js";
+import { cdseCreds, firmsMapKey, gfwApiKey, SERVER_VERSION, USER_AGENT } from "./config.js";
 
 const out = (s: string) => process.stdout.write(s + "\n");
 
@@ -95,6 +95,40 @@ async function probeFirms(): Promise<{ ok: boolean; detail: string }> {
   }
 }
 
+async function probeGfw(): Promise<{ ok: boolean; detail: string }> {
+  const key = gfwApiKey();
+  if (!key) return { ok: false, detail: "not configured" };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12_000);
+  try {
+    // Cheapest honest check: a COUNT over a ~1 km box (the validate endpoint needs a
+    // bearer token, not the key). 401/403 = key rejected; 200 = ready.
+    const res = await fetch(
+      "https://data-api.globalforestwatch.org/dataset/gfw_integrated_alerts/latest/query/json",
+      {
+        method: "POST",
+        headers: { "x-api-key": key, origin: "localhost", "content-type": "application/json", "user-agent": USER_AGENT },
+        body: JSON.stringify({
+          sql: "SELECT COUNT(*) AS n FROM results",
+          geometry: {
+            type: "Polygon",
+            coordinates: [[[-60.0, -3.0], [-59.99, -3.0], [-59.99, -2.99], [-60.0, -2.99], [-60.0, -3.0]]],
+          },
+        }),
+        signal: controller.signal,
+      },
+    );
+    if (res.status === 401 || res.status === 403) return { ok: false, detail: "key rejected by the GFW Data API" };
+    return res.ok
+      ? { ok: true, detail: "key valid (test query OK)" }
+      : { ok: false, detail: `test query failed (HTTP ${res.status})` };
+  } catch (err) {
+    return { ok: false, detail: err instanceof Error ? err.message : String(err) };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function runDoctor(): Promise<void> {
   out("");
   out(`  earthdeck doctor — v${SERVER_VERSION}, node ${process.version}`);
@@ -119,7 +153,7 @@ export async function runDoctor(): Promise<void> {
 
   out("");
   out("  Optional keys:");
-  const [cdse, firms] = await Promise.all([probeCdse(), probeFirms()]);
+  const [cdse, firms, gfw] = await Promise.all([probeCdse(), probeFirms(), probeGfw()]);
   out(
     `    ${cdse.ok ? "✓" : "·"} Copernicus CDSE (eo_render/eo_index/eo_search/eo_compare/sar_*)  ${cdse.detail}`,
   );
@@ -130,12 +164,18 @@ export async function runDoctor(): Promise<void> {
   if (!firmsMapKey()) {
     out("        → free key (instant): https://firms.modaps.eosdis.nasa.gov/api/map_key/");
   }
+  out(`    ${gfw.ok ? "✓" : "·"} Global Forest Watch (forest_alerts)  ${gfw.detail}`);
+  if (!gfwApiKey()) {
+    out(
+      "        → free key: https://www.globalforestwatch.org/help/developers/guides/create-and-use-an-api-key/",
+    );
+  }
 
   out("");
-  const readyTools = 15 + (cdse.ok ? 7 : 0) + (firms.ok ? 1 : 0);
+  const readyTools = 15 + (cdse.ok ? 7 : 0) + (firms.ok ? 1 : 0) + (gfw.ok ? 1 : 0);
   out(
     zeroKeyDown === 0
-      ? `  All zero-key sources reachable — ${readyTools}/23 tools ready to use.`
+      ? `  All zero-key sources reachable — ${readyTools}/24 tools ready to use.`
       : `  ⚠️ ${zeroKeyDown} zero-key source(s) unreachable (network/proxy?) — some tools will fail.`,
   );
   out("  Try it now:  npx -y earthdeck demo");

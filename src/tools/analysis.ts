@@ -1,9 +1,21 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { CopernicusClient, getCopernicus, type SceneInfo } from "../clients/copernicus.js";
-import { INDEX_NAMES, RENDER_EVALSCRIPTS, statEvalscript } from "../evalscripts.js";
+import {
+  CopernicusClient,
+  getCopernicus,
+  S2_COLLECTION,
+  type DataSourceSpec,
+  type SceneInfo,
+} from "../clients/copernicus.js";
+import {
+  INDEX_NAMES,
+  medianRenderEvalscript,
+  medianStatEvalscript,
+  RENDER_EVALSCRIPTS,
+  statEvalscript,
+} from "../evalscripts.js";
 import { pushCard } from "../dashboard/push.js";
-import { s2Provenance } from "../provenance.js";
+import { s2Provenance, type CompositeMethod } from "../provenance.js";
 import { imageResult, safe, safeResult } from "../result.js";
 import type { BBox } from "../types.js";
 import { addDays, clampWidth, heightFor, isoDate, newId, nowIso } from "../util.js";
@@ -13,6 +25,25 @@ const bboxSchema = z
   .describe("Bounding box [west, south, east, north] in degrees (EPSG:4326)");
 
 const RENDER_VIEWS = Object.keys(RENDER_EVALSCRIPTS) as [string, ...string[]];
+
+const compositeSchema = z
+  .enum(["leastCC", "median"])
+  .optional()
+  .describe(
+    "leastCC (default): least-cloudy scene mosaic. median: per-pixel temporal median of all " +
+      "clear observations in the window — kills residual cloud/haze, the robust choice for " +
+      "change detection, but costs more processing units and wants a window of 30+ days.",
+  );
+
+/**
+ * The Process/Statistics source for a composite method. Median uses ORBIT mosaicking inside
+ * the evalscript, so no mosaickingOrder is sent (scene picking doesn't apply); leastCC
+ * returns undefined → the client's default Sentinel-2 least-cloudy source.
+ */
+function s2SourceFor(composite: CompositeMethod, maxCloud?: number): DataSourceSpec | undefined {
+  if (composite !== "median") return undefined;
+  return { collection: S2_COLLECTION, ...(maxCloud != null ? { maxCloud } : {}) };
+}
 
 /**
  * Best-effort: list the scenes that fed a composite, for the provenance block. The catalog
@@ -48,42 +79,47 @@ export function registerAnalysisTools(server: McpServer): void {
       description:
         "Render a high-resolution (10 m) Sentinel-2 image for a bbox via Copernicus. " +
         "view: trueColor, falseColor (color-infrared, vegetation red), or ndvi (vegetation " +
-        "color ramp). Uses the least-cloudy scene in a lookback window. Requires CDSE creds. " +
-        "Returns the image and posts it to the dashboard.",
+        "color ramp). composite leastCC (default) uses the least-cloudy scene in a lookback " +
+        "window; composite median builds a cloud-free per-pixel temporal-median composite. " +
+        "Requires CDSE creds. Returns the image and posts it to the dashboard.",
       inputSchema: {
         bbox: bboxSchema,
         date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("End date YYYY-MM-DD (default today)."),
         view: z.enum(RENDER_VIEWS).optional().describe("trueColor (default), falseColor, or ndvi."),
-        windowDays: z.number().int().min(1).max(90).optional().describe("Lookback window for least-cloudy scene (default 14)."),
+        composite: compositeSchema,
+        windowDays: z.number().int().min(1).max(90).optional().describe("Lookback window (default 14; 45 for composite=median)."),
         maxCloud: z.number().min(0).max(100).optional().describe("Max scene cloud %% to consider."),
         width: z.number().int().min(64).max(2048).optional().describe("Image width px (default 1024)."),
       },
     },
-    async ({ bbox, date, view, windowDays, maxCloud, width }) =>
+    async ({ bbox, date, view, composite, windowDays, maxCloud, width }) =>
       safeResult(async () => {
         const client = getCopernicus();
         const box = bbox as BBox;
         const v = view ?? "trueColor";
+        const comp = (composite ?? "leastCC") as CompositeMethod;
         const dateTo = date ?? isoDate(0);
-        const dateFrom = addDays(dateTo, -(windowDays ?? 14));
+        const dateFrom = addDays(dateTo, -(windowDays ?? (comp === "median" ? 45 : 14)));
         const w = clampWidth(width ?? 1024);
         const h = heightFor(box, w);
         const [png, scenes] = await Promise.all([
           client.process(box, {
             dateFrom,
             dateTo,
-            evalscript: RENDER_EVALSCRIPTS[v]!,
+            evalscript: comp === "median" ? medianRenderEvalscript(v) : RENDER_EVALSCRIPTS[v]!,
             width: w,
             height: h,
             maxCloud,
+            source: s2SourceFor(comp, maxCloud),
           }),
           scenesFor(client, box, dateFrom, dateTo),
         ]);
         const dataBase64 = png.toString("base64");
-        const provenance = s2Provenance({ bbox: box, from: dateFrom, to: dateTo, kind: "image", scenes });
+        const provenance = s2Provenance({ bbox: box, from: dateFrom, to: dateTo, kind: "image", composite: comp, scenes });
         const meta = {
           source: "Copernicus Sentinel-2 L2A",
           view: v,
+          composite: comp,
           window: { from: dateFrom, to: dateTo },
           bbox: box,
           dimensions: { width: w, height: h },
@@ -92,9 +128,9 @@ export function registerAnalysisTools(server: McpServer): void {
             id: newId(),
             type: "imagery",
             ts: nowIso(),
-            title: `Sentinel-2 ${v} · ${dateFrom}…${dateTo}`,
+            title: `Sentinel-2 ${v}${comp === "median" ? " median" : ""} · ${dateFrom}…${dateTo}`,
             bbox: box,
-            payload: { source: "Copernicus Sentinel-2 L2A", view: v, provenance },
+            payload: { source: "Copernicus Sentinel-2 L2A", view: v, composite: comp, provenance },
             image: { mimeType: "image/png", dataBase64 },
           }))
             ? "pushed"
@@ -110,25 +146,34 @@ export function registerAnalysisTools(server: McpServer): void {
     {
       title: "Sentinel-2 index statistics (NDVI/NDWI/NBR)",
       description:
-        "Compute statistics for a spectral index over a least-cloudy Sentinel-2 composite: " +
-        "NDVI (vegetation), NDWI (water), NBR (burn). Returns mean/min/max/stdev/percentiles " +
-        "the model can reason over. Requires CDSE creds. Posts an index card to the dashboard.",
+        "Compute statistics for a spectral index over a Sentinel-2 composite: " +
+        "NDVI (vegetation), NDWI (water), NBR (burn). composite leastCC (default) or median " +
+        "(per-pixel temporal median of clear observations — robust to residual cloud). " +
+        "Returns mean/min/max/stdev/percentiles the model can reason over. Requires CDSE " +
+        "creds. Posts an index card to the dashboard.",
       inputSchema: {
         bbox: bboxSchema,
         index: z.enum(INDEX_NAMES as [string, ...string[]]).optional().describe("NDVI (default), NDWI, or NBR."),
         date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("End date YYYY-MM-DD (default today)."),
+        composite: compositeSchema,
         windowDays: z.number().int().min(1).max(180).optional().describe("Composite window in days (default 30)."),
       },
     },
-    async ({ bbox, index, date, windowDays }) =>
+    async ({ bbox, index, date, composite, windowDays }) =>
       safe(async () => {
         const client = getCopernicus();
         const box = bbox as BBox;
         const idx = index ?? "NDVI";
+        const comp = (composite ?? "leastCC") as CompositeMethod;
         const dateTo = date ?? isoDate(0);
         const dateFrom = addDays(dateTo, -(windowDays ?? 30));
         const [stats, scenes] = await Promise.all([
-          client.statistics(box, { dateFrom, dateTo, evalscript: statEvalscript(idx) }),
+          client.statistics(box, {
+            dateFrom,
+            dateTo,
+            evalscript: comp === "median" ? medianStatEvalscript(idx) : statEvalscript(idx),
+            source: s2SourceFor(comp),
+          }),
           scenesFor(client, box, dateFrom, dateTo),
         ]);
         const provenance = s2Provenance({
@@ -136,6 +181,7 @@ export function registerAnalysisTools(server: McpServer): void {
           from: dateFrom,
           to: dateTo,
           kind: "stats",
+          composite: comp,
           index: idx,
           validPct: stats.validPct,
           scenes,
@@ -144,12 +190,13 @@ export function registerAnalysisTools(server: McpServer): void {
           id: newId(),
           type: "index",
           ts: nowIso(),
-          title: `${idx} · mean ${stats.mean.toFixed(3)} · ${dateFrom}…${dateTo}`,
+          title: `${idx}${comp === "median" ? " median" : ""} · mean ${stats.mean.toFixed(3)} · ${dateFrom}…${dateTo}`,
           bbox: box,
-          payload: { index: idx, stats, window: { from: dateFrom, to: dateTo }, provenance },
+          payload: { index: idx, composite: comp, stats, window: { from: dateFrom, to: dateTo }, provenance },
         });
         return {
           index: idx,
+          composite: comp,
           window: { from: dateFrom, to: dateTo },
           stats,
           provenance,
@@ -165,36 +212,53 @@ export function registerAnalysisTools(server: McpServer): void {
       title: "Change detection (Sentinel-2, two dates)",
       description:
         "Compare the same place at two dates: renders both and computes the index delta " +
-        "(e.g. mean-NDVI drop → deforestation, flood, or burn). Returns both images and the " +
-        "change statistics, and posts a before/after card to the dashboard. Requires CDSE creds.",
+        "(e.g. mean-NDVI drop → deforestation, flood, or burn). composite median is the " +
+        "robust choice here — per-pixel temporal medians suppress the residual-cloud noise " +
+        "that fakes change. Returns both images and the change statistics, and posts a " +
+        "before/after card to the dashboard. Requires CDSE creds.",
       inputSchema: {
         bbox: bboxSchema,
         dateA: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Earlier (before) date YYYY-MM-DD."),
         dateB: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Later (after) date YYYY-MM-DD."),
         index: z.enum(INDEX_NAMES as [string, ...string[]]).optional().describe("Delta index: NDVI (default), NDWI, NBR."),
         view: z.enum(RENDER_VIEWS).optional().describe("Image view: trueColor (default), falseColor, ndvi."),
-        windowDays: z.number().int().min(1).max(120).optional().describe("Composite window per date (default 25)."),
+        composite: compositeSchema,
+        windowDays: z.number().int().min(1).max(120).optional().describe("Composite window per date (default 25; 45 for composite=median)."),
         width: z.number().int().min(64).max(1536).optional().describe("Image width px (default 640)."),
       },
     },
-    async ({ bbox, dateA, dateB, index, view, windowDays, width }) =>
+    async ({ bbox, dateA, dateB, index, view, composite, windowDays, width }) =>
       safeResult(async () => {
         const client = getCopernicus();
         const box = bbox as BBox;
         const idx = index ?? "NDVI";
         const v = view ?? "trueColor";
-        const win = windowDays ?? 25;
+        const comp = (composite ?? "leastCC") as CompositeMethod;
+        const win = windowDays ?? (comp === "median" ? 45 : 25);
         const w = clampWidth(width ?? 640);
         const h = heightFor(box, w);
+        const source = s2SourceFor(comp);
 
         const one = async (date: string) => {
           const from = addDays(date, -win);
           const [png, stats, scenes] = await Promise.all([
-            client.process(box, { dateFrom: from, dateTo: date, evalscript: RENDER_EVALSCRIPTS[v]!, width: w, height: h }),
-            client.statistics(box, { dateFrom: from, dateTo: date, evalscript: statEvalscript(idx) }),
+            client.process(box, {
+              dateFrom: from,
+              dateTo: date,
+              evalscript: comp === "median" ? medianRenderEvalscript(v) : RENDER_EVALSCRIPTS[v]!,
+              width: w,
+              height: h,
+              source,
+            }),
+            client.statistics(box, {
+              dateFrom: from,
+              dateTo: date,
+              evalscript: comp === "median" ? medianStatEvalscript(idx) : statEvalscript(idx),
+              source,
+            }),
             scenesFor(client, box, from, date),
           ]);
-          const provenance = s2Provenance({ bbox: box, from, to: date, kind: "stats", index: idx, validPct: stats.validPct, scenes });
+          const provenance = s2Provenance({ bbox: box, from, to: date, kind: "stats", composite: comp, index: idx, validPct: stats.validPct, scenes });
           return { date, from, b64: png.toString("base64"), stats, provenance };
         };
         const [a, b] = await Promise.all([one(dateA), one(dateB)]);
@@ -209,11 +273,12 @@ export function registerAnalysisTools(server: McpServer): void {
           id: newId(),
           type: "compare",
           ts: nowIso(),
-          title: `${idx} ${dir} ${delta.meanChange.toFixed(3)} · ${dateA} → ${dateB}`,
+          title: `${idx}${comp === "median" ? " median" : ""} ${dir} ${delta.meanChange.toFixed(3)} · ${dateA} → ${dateB}`,
           bbox: box,
           payload: {
             index: idx,
             view: v,
+            composite: comp,
             dateA,
             dateB,
             statsA: a.stats,
@@ -233,6 +298,7 @@ export function registerAnalysisTools(server: McpServer): void {
         const meta = {
           index: idx,
           view: v,
+          composite: comp,
           dateA,
           dateB,
           windowDays: win,
