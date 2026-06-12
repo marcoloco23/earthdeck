@@ -49,9 +49,17 @@ GISTEMP +1.12 °C · Arctic ice −1.282 M km² vs climatology (below p10), Anta
 (consistent with sar_flood's +2 pts!). Dashboard screenshotted: pulse grid, charts, quake
 markers over the GIBS basemap.
 
+**Also this session — onboarding ("make it super simple")**: new `overview-mcp demo`
+(zero-key: dashboard + in-process MCP over InMemoryTransport + 7 live tool calls + browser
+auto-open — verified with a clean env, all ✓, screenshotted) and `overview-mcp doctor`
+(probes all 9 zero-key sources with 1 retry, validates CDSE OAuth + FIRMS key incl. quota;
+verified both no-key and full-key paths — 22/22 ready). README restructured: 30-second
+demo + `claude mcp add` one-liner above the fold, free-keys table with links, doctor sample.
+
 **Next**: Horizon 1 leftovers — cloud masking (#1), temporal-median compositing (#4), GFW
 alerts (#5); then Horizon 2 (AlphaEarth embeddings → `eo_similar`). Tidy-up candidates:
-npm publish; ERDDAP first-hit latency note (multi-decade strided reads ~60 s, cached after).
+**npm publish** (would turn `npx -y github:…` into `npx overview-mcp` — needs user's npm
+account); ERDDAP first-hit latency note (multi-decade strided reads ~60 s, cached after).
 
 ---
 

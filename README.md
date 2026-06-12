@@ -14,6 +14,26 @@ dashboard lights up with what it's seeing.
 > result to a local dashboard you watch live — but it works perfectly with the dashboard
 > off too.
 
+## Try it in 30 seconds (zero keys, zero config)
+
+```bash
+npx -y github:marcoloco23/overview-mcp demo
+```
+
+That's it. A dashboard opens in your browser and fills with the planet, live: CO₂, global
+temperature, El Niño state, Arctic sea ice, this week's earthquakes, and every open natural
+disaster — charts, markers, and a vital-signs grid on a satellite map. No account, no key,
+no config file. (Needs Node ≥ 20.)
+
+## Use it from Claude (one command)
+
+```bash
+claude mcp add overview -- npx -y github:marcoloco23/overview-mcp
+```
+
+Then just ask: *"What's the state of the planet right now?"* · *"Is El Niño coming?"* ·
+*"How has Berlin's climate changed since 1950?"* · *"Any big earthquakes this week?"*
+
 ## What it can do
 
 | Tool | What it does | Needs |
@@ -58,50 +78,70 @@ Every indicator result names its source and carries the series, so claims are ch
 The zero-key tools (`eo_snapshot`, `events`, `geo_resolve`, `stac_search`, and all ten
 planetary-indicator tools) work with no setup at all.
 
-## Install (Claude Code)
+## Setup details
 
-Add to your `.mcp.json` (or `claude mcp add`):
+Want the dashboard alongside Claude? Run `npx -y github:marcoloco23/overview-mcp dashboard`
+in a second terminal and watch the map light up as Claude works (it's optional — tools
+behave identically without it).
+
+<details>
+<summary>Claude Desktop / other MCP clients (JSON config)</summary>
 
 ```json
 {
   "mcpServers": {
     "overview": {
       "command": "npx",
-      "args": ["-y", "github:marcoloco23/overview-mcp"],
-      "env": {
-        "FIRMS_MAP_KEY": "optional-firms-key",
-        "CDSE_CLIENT_ID": "optional-copernicus-client-id",
-        "CDSE_CLIENT_SECRET": "optional-copernicus-client-secret"
-      }
+      "args": ["-y", "github:marcoloco23/overview-mcp"]
     }
   }
 }
 ```
 
-Omit the `env` keys you don't have — the zero-key tools still work.
+</details>
+
+## Unlock the satellite tools (2 free keys, ~5 minutes)
+
+14 of the 22 tools need nothing. The rest want free credentials:
+
+| Key | Unlocks | How to get it |
+| --- | --- | --- |
+| `FIRMS_MAP_KEY` | `fires_in` (live wildfire detections) | Enter your email at [firms.modaps.eosdis.nasa.gov/api/map_key](https://firms.modaps.eosdis.nasa.gov/api/map_key/) — emailed instantly |
+| `CDSE_CLIENT_ID` + `CDSE_CLIENT_SECRET` | `eo_render`, `eo_index`, `eo_search`, `eo_compare`, `sar_render`, `sar_water`, `sar_flood` (10 m Sentinel imagery + radar) | Free account at [dataspace.copernicus.eu](https://dataspace.copernicus.eu/) → User Settings → **OAuth clients** → Create (copy the secret immediately — it's shown once) |
+
+Pass them where your MCP client expects env vars, e.g.:
+
+```bash
+claude mcp add overview -e FIRMS_MAP_KEY=xxx -e CDSE_CLIENT_ID=xxx -e CDSE_CLIENT_SECRET=xxx \
+  -- npx -y github:marcoloco23/overview-mcp
+```
+
+Then verify everything in one shot:
+
+```bash
+npx -y github:marcoloco23/overview-mcp doctor
+```
+
+```
+  Zero-key data sources: ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓ ✓
+  Optional keys:
+    ✓ Copernicus CDSE   OAuth token OK
+    ✓ NASA FIRMS        key valid (0/5000 transactions used)
+  All zero-key sources reachable — 22/22 tools ready to use.
+```
+
+`doctor` checks every upstream source and tells you exactly what's ready and what's missing
+(with the link to fix it). See [.env.example](.env.example) for all variables.
 
 ## The dashboard
 
-```bash
-npx -y github:marcoloco23/overview-mcp dashboard   # opens on http://localhost:5005
-```
+Each tool posts a "card" — imagery overlays and NDVI/index panels render on a MapLibre map
+(NASA Blue Marble basemap), events/fires/earthquakes plot as markers, time-series tools draw
+charts (the Keeling curve, ONI, sea-ice vs climatology…), `planet_pulse` shows a vital-signs
+grid, and `eo_compare` shows a before/after pair with the delta. The push is best-effort: if
+the dashboard isn't running, tools behave exactly the same.
 
-Open it in a browser, then drive the MCP from Claude. Each tool posts a "card" — imagery
-overlays and the NDVI/index panels render on a MapLibre map (NASA Blue Marble basemap),
-events and fires plot as markers, and `eo_compare` shows a before/after pair with the delta.
-The push is best-effort: if the dashboard isn't running, tools behave exactly the same.
-
-## Getting the free keys
-
-- **NASA FIRMS** (`fires_in`): request a key with your email at
-  <https://firms.modaps.eosdis.nasa.gov/api/map_key/> — emailed instantly.
-- **Copernicus** (`eo_*`): create a free account at <https://dataspace.copernicus.eu/>, then
-  Dashboard → User Settings → **OAuth clients** → Create. Copy the **client secret
-  immediately** (shown once); choose "Never expire" or rotate every 90 days.
-
-See [.env.example](.env.example) for all variables.
-
-## Example session
+## Example sessions
 
 > **You:** What's the NDVI around Manaus, and how has the forest changed since 2019?
 
@@ -109,6 +149,19 @@ Claude calls `geo_resolve("Manaus, Brazil")` → bbox, then `eo_index(bbox, "NDV
 mean ≈ 0.28, then `eo_compare(bbox, "2019-08-01", "2026-06-01", "NDVI")` → renders both
 dates and reports the NDVI delta. Meanwhile the dashboard shows the imagery, the index
 panel, and the before/after comparison.
+
+> **You:** Is the Rio Negro flooding right now?
+
+Claude calls `river_discharge(-3.1, -60)` → latest flow 2.5× the 2-year mean (rising-water
+season), then confirms from orbit with `sar_flood` → water extent +2 pts since April. Two
+independent instruments, one answer — that's the point of having the whole Earth system in
+one toolbox.
+
+> **You:** What's the state of the planet?
+
+One `planet_pulse` call: CO₂ 432 ppm (+1.8 YoY), global anomaly +1.12 °C, ENSO neutral,
+both poles' sea ice below the 10th percentile, 70 quakes M5+ this week, 200 open disasters
+— each with its source named.
 
 ## Develop
 
@@ -127,8 +180,11 @@ Tests mock the network, so the whole suite runs with zero credentials — CI
 
 ## Data sources & attribution
 
-- NASA EOSDIS GIBS / Worldview, FIRMS, EONET (NASA open data).
-- Copernicus Sentinel-2, via the Copernicus Data Space Ecosystem (ESA / European Union).
+- NASA EOSDIS GIBS / Worldview, FIRMS, EONET, GISTEMP (NASA open data).
+- Copernicus Sentinel-1/-2 via the Copernicus Data Space Ecosystem (ESA / European Union);
+  Copernicus CAMS air quality and ERA5 / GloFAS via [Open-Meteo](https://open-meteo.com/) (CC-BY 4.0).
+- NOAA: CPC Oceanic Niño Index, GML Mauna Loa CO₂, OISST via CoastWatch ERDDAP.
+- NSIDC Sea Ice Index (G02135) · USGS Earthquake Hazards Program.
 - Basemap & geocoding: NASA Blue Marble; OpenStreetMap Nominatim.
 
 ## Notes

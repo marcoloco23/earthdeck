@@ -146,6 +146,15 @@ Earth Pulse — planetary indicators (Session 6): ✅ done + live-verified (see 
 - [x] series/quakes/pulse dashboard cards + SVG chart renderer (no new deps)
 - [x] Offline tests 65 → 88; full 16-call live E2E green; dashboard screenshotted
 
+Onboarding (Session 6, "make it super simple"): ✅ done + live-verified
+- [x] `overview-mcp demo` — zero-key wow path: starts the dashboard, runs the real MCP
+      server in-process (InMemoryTransport), calls 7 zero-key tools, opens the browser.
+- [x] `overview-mcp doctor` — checks Node, env keys, and live reachability of all 9
+      zero-key sources + CDSE OAuth + FIRMS key status (with quota); 1 retry on transient
+      throttles; prints exactly what's ready and the links to fix what isn't.
+- [x] README restructured: 30-second `npx … demo` quickstart + `claude mcp add` one-liner
+      ABOVE the tool tables; keys table with direct links; doctor output sample.
+
 22 tools total. Build + typecheck green. **88 offline tests green** (`pnpm test`).
 Live driver: `node scripts/live-drive.mjs [tool …]` (boots dashboard on :5099, reads `.env`).
 
