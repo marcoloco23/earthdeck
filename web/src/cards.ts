@@ -11,7 +11,11 @@ const TYPE_LABEL: Record<Card["type"], string> = {
   series: "SERIES",
   quakes: "QUAKES",
   pulse: "PULSE",
+  note: "NOTE",
+  similar: "SIMILAR",
 };
+
+const NOTE_KINDS = new Set(["info", "insight", "warning"]);
 
 /** Coerce an untrusted card type to a known one so it can't be injected into class names. */
 function safeType(type: string): Card["type"] {
@@ -80,6 +84,60 @@ function renderProvenance(prov: ProvenanceView, label?: string): HTMLElement {
   return det;
 }
 
+/** Append inline text to a node, turning **bold** spans into <strong> — DOM nodes only. */
+function appendInline(parent: HTMLElement, text: string): void {
+  const parts = text.split(/\*\*(.+?)\*\*/g); // odd indices were inside **…**
+  parts.forEach((part, i) => {
+    if (!part) return;
+    if (i % 2 === 1) {
+      const b = document.createElement("strong");
+      b.textContent = part;
+      parent.appendChild(b);
+    } else {
+      parent.appendChild(document.createTextNode(part));
+    }
+  });
+}
+
+/**
+ * Render a note body with markdown-lite: `## ` headings, `- ` bullets, `**bold**`, and
+ * blank-line paragraphs. Built ENTIRELY from DOM nodes/textContent — the text is
+ * model/tool-supplied and must never reach innerHTML.
+ */
+function renderNoteBody(text: string): HTMLElement {
+  const body = document.createElement("div");
+  body.className = "note-body";
+  let list: HTMLUListElement | null = null;
+  const closeList = () => {
+    if (list) body.appendChild(list);
+    list = null;
+  };
+  for (const rawLine of text.split("\n")) {
+    const line = rawLine.trimEnd();
+    if (line.startsWith("- ")) {
+      list ??= document.createElement("ul");
+      const li = document.createElement("li");
+      appendInline(li, line.slice(2));
+      list.appendChild(li);
+      continue;
+    }
+    closeList();
+    if (line === "") continue;
+    if (line.startsWith("## ")) {
+      const h = document.createElement("div");
+      h.className = "note-h";
+      appendInline(h, line.slice(3));
+      body.appendChild(h);
+    } else {
+      const p = document.createElement("p");
+      appendInline(p, line);
+      body.appendChild(p);
+    }
+  }
+  closeList();
+  return body;
+}
+
 /** Build the DOM node for a card in the feed. Newest cards are prepended by the caller. */
 export function renderCard(card: Card, onFocus: (card: Card) => void): HTMLElement {
   const t = safeType(card.type);
@@ -99,6 +157,45 @@ export function renderCard(card: Card, onFocus: (card: Card) => void): HTMLEleme
     img.loading = "lazy";
     img.src = card.imageUrl;
     el.appendChild(img);
+  }
+
+  if (card.type === "note") {
+    const text = typeof card.payload.text === "string" ? card.payload.text : "";
+    const kind = typeof card.payload.kind === "string" && NOTE_KINDS.has(card.payload.kind) ? card.payload.kind : "info";
+    el.classList.add(`note--${kind}`);
+    el.appendChild(renderNoteBody(text));
+  }
+
+  if (card.type === "similar") {
+    const matches = (card.payload.matches as Array<{ lon: number; lat: number; similarity: number }> | undefined) ?? [];
+    const stats = card.payload.stats as { cells?: number; simMean?: number; simMax?: number } | undefined;
+    const list = document.createElement("ul");
+    list.className = "evt-list";
+    for (const [i, m] of matches.slice(0, 8).entries()) {
+      const li = document.createElement("li");
+      const dot = document.createElement("span");
+      dot.className = "evt-dot sim-dot";
+      li.appendChild(dot);
+      li.appendChild(document.createTextNode(`#${i + 1}  ${m.similarity.toFixed(3)}  `));
+      const em = document.createElement("em");
+      em.textContent = `${m.lat.toFixed(4)}, ${m.lon.toFixed(4)}`;
+      li.appendChild(em);
+      list.appendChild(li);
+    }
+    el.appendChild(list);
+    if (stats) {
+      const s = document.createElement("div");
+      s.className = "series-source";
+      s.textContent = `${stats.cells ?? "?"} cells · mean sim ${stats.simMean ?? "?"} · max ${stats.simMax ?? "?"}`;
+      el.appendChild(s);
+    }
+    const attr = card.payload.attribution;
+    if (typeof attr === "string") {
+      const a = document.createElement("div");
+      a.className = "series-source";
+      a.textContent = attr;
+      el.appendChild(a);
+    }
   }
 
   if (card.type === "events") {

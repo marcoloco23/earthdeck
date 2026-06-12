@@ -5,6 +5,44 @@ status, next priorities. The live task pointer is in [CONTINUITY.md](CONTINUITY.
 
 ---
 
+## Session: 2026-06-13 — narrate · dashboard nav fixes · eo_similar (Horizon 2 #1) ✅
+
+**Focus**: (1) user ask: stream text interpretations to the dashboard; (2) user bug: card
+clicks not always navigating; (3) Horizon 2 — AlphaEarth embeddings → eo_similar.
+
+**Done**:
+- [x] **`narrate` (tool #25, zero-key)** — rich text notes on the dashboard with
+      markdown-lite (## / - / **bold**), kind accents (info/insight/warning), optional map
+      anchor. **Streaming**: same noteId + full text → the server upserts by card id and the
+      browser swaps the node in place (no jump, no re-focus; SSE replays stay idempotent).
+      New `note` card type; /ingest validates text (1–20k chars); DashboardState exported +
+      unit-tested. Smoke: 3 calls → ONE evolving card.
+- [x] **Card-click navigation fixed**: showImagery early-returned when the overlay already
+      existed (re-clicks never flew back) → now moves layer to front + flies; index/search/
+      any-bbox cards now navigate via a generic fallback; imagery/compare zoom to 13 (10 m
+      overlays stay sharp past the basemap cap).
+- [x] **`eo_similar` (tool #26, zero-key, Horizon 2)** — AlphaEarth Foundations 64-d
+      embedding similarity over the **open Source Cooperative COG mirror** (CC-BY; no GEE,
+      no key). New `src/utm.ts` (Krüger WGS84↔UTM, <1 cm vs PROJ), `src/clients/aef.ts`
+      (ranged **binary search of the 798 MB index CSV** — zone-major/year order verified;
+      purpose-built **BigTIFF reader** pinned to the dataset: int8 ×64 bands, planar-2,
+      1024² tiles, **zstd** via pinned `fzstd`, bottom-up transform; overview pixels are
+      renormalized mean embeddings → coarse search for free; coalesced range reads, 5xx
+      retry, pooled concurrency). Tool: cosine top-k with spatial thinning, similarity
+      stats, `similar` heatmap card (color-ramped cells + ref ring).
+- [x] Tests 115 → **130** (note/upsert ×5, utm ×5, aef ×10 incl. a synthetic in-memory
+      bottom-up BigTIFF fixture).
+
+**Build/smoke**: build + typecheck green; 130 offline tests. **Live (2026-06-13)**: urban
+ref (Manaus −60.02,−3.10) → all top-10 on the city grid, ref cell = 1.0, area mean 0.42
+over 43 694 cells / 8 files / 42 s; river ref (−60.25,−3.18) → top-8 trace the Rio Negro;
+heatmap card pushed. narrate streamed 3 updates into one card.
+
+**Next**: embedding-difference change detection + few-shot classify (Horizon 2) · CCDC/
+BFAST (H1 leftover) · STAC-backed render path.
+
+---
+
 ## Session: 2026-06-12 (later still) — temporal-median compositing (Horizon 1 #4) ✅
 
 **Focus**: classic change detection rung 1 — per-pixel temporal-median composites so

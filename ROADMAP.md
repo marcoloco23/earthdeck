@@ -178,8 +178,11 @@ charts, `quakes` magnitude-scaled map layer, `pulse` vital-signs grid).
 
 ## Horizon 2 — The planet becomes searchable (≈ months 6–12)
 
-- [ ] **AlphaEarth Satellite Embedding** (CC-BY, no GPU) → `eo_similar` ("find everywhere like
-      this") + embedding-difference change detection + few-shot classification.
+- [~] **AlphaEarth Satellite Embedding** — `eo_similar` ✅ shipped + live-verified 2026-06-13
+      (zero-key via the Source Cooperative COG mirror: ranged binary search of the 798 MB
+      index CSV + a purpose-built BigTIFF/zstd reader; urban ref → Manaus city grid, river
+      ref → Rio Negro, ref cell = 1.0). Embedding-difference change detection + few-shot
+      classification still open.
 - [ ] **pgvector** embedding index alongside STAC.
 - [ ] **`eo_detect`** — text-promptable detection/segmentation (samgeo + Grounding DINO + SAM).
 - [ ] **State-machine agentic orchestrator** over the MCP tools (Geo-OLM pattern, ~100× cheaper).

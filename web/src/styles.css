@@ -256,3 +256,24 @@ body {
 .pulse-label { font-size: 0.64rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .pulse-value { font-size: 1.02rem; font-weight: 600; color: var(--text); margin-top: 0.1rem; }
 .pulse-sub { font-size: 0.64rem; color: var(--muted); margin-top: 0.15rem; }
+
+/* note cards (narrate — Claude's interpretation stream) */
+.badge--note { background: #e2c044; }
+.card--note.note--insight { border-left: 2px solid #34d399; }
+.card--note.note--warning { border-left: 2px solid #f97316; }
+.note-body { margin-top: 0.4rem; font-size: 0.76rem; color: var(--text); line-height: 1.5; }
+.note-body p { margin: 0.3rem 0; }
+.note-body ul { margin: 0.3rem 0 0.3rem 1.1rem; padding: 0; }
+.note-body li { margin: 0.15rem 0; }
+.note-h {
+  margin-top: 0.5rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* similarity cards (eo_similar) */
+.badge--similar { background: #f59e0b; }
+.sim-dot { background: #f59e0b; }

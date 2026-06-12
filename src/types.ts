@@ -12,7 +12,9 @@ export type CardType =
   | "search"
   | "series"
   | "quakes"
-  | "pulse";
+  | "pulse"
+  | "note"
+  | "similar";
 
 export interface ImageData {
   mimeType: string;

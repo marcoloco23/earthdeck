@@ -22,7 +22,11 @@ const CARD_TYPES = new Set<string>([
   "series",
   "quakes",
   "pulse",
+  "note",
+  "similar",
 ]);
+
+const MAX_NOTE_CHARS = 20_000;
 const ALLOWED_IMAGE_MIME = new Set<string>(["image/jpeg", "image/png"]);
 
 /**
@@ -58,6 +62,12 @@ export function validateIngest(obj: unknown): IngestPayload {
     if (!Array.isArray(o.images) || o.images.length > 4) throw new Error("images must be an array (max 4)");
     out.images = o.images.map(validateImage);
   }
+  if (out.type === "note") {
+    const text = (out.payload as { text?: unknown }).text;
+    if (typeof text !== "string" || text.length === 0 || text.length > MAX_NOTE_CHARS) {
+      throw new Error(`note payload.text must be a 1–${MAX_NOTE_CHARS} char string`);
+    }
+  }
   return out;
 }
 
@@ -90,12 +100,21 @@ interface StoredImage {
   mimeType: string;
 }
 
-/** In-memory dashboard state — a bounded card feed + image cache + SSE clients. */
-class DashboardState {
+/**
+ * In-memory dashboard state — a bounded card feed + image cache + SSE clients.
+ * Exported for tests; the HTTP layer owns the single live instance.
+ */
+export class DashboardState {
   cards: Card[] = [];
   images = new Map<string, StoredImage>();
   clients = new Set<ServerResponse>();
 
+  /**
+   * Add a card — or, if a card with the same id exists, REPLACE it in place (same feed
+   * position) and re-broadcast. This is the streaming-update mechanism: a tool re-sends
+   * the full card under one id (e.g. `narrate`'s growing note) and the browser swaps the
+   * node rather than appending a duplicate.
+   */
   addCard(payload: IngestPayload): Card {
     const { image, images, ...rest } = payload;
     const card: Card = { ...rest };
@@ -114,8 +133,13 @@ class DashboardState {
       });
     }
     if (image?.dataBase64 || (images && images.length > 0)) this.evictImages();
-    this.cards.push(card);
-    if (this.cards.length > MAX_CARDS) this.cards.shift();
+    const existing = this.cards.findIndex((c) => c.id === card.id);
+    if (existing >= 0) {
+      this.cards[existing] = card;
+    } else {
+      this.cards.push(card);
+      if (this.cards.length > MAX_CARDS) this.cards.shift();
+    }
     this.broadcast(card);
     return card;
   }

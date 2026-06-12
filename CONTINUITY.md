@@ -10,14 +10,16 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
 
 - Agent read full file: YES
 - Current task understood: YES
-- Current task: **Session 7 (2026-06-12): temporal-median compositing (Horizon 1 #4) shipped +
-  live-verified.** `composite: "median"` on eo_render/eo_index/eo_compare — ORBIT-mosaicking
-  per-pixel median of clear observations (shared clearCondition keeps the mask identical to
-  the leastCC stat mask, test-enforced). Live: Manaus median render visibly cloud-free vs
-  leastCC; NDVI 0.670 @ 76% valid; compare São Félix 2019→2025 −0.111 @ 96%/96% valid.
-  **101 offline tests green.** GFW alerts (#5) also DONE + live-verified (forest_alerts, tool #24;
-  key minted + stored in .env). **111 offline tests, 24 tools.** Next: Horizon 2 —
-  AlphaEarth embeddings → eo_similar.
+- Current task: **Session 7 complete (2026-06-12/13).** Shipped + live-verified, in order:
+  (1) temporal-median compositing (H1 #4, `composite:"median"`); (2) GFW `forest_alerts`
+  (H1 #5, tool #24, key in .env); (3) `narrate` (tool #25) — streamed text notes on the
+  dashboard via upsert-by-card-id; (4) dashboard card-click navigation fixes; (5)
+  **`eo_similar` (tool #26, Horizon 2 #1)** — AlphaEarth 64-d embedding similarity, fully
+  zero-key via the Source Cooperative COG mirror (ranged binary search of the 798 MB index
+  CSV + purpose-built bottom-up BigTIFF/zstd reader, `src/utm.ts` Krüger projection). Live:
+  urban ref → Manaus city grid (ref cell 1.0), river ref → Rio Negro. **26 tools, 130
+  offline tests, build + typecheck green. NOT committed yet.** Next: Horizon 2 leftovers —
+  embedding-difference change detection, few-shot classify, pgvector index — or CCDC/BFAST.
 - Session started: 2026-06-12 (Session 7)
 
 ---
@@ -150,6 +152,21 @@ Horizon 1 — Trustworthy analyst (current):
       Gateway quirks encoded in src/clients/gfw.ts: origin header required, IN unsupported
       (OR chain), AS aliases ignored, transient 403 → 1 retry.
 - [ ] STAC-backed render path (see ROADMAP).
+
+Session 7b (2026-06-13) — user asks + Horizon 2:
+- [x] **narrate (tool #25)** — streamed dashboard notes (plan `.plans/2026-06-12_narrate.md`):
+      `note` card type, server upsert-by-id, in-place node swap in the feed, markdown-lite
+      renderer (DOM-only, XSS-safe), 1–20k char validation. Smoke: 3 calls → 1 evolving card.
+- [x] **Dashboard nav fixes** — re-clicking imagery/compare cards flies back (was early-return
+      on existing source), index/search/any-bbox cards navigate via fallback, imagery zooms
+      to 13.
+- [x] **eo_similar (tool #26, Horizon 2 #1)** — plan `.plans/2026-06-13_eo-similar.md`. Zero-key
+      AlphaEarth similarity search over the Source Coop COG mirror. Key infra: `src/utm.ts`
+      (Krüger, <1 cm vs PROJ), `src/clients/aef.ts` (ranged binary search of the 798 MB
+      index; pinned bottom-up BigTIFF reader; fzstd; coalesced reads; 5xx retry; pool(3)),
+      `similar` heatmap card. Live: urban ref → Manaus grid (1.0 at ref), river → Rio Negro.
+- [ ] Horizon 2 next: embedding-difference change detection (two years, same grid — the
+      AEF client already supports `year`) · few-shot classification · pgvector index.
 
 Earth Pulse — planetary indicators (Session 6): ✅ done + live-verified (see ROADMAP section).
 - [x] 10 zero-key tools: enso · ocean_temp · co2 · global_temp · sea_ice · quakes ·

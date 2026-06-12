@@ -2,7 +2,7 @@ export type BBox = [number, number, number, number]; // west, south, east, north
 
 export interface Card {
   id: string;
-  type: "imagery" | "index" | "fires" | "events" | "compare" | "search" | "series" | "quakes" | "pulse";
+  type: "imagery" | "index" | "fires" | "events" | "compare" | "search" | "series" | "quakes" | "pulse" | "note" | "similar";
   ts: string;
   title: string;
   bbox?: BBox;

@@ -20,7 +20,7 @@ test("validateIngest constrains the id charset (the XSS guard)", () => {
 });
 
 test("validateIngest allow-lists the card type", () => {
-  for (const type of ["imagery", "index", "fires", "events", "compare", "search"]) {
+  for (const type of ["imagery", "index", "fires", "events", "compare", "search", "series", "quakes", "pulse"]) {
     assert.doesNotThrow(() => validateIngest({ ...base(), type }));
   }
   assert.throws(() => validateIngest({ ...base(), type: "evil" }), /invalid type/);
@@ -50,4 +50,14 @@ test("validateIngest validates and caps the images array", () => {
 test("validateIngest validates bbox shape", () => {
   assert.doesNotThrow(() => validateIngest({ ...base(), bbox: [-10, -20, 10, 20] }));
   assert.throws(() => validateIngest({ ...base(), bbox: [1, 2, 3] }), /bbox must be 4 numbers/);
+});
+
+test("validateIngest: note cards require bounded payload.text", () => {
+  const note = (text: unknown) => ({ ...base(), type: "note", payload: { text, kind: "insight" } });
+  assert.doesNotThrow(() => validateIngest(note("## Finding\n- NDVI fell 0.11")));
+  assert.throws(() => validateIngest(note("")), /note payload\.text/);
+  assert.throws(() => validateIngest(note(42)), /note payload\.text/);
+  assert.throws(() => validateIngest({ ...base(), type: "note", payload: {} }), /note payload\.text/);
+  assert.throws(() => validateIngest(note("x".repeat(20_001))), /note payload\.text/);
+  assert.doesNotThrow(() => validateIngest(note("x".repeat(20_000))));
 });

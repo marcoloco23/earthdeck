@@ -14,6 +14,8 @@ import { registerClimateTools } from "./tools/climate.js";
 import { registerQuakeTools } from "./tools/quakes.js";
 import { registerEarthdataTools } from "./tools/earthdata.js";
 import { registerForestTools } from "./tools/forest.js";
+import { registerNarrateTools } from "./tools/narrate.js";
+import { registerSimilarTools } from "./tools/similar.js";
 
 export function buildServer(): McpServer {
   const server = new McpServer(
@@ -25,7 +27,8 @@ export function buildServer(): McpServer {
         "natural-disaster events, search open archives (STAC, no key), and (with keys) compute " +
         "vegetation/water/burn indices, find active fires, surface deforestation alerts " +
         "(forest_alerts), render all-weather Sentinel-1 SAR, " +
-        "and compare a place across two dates. (2) Planetary indicators (all no-key) — ENSO/" +
+        "compare a place across two dates, and search by similarity — eo_similar finds everywhere " +
+        "that 'looks like' a reference point via AlphaEarth embeddings (no key). (2) Planetary indicators (all no-key) — ENSO/" +
         "El Niño tracking (enso), ocean temperature history since 1981 (ocean_temp), CO₂ since " +
         "1958 (co2), the global temperature record since 1880 (global_temp), polar sea ice " +
         "(sea_ice), earthquakes (quakes), air quality (air_quality), per-place climate history " +
@@ -34,7 +37,9 @@ export function buildServer(): McpServer {
         "across NASA's full ~50k-collection archive. Historic series include trends; the Earth is one " +
         "interconnected system, so cross-reference (ENSO ↔ fires/floods/SST; discharge ↔ SAR " +
         "floods). Bounding boxes are [west, south, east, north] degrees. Results also stream to " +
-        "a local dashboard if one is running (best-effort).",
+        "a local dashboard if one is running (best-effort) — and `narrate` lets you stream YOUR " +
+        "interpretation there too: post a note alongside data calls explaining what the results " +
+        "mean, and update it (same noteId, full text) as the picture develops.",
     },
   );
 
@@ -51,6 +56,8 @@ export function buildServer(): McpServer {
   registerQuakeTools(server);
   registerEarthdataTools(server);
   registerForestTools(server);
+  registerNarrateTools(server);
+  registerSimilarTools(server);
 
   return server;
 }

@@ -1,6 +1,6 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./styles.css";
-import { createMap, mapReady, showImagery, showEvents, showFires, showCompare, showQuakes, focusBBox, clearOverlays } from "./map";
+import { createMap, mapReady, showImagery, showEvents, showFires, showCompare, showQuakes, showSimilar, focusBBox, clearOverlays } from "./map";
 import { renderCard } from "./cards";
 import type { Card } from "./types";
 
@@ -27,14 +27,21 @@ function focusCard(card: Card): void {
   else if (card.type === "fires") showFires(card);
   else if (card.type === "compare") showCompare(card);
   else if (card.type === "quakes") showQuakes(card);
-  else if (card.type === "series") focusBBox(card);
+  else if (card.type === "similar") showSimilar(card);
+  // Everything else (index, search, series, note, …): any card that knows where it is
+  // should navigate there on click — focusBBox is a no-op without a bbox.
+  else focusBBox(card);
 }
 
-const seen = new Set<string>();
+// id → rendered node + serialized card. Identical re-sends (SSE replays state on
+// reconnect) are dropped; CHANGED re-sends are streaming updates (e.g. narrate's growing
+// note) and swap the node in place — no jump to the top, no map re-focus.
+const seen = new Map<string, { el: HTMLElement; json: string }>();
 
 function handleCard(card: Card): void {
-  if (seen.has(card.id)) return; // SSE replays state on connect; de-dupe
-  seen.add(card.id);
+  const json = JSON.stringify(card);
+  const prev = seen.get(card.id);
+  if (prev?.json === json) return;
 
   // A malformed/hostile card must not break the feed — render defensively.
   let node: HTMLElement;
@@ -44,6 +51,14 @@ function handleCard(card: Card): void {
     console.error("failed to render card", err);
     return;
   }
+  node.dataset.cardId = card.id;
+
+  if (prev) {
+    prev.el.replaceWith(node);
+    seen.set(card.id, { el: node, json });
+    return;
+  }
+  seen.set(card.id, { el: node, json });
   empty.style.display = "none";
   feed.prepend(node);
 
@@ -54,8 +69,12 @@ function handleCard(card: Card): void {
     console.error("failed to focus card", err);
   }
 
-  // Keep the feed bounded.
-  while (feed.children.length > 60) feed.removeChild(feed.lastChild as Node);
+  // Keep the feed bounded (and keep the id map in sync with evictions).
+  while (feed.children.length > 60) {
+    const last = feed.lastChild as HTMLElement;
+    if (last.dataset?.cardId) seen.delete(last.dataset.cardId);
+    feed.removeChild(last);
+  }
 }
 
 function connect(): void {

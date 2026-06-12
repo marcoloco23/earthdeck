@@ -42,6 +42,8 @@ Then just ask: *"What's the state of the planet right now?"* · *"Is El Niño co
 | `events` | Live natural-disaster events worldwide (NASA EONET): wildfires, storms, volcanoes, floods | — |
 | `geo_resolve` | Turn a place name into a bounding box (OpenStreetMap) | — |
 | `stac_search` | Search open satellite archives (Sentinel-2/-1, Landsat) for scenes + COG asset URLs (Earth Search STAC) | — |
+| `narrate` | Stream rich text notes/interpretations to the dashboard alongside the data — update one note in place as the story develops | — |
+| `eo_similar` | "Find everywhere that looks like this": AlphaEarth 64-d embedding similarity over a search area (2017–2025, 10 m source) | — |
 | `fires_in` | Active fire / thermal-anomaly detections (NASA FIRMS), near-real-time | `FIRMS_MAP_KEY` |
 | `forest_alerts` | Integrated deforestation alerts (GLAD-L + GLAD-S2 + RADD via Global Forest Watch) — daily, 10 m, tropics | `GFW_API_KEY` |
 | `eo_render` | High-res (10 m) Sentinel-2 imagery — trueColor / falseColor / NDVI ramp; `composite: median` for a cloud-free temporal-median composite | CDSE |
@@ -104,7 +106,7 @@ behave identically without it).
 
 ## Unlock the satellite tools (2 free keys, ~5 minutes)
 
-15 of the 24 tools need nothing. The rest want free credentials:
+17 of the 26 tools need nothing. The rest want free credentials:
 
 | Key | Unlocks | How to get it |
 | --- | --- | --- |
@@ -130,7 +132,7 @@ npx -y earthdeck doctor
   Optional keys:
     ✓ Copernicus CDSE   OAuth token OK
     ✓ NASA FIRMS        key valid (0/5000 transactions used)
-  All zero-key sources reachable — 23/23 tools ready to use.
+  All zero-key sources reachable — 26/26 tools ready to use.
 ```
 
 `doctor` checks every upstream source and tells you exactly what's ready and what's missing

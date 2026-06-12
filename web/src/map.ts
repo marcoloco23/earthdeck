@@ -49,7 +49,7 @@ export function mapReady(): boolean {
   return map !== null;
 }
 
-function fitBBox(bbox: BBox): void {
+function fitBBox(bbox: BBox, maxZoom = 9): void {
   if (!map) return;
   const [w, s, e, n] = bbox;
   map.fitBounds(
@@ -57,7 +57,7 @@ function fitBBox(bbox: BBox): void {
       [w, s],
       [e, n],
     ],
-    { padding: 60, duration: 900, maxZoom: 9 },
+    { padding: 60, duration: 900, maxZoom },
   );
 }
 
@@ -66,7 +66,13 @@ export function showImagery(card: Card): void {
   if (!map || !card.bbox || !card.imageUrl) return;
   const [w, s, e, n] = card.bbox;
   const id = `ov-${card.id}`;
-  if (map.getSource(id)) return;
+  if (map.getSource(id)) {
+    // Re-click of an already-overlaid card: bring it to the front and fly back to it —
+    // returning early here was why clicking imagery cards "didn't navigate".
+    if (map.getLayer(id)) map.moveLayer(id);
+    fitBBox(card.bbox, 13);
+    return;
+  }
 
   map.addSource(id, {
     type: "image",
@@ -87,7 +93,8 @@ export function showImagery(card: Card): void {
     if (old && map.getLayer(old)) map.removeLayer(old);
     if (old && map.getSource(old)) map.removeSource(old);
   }
-  fitBBox(card.bbox);
+  // 10 m imagery overlays stay sharp well past the basemap's zoom 8/9 — zoom into them.
+  fitBBox(card.bbox, 13);
 }
 
 const CATEGORY_COLOR: Record<string, string> = {
@@ -244,6 +251,73 @@ export function showQuakes(card: Card): void {
   }
 }
 
+const SIMILAR_LAYER = "similar-src";
+const SIMILAR_REF = "similar-ref";
+
+/** Similarity heatmap: every sampled cell as a color-ramped square + a ring at the ref. */
+export function showSimilar(card: Card): void {
+  const m = map;
+  if (!m) return;
+  const heat = (card.payload.heat as Array<{ lon: number; lat: number; sim: number }> | undefined) ?? [];
+  const ref = card.payload.ref as { lon: number; lat: number } | undefined;
+  const data: GeoJSON.FeatureCollection = {
+    type: "FeatureCollection",
+    features: heat.map((h) => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [h.lon, h.lat] },
+      properties: { sim: h.sim },
+    })),
+  };
+  const src = m.getSource(SIMILAR_LAYER) as maplibregl.GeoJSONSource | undefined;
+  if (src) {
+    src.setData(data);
+  } else {
+    m.addSource(SIMILAR_LAYER, { type: "geojson", data });
+    m.addLayer({
+      id: SIMILAR_LAYER,
+      type: "circle",
+      source: SIMILAR_LAYER,
+      paint: {
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 1.6, 9, 4.5, 12, 9],
+        // Cosine similarity ramp: cold blue → dim → hot amber/red near 1.
+        "circle-color": [
+          "interpolate",
+          ["linear"],
+          ["get", "sim"],
+          0.0, "#1e3a5f",
+          0.6, "#3b5b78",
+          0.8, "#caa53d",
+          0.9, "#f59e0b",
+          0.97, "#ef4444",
+        ],
+        "circle-opacity": 0.75,
+      },
+    });
+  }
+  const refData: GeoJSON.FeatureCollection = {
+    type: "FeatureCollection",
+    features: ref ? [{ type: "Feature", geometry: { type: "Point", coordinates: [ref.lon, ref.lat] }, properties: {} }] : [],
+  };
+  const refSrc = m.getSource(SIMILAR_REF) as maplibregl.GeoJSONSource | undefined;
+  if (refSrc) {
+    refSrc.setData(refData);
+  } else {
+    m.addSource(SIMILAR_REF, { type: "geojson", data: refData });
+    m.addLayer({
+      id: SIMILAR_REF,
+      type: "circle",
+      source: SIMILAR_REF,
+      paint: {
+        "circle-radius": 9,
+        "circle-color": "rgba(0,0,0,0)",
+        "circle-stroke-color": "#f8fafc",
+        "circle-stroke-width": 2.5,
+      },
+    });
+  }
+  if (card.bbox) fitBBox(card.bbox, 11);
+}
+
 /** Fly to a card's bbox without adding an overlay (series cards carry a location). */
 export function focusBBox(card: Card): void {
   if (!map || !card.bbox) return;
@@ -266,6 +340,10 @@ export function clearOverlays(): void {
   if (map.getSource(FIRE_LAYER)) map.removeSource(FIRE_LAYER);
   if (map.getLayer(QUAKE_LAYER)) map.removeLayer(QUAKE_LAYER);
   if (map.getSource(QUAKE_LAYER)) map.removeSource(QUAKE_LAYER);
+  for (const id of [SIMILAR_LAYER, SIMILAR_REF]) {
+    if (map.getLayer(id)) map.removeLayer(id);
+    if (map.getSource(id)) map.removeSource(id);
+  }
 }
 
 function escapeHtml(s: string): string {

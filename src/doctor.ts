@@ -172,10 +172,10 @@ export async function runDoctor(): Promise<void> {
   }
 
   out("");
-  const readyTools = 15 + (cdse.ok ? 7 : 0) + (firms.ok ? 1 : 0) + (gfw.ok ? 1 : 0);
+  const readyTools = 17 + (cdse.ok ? 7 : 0) + (firms.ok ? 1 : 0) + (gfw.ok ? 1 : 0);
   out(
     zeroKeyDown === 0
-      ? `  All zero-key sources reachable — ${readyTools}/24 tools ready to use.`
+      ? `  All zero-key sources reachable — ${readyTools}/26 tools ready to use.`
       : `  ⚠️ ${zeroKeyDown} zero-key source(s) unreachable (network/proxy?) — some tools will fail.`,
   );
   out("  Try it now:  npx -y earthdeck demo");
