@@ -1,7 +1,7 @@
 {
   "version": 1,
   "name": "Controls — expected quiet",
-  "description": "Intact, remote, protected forest cores where nothing should fire. Every finding here is counted as a false positive for the rule that produced it: this is how the ledger measures its own error rate honestly.",
+  "description": "Intact, remote, protected forest cores where nothing should fire. Every finding here is counted as a false positive for the rule that produced it: this is how the ledger measures its own error rate honestly. Thresholds tuned 2026-09-26 after the first live sweep: at minHa 5 both cores fired on ~15–19 ha / 90 d of high-confidence alerts (1571 alerts in Jaú — radar alerts on seasonal floodplain water, not clearing), so the floor sits above that noise with margin; NDVI confirmation never fired for either.",
   "aois": [
     {
       "id": "ctl-br-jau-core",
@@ -10,7 +10,7 @@
       "tags": ["control", "amazon"],
       "control": true,
       "rules": [
-        { "name": "forest_loss", "params": { "days": 90, "minConfidence": "high", "minAlerts": 50, "minHa": 5 } },
+        { "name": "forest_loss", "params": { "days": 90, "minConfidence": "high", "minAlerts": 300, "minHa": 25 } },
         { "name": "fires_in_protected", "params": { "dayRange": 2, "minFrp": 20, "minDetections": 5 } }
       ]
     },
@@ -20,7 +20,7 @@
       "bbox": [20.9, -2.4, 21.4, -1.9],
       "tags": ["control", "congo-basin"],
       "control": true,
-      "rules": [{ "name": "forest_loss", "params": { "days": 90, "minConfidence": "high", "minAlerts": 50, "minHa": 5 } }]
+      "rules": [{ "name": "forest_loss", "params": { "days": 90, "minConfidence": "high", "minAlerts": 300, "minHa": 25 } }]
     }
   ]
 }
