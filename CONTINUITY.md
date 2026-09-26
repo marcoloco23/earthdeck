@@ -44,6 +44,14 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
    or buy anything without showing Marc the exact item + price first. IPv6 is disabled on
    CloudFront on purpose (AAAA-only resolver answers broke the fresh domain on IPv6-less
    networks); Tailscale MagicDNS on Marc's Mac negative-cached the name for an hour.
+3b. **Rename — one planned pass once Marc picks a name** (2026-09-26: "naming is all over the
+   place: earthdeck / Earth Watch / vitalearth.io"). Checklist: npm package + bin + repo
+   name; `src/site.config.ts` (name, fullName, organization, baseUrl); ledger predicate
+   `https://earthdeck.dev/finding-event/v1` (keep v1 URL for old entries, add v2 or a
+   `$schema` alias — do NOT rewrite history); CloudFormation stack/bucket/function names
+   (new stack + migrate state, or keep internal names); domain (registration only after
+   trademark check + Marc's explicit OK on the exact name + price); README/CLAUDE/VISION;
+   `checkpoint` signer name stays "earthdeck" unless the key is rotated. Do it in one PR.
 4. **Next build steps**: (a) attribution onto cases in `created.context` (`protected_areas` +
    `emitters`); (b) `emitters` as the methane confirmer while EMIT is stale; (c) `ledger verify
    --remote <base-url>` (the case pages already print it); (d) GEE: Marc creates the GCP
