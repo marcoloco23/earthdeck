@@ -169,7 +169,9 @@ Resources:
         Comment: earthdeck Earth Watch
         Enabled: true
         HttpVersion: http2and3
-        IPV6Enabled: true
+        # IPv4 only: some resolvers returned AAAA-only for the fresh domain and networks without an
+        # IPv6 route then fail with "address unreachable" (observed 2026-09-26). No AAAA record either.
+        IPV6Enabled: false
         PriceClass: PriceClass_100
         DefaultRootObject: index.html
         Aliases: [!Ref DomainName]
@@ -271,17 +273,6 @@ Resources:
       HostedZoneId: !Ref HostedZoneId
       Name: !Ref DomainName
       Type: A
-      AliasTarget:
-        DNSName: !GetAtt Distribution.DomainName
-        HostedZoneId: !FindInMap [Const, CloudFront, HostedZoneId]
-        EvaluateTargetHealth: false
-
-  DnsAAAA:
-    Type: AWS::Route53::RecordSet
-    Properties:
-      HostedZoneId: !Ref HostedZoneId
-      Name: !Ref DomainName
-      Type: AAAA
       AliasTarget:
         DNSName: !GetAtt Distribution.DomainName
         HostedZoneId: !FindInMap [Const, CloudFront, HostedZoneId]
