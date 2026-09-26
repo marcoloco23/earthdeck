@@ -25,6 +25,11 @@ function main(): void {
     return;
   }
 
+  if (cmd === "watch" && process.argv[3] === "export") {
+    void import("./watch/export.js").then((m) => m.runExportCli(process.argv.slice(4))).catch(fail);
+    return;
+  }
+
   if (cmd === "watch") {
     void import("./watch/run.js").then((m) => m.runWatch(process.argv.slice(3))).catch(fail);
     return;
@@ -60,6 +65,7 @@ function main(): void {
         "  earthdeck watch --once --dry-run [--watchlist <file|dir>] [--max N] [--rules a,b]",
         "  earthdeck analyst --once  narrate + review (two models) + publish confirmed findings",
         "  earthdeck analyst --once --dry-run [--max N] [--model-narrator id] [--model-reviewer id]",
+        "  earthdeck watch export --out <dir> [--base-url URL]  write the public static site",
         "  earthdeck ledger verify   re-derive the findings ledger and check its checkpoint",
         "  earthdeck ledger show [id] list findings (or one finding with its events)",
         "  earthdeck ledger seed     write demo findings into an EMPTY ledger (for the Watch tab)",
