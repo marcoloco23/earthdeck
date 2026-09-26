@@ -24,6 +24,7 @@ import { registerAttributionTools } from "./tools/attribution.js";
 import { registerBiodiversityTools } from "./tools/biodiversity.js";
 import { registerCoralTools } from "./tools/coral.js";
 import { registerNaturalValueTools } from "./tools/naturalvalue.js";
+import { registerGeeTools } from "./tools/gee.js";
 
 export function buildServer(): McpServer {
   const server = new McpServer(
@@ -49,7 +50,9 @@ export function buildServer(): McpServer {
         "across NASA's full ~50k-collection archive. (3) Life (all no-key) — biodiversity (GBIF: " +
         "what lives in a place, by kingdom incl. Fungi, threatened species, an effort-dependent " +
         "score), species (taxonomy breadcrumb, IUCN status, OpenTree id for any animal, plant or " +
-        "fungus), coral_bleaching (NOAA Coral Reef Watch heat stress). Historic series include trends; the Earth is one " +
+        "fungus), coral_bleaching (NOAA Coral Reef Watch heat stress). With a Google Earth Engine service " +
+        "account, gee_query adds land-cover mix (Dynamic World / MapBiomas incl. pasture / WorldCover), " +
+        "GEDI biomass and WorldPop population for a bbox. Historic series include trends; the Earth is one " +
         "interconnected system, so cross-reference (ENSO ↔ fires/floods/SST; discharge ↔ SAR " +
         "floods). Bounding boxes are [west, south, east, north] degrees. Results also stream to " +
         "a local dashboard if one is running (best-effort) — and `narrate` lets you stream YOUR " +
@@ -84,6 +87,7 @@ export function buildServer(): McpServer {
   registerBiodiversityTools(server);
   registerCoralTools(server);
   registerNaturalValueTools(server);
+  registerGeeTools(server);
 
   return server;
 }

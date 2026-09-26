@@ -81,6 +81,7 @@ test → build on every push/PR.
 | --- | --- | --- |
 | `CDSE_CLIENT_ID` / `CDSE_CLIENT_SECRET` | `eo_search`, `eo_render`, `eo_index`, `eo_compare` | Free Copernicus Data Space OAuth client |
 | `FIRMS_MAP_KEY` | `fires_in` | Free NASA FIRMS map key |
+| `GEE_SERVICE_ACCOUNT_JSON` / `GEE_PROJECT` | `gee_query` | Earth Engine service-account key (path or inline JSON) + EE-registered Cloud project — see `docs/research/2026-09-26_google-earth-engine.md` |
 | `EARTHDECK_DASHBOARD_URL` | card push target | default `http://127.0.0.1:5005` |
 | `EARTHDECK_DASHBOARD_PORT` | dashboard server | default `5005` |
 
