@@ -366,7 +366,7 @@ export function landingPage(c: Ctx, findings: Finding[]): { head: string; body: 
 
   const fp = s.falsePositiveRate.overall;
   const num = (v: string, k: string, title = "") => `<div class="num"${title ? ` title="${esc(title)}"` : ""}><dt>${esc(k)}</dt><dd>${v}</dd></div>`;
-  const wrongTitle = fp.decided ? `${fp.falsePositives} of the ${fp.decided} cases we could settle turned out wrong. We keep them on the site.` : "No case has been settled yet.";
+  const wrongTitle = fp.decided ? `${fp.falsePositives} of the ${fp.decided} cases we could settle were false alarms — caught by our own checks before anything was published. We keep them on the site.` : "No case has been settled yet.";
   const flow: [string, string][] = [
     ["Spot", "satellites flag a change"],
     ["Double-check", "a second, separate source must agree"],
@@ -390,7 +390,7 @@ export function landingPage(c: Ctx, findings: Finding[]): { head: string; body: 
           </figure>
           <dl class="nums" aria-label="So far">
             ${num(String(s.cases.public), "Cases published")}
-            ${num(fp.decided ? `${fp.falsePositives}<span class="num-of"> of ${fp.decided}</span>` : "0", "Times we were wrong", wrongTitle)}
+            ${num(fp.decided ? `${fp.falsePositives}<span class="num-of"> of ${fp.decided}</span>` : "0", "False alarms we caught", wrongTitle)}
             ${num(s.lastSweep ? time(s.lastSweep.at, plainDate(s.lastSweep.at), "ago") : "—", "Last check", s.lastSweep ? `${s.lastSweep.at.replace("T", " ").slice(0, 16)} UTC` : "")}
           </dl>
         </div>
