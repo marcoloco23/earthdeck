@@ -1,0 +1,580 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  earthdeck Earth Watch — scheduled sweeps on Lambda, ledger state in S3, static site on
+  CloudFront. Deploy with scripts/deploy.sh (see infra/README.md). Must be deployed in
+  us-east-1 (CloudFront certificates live there).
+
+Parameters:
+  DomainName:
+    Type: String
+    Default: earthdeck.marcsperzel.com
+    Description: Public hostname of the site.
+  HostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Route 53 hosted zone that contains DomainName (ACM validation + alias records).
+  NotifyEmail:
+    Type: String
+    Description: Where the "no successful job for 14 h" alarm is emailed (confirm the SNS subscription).
+  ArtifactKey:
+    Type: String
+    Default: pending
+    Description: S3 key of the Lambda zip in the artifacts bucket (content-addressed; set by deploy.sh).
+  DeployFunction:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: >-
+      "false" on the very first deploy only — creates the buckets so the zip can be uploaded
+      before the function that needs it exists (chicken-and-egg; handled by deploy.sh).
+  SchedulesState:
+    Type: String
+    Default: ENABLED
+    AllowedValues: [ENABLED, DISABLED]
+    Description: Pause every scheduled job without tearing anything down.
+
+Conditions:
+  WithFunction: !Equals [!Ref DeployFunction, "true"]
+
+Mappings:
+  # Schedules: 6-hour slots at 00/06/12/18 UTC — sweeps at :00 :10 :20 :30 :40, analyst :50, export +1 h.
+  Const:
+    CloudFront:
+      HostedZoneId: Z2FDTNDATAQYW2 # fixed zone id for every CloudFront alias target
+      CachingOptimized: 658327ea-f89d-4fab-a63d-7e88639e58f6 # AWS managed cache policy
+
+Resources:
+  # ── storage ───────────────────────────────────────────────────────────────────────────
+  StateBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub earthdeck-state-${AWS::AccountId}
+      VersioningConfiguration: { Status: Enabled }
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-old-versions
+            Status: Enabled
+            NoncurrentVersionExpiration: { NoncurrentDays: 90 }
+      Tags: [{ Key: Project, Value: earthdeck }]
+
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub earthdeck-site-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      Tags: [{ Key: Project, Value: earthdeck }]
+
+  ArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub earthdeck-artifacts-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-old-zips
+            Status: Enabled
+            Prefix: lambda/
+            ExpirationInDays: 60
+      Tags: [{ Key: Project, Value: earthdeck }]
+
+  # ── site: CloudFront + OAC ────────────────────────────────────────────────────────────
+  SiteOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub earthdeck-site-oac-${AWS::AccountId}
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  ShortCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: earthdeck-short-60s
+        Comment: html, api/*, ledger/* — at most 60 s stale
+        MinTTL: 0
+        DefaultTTL: 60
+        MaxTTL: 60
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: true
+          EnableAcceptEncodingBrotli: true
+          CookiesConfig: { CookieBehavior: none }
+          HeadersConfig: { HeaderBehavior: none }
+          QueryStringsConfig: { QueryStringBehavior: none }
+
+  Certificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref DomainName
+      ValidationMethod: DNS
+      DomainValidationOptions:
+        - DomainName: !Ref DomainName
+          HostedZoneId: !Ref HostedZoneId
+      Tags: [{ Key: Project, Value: earthdeck }]
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: earthdeck Earth Watch
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_100
+        DefaultRootObject: index.html
+        Aliases: [!Ref DomainName]
+        ViewerCertificate:
+          AcmCertificateArn: !Ref Certificate
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        Origins:
+          - Id: site
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt SiteOAC.Id
+            S3OriginConfig: { OriginAccessIdentity: "" }
+        # Default: honours the object's Cache-Control (set per file by the export sync:
+        # hashed assets 1 year immutable, everything else ≤ 5 min).
+        DefaultCacheBehavior:
+          TargetOriginId: site
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          Compress: true
+          CachePolicyId: !FindInMap [Const, CloudFront, CachingOptimized]
+        CacheBehaviors:
+          - PathPattern: "*.html"
+            TargetOriginId: site
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            Compress: true
+            CachePolicyId: !Ref ShortCachePolicy
+          - PathPattern: "api/*"
+            TargetOriginId: site
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            Compress: true
+            CachePolicyId: !Ref ShortCachePolicy
+          - PathPattern: "ledger/*"
+            TargetOriginId: site
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            Compress: true
+            CachePolicyId: !Ref ShortCachePolicy
+      Tags: [{ Key: Project, Value: earthdeck }]
+
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: CloudFrontOACRead
+            Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:GetObject
+            Resource: !Sub ${SiteBucket.Arn}/*
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource: [!GetAtt SiteBucket.Arn, !Sub "${SiteBucket.Arn}/*"]
+            Condition: { Bool: { aws:SecureTransport: "false" } }
+
+  StateBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref StateBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource: [!GetAtt StateBucket.Arn, !Sub "${StateBucket.Arn}/*"]
+            Condition: { Bool: { aws:SecureTransport: "false" } }
+
+  DnsA:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt Distribution.DomainName
+        HostedZoneId: !FindInMap [Const, CloudFront, HostedZoneId]
+        EvaluateTargetHealth: false
+
+  DnsAAAA:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: AAAA
+      AliasTarget:
+        DNSName: !GetAtt Distribution.DomainName
+        HostedZoneId: !FindInMap [Const, CloudFront, HostedZoneId]
+        EvaluateTargetHealth: false
+
+  # ── runner: Lambda ────────────────────────────────────────────────────────────────────
+  RunnerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: WithFunction
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: /aws/lambda/earthdeck
+      RetentionInDays: 30
+      Tags: [{ Key: Project, Value: earthdeck }]
+
+  RunnerRole:
+    Type: AWS::IAM::Role
+    Condition: WithFunction
+    Properties:
+      RoleName: earthdeck-runner
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: earthdeck-runner
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: Logs
+                Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub ${RunnerLogGroup.Arn}
+              - Sid: ListBuckets
+                Effect: Allow
+                Action: s3:ListBucket
+                Resource: [!GetAtt StateBucket.Arn, !GetAtt SiteBucket.Arn]
+              - Sid: StateObjects
+                Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource: !Sub ${StateBucket.Arn}/*
+              - Sid: SiteObjects
+                Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource: !Sub ${SiteBucket.Arn}/*
+              - Sid: ArtifactsRead
+                Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub ${ArtifactsBucket.Arn}/*
+              - Sid: Secrets
+                Effect: Allow
+                Action: [ssm:GetParameter, ssm:GetParameters, ssm:GetParametersByPath]
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/earthdeck
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/earthdeck/*
+              - Sid: DecryptSecretsViaSsm
+                Effect: Allow
+                Action: kms:Decrypt
+                Resource: !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub ssm.${AWS::Region}.amazonaws.com
+                  StringLike:
+                    kms:EncryptionContext:PARAMETER_ARN: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/earthdeck/*
+              - Sid: Invalidate
+                Effect: Allow
+                Action: cloudfront:CreateInvalidation
+                Resource: !Sub arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${Distribution}
+              - Sid: Metric
+                Effect: Allow
+                Action: cloudwatch:PutMetricData
+                Resource: "*"
+                Condition:
+                  StringEquals: { cloudwatch:namespace: earthdeck }
+      Tags: [{ Key: Project, Value: earthdeck }]
+
+  RunnerFunction:
+    Type: AWS::Lambda::Function
+    Condition: WithFunction
+    DependsOn: RunnerLogGroup
+    Properties:
+      FunctionName: earthdeck
+      Description: earthdeck Earth Watch scheduled runner (sweep / analyst / export)
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: dist/runner/lambda.handler
+      Code:
+        S3Bucket: !Ref ArtifactsBucket
+        S3Key: !Ref ArtifactKey
+      Role: !GetAtt RunnerRole.Arn
+      Timeout: 900
+      MemorySize: 1024
+      EphemeralStorage: { Size: 1024 }
+      ReservedConcurrentExecutions: 1 # one job at a time: the ledger has exactly one writer
+      Environment:
+        Variables:
+          EARTHDECK_STATE_BUCKET: !Ref StateBucket
+          EARTHDECK_SITE_BUCKET: !Ref SiteBucket
+          EARTHDECK_DISTRIBUTION_ID: !Ref Distribution
+          EARTHDECK_SSM_PREFIX: /earthdeck
+          NODE_OPTIONS: --enable-source-maps
+      Tags: [{ Key: Project, Value: earthdeck }]
+
+  # Scheduler invokes asynchronously; a failed job is not retried (the next slot catches up
+  # via watermarks), and a queued one waits behind the concurrency-1 limit for up to 6 h.
+  RunnerAsyncConfig:
+    Type: AWS::Lambda::EventInvokeConfig
+    Condition: WithFunction
+    Properties:
+      FunctionName: !Ref RunnerFunction
+      Qualifier: $LATEST
+      MaximumRetryAttempts: 0
+      MaximumEventAgeInSeconds: 21600
+
+  # ── schedules ─────────────────────────────────────────────────────────────────────────
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Condition: WithFunction
+    Properties:
+      RoleName: earthdeck-scheduler
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: scheduler.amazonaws.com }
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals: { aws:SourceAccount: !Ref AWS::AccountId }
+      Policies:
+        - PolicyName: invoke-runner
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: [!GetAtt RunnerFunction.Arn, !Sub "${RunnerFunction.Arn}:*"]
+      Tags: [{ Key: Project, Value: earthdeck }]
+
+  ScheduleGroup:
+    Type: AWS::Scheduler::ScheduleGroup
+    Condition: WithFunction
+    Properties:
+      Name: earthdeck
+      Tags: [{ Key: Project, Value: earthdeck }]
+
+  SweepAmazon:
+    Type: AWS::Scheduler::Schedule
+    Condition: WithFunction
+    Properties:
+      Name: earthdeck-sweep-amazon
+      GroupName: !Ref ScheduleGroup
+      State: !Ref SchedulesState
+      ScheduleExpression: cron(0 0/6 * * ? *)
+      ScheduleExpressionTimezone: UTC
+      FlexibleTimeWindow: { Mode: "OFF" }
+      Target:
+        Arn: !GetAtt RunnerFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"job":"sweep","watchlist":"amazon"}'
+        RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
+
+  SweepCongoBorneo:
+    Type: AWS::Scheduler::Schedule
+    Condition: WithFunction
+    Properties:
+      Name: earthdeck-sweep-congo-borneo
+      GroupName: !Ref ScheduleGroup
+      State: !Ref SchedulesState
+      ScheduleExpression: cron(10 0/6 * * ? *)
+      ScheduleExpressionTimezone: UTC
+      FlexibleTimeWindow: { Mode: "OFF" }
+      Target:
+        Arn: !GetAtt RunnerFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"job":"sweep","watchlist":"congo-borneo"}'
+        RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
+
+  SweepControls:
+    Type: AWS::Scheduler::Schedule
+    Condition: WithFunction
+    Properties:
+      Name: earthdeck-sweep-controls
+      GroupName: !Ref ScheduleGroup
+      State: !Ref SchedulesState
+      ScheduleExpression: cron(20 0/6 * * ? *)
+      ScheduleExpressionTimezone: UTC
+      FlexibleTimeWindow: { Mode: "OFF" }
+      Target:
+        Arn: !GetAtt RunnerFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"job":"sweep","watchlist":"controls"}'
+        RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
+
+  SweepMethane:
+    Type: AWS::Scheduler::Schedule
+    Condition: WithFunction
+    Properties:
+      Name: earthdeck-sweep-methane
+      GroupName: !Ref ScheduleGroup
+      State: !Ref SchedulesState
+      ScheduleExpression: cron(30 0/6 * * ? *)
+      ScheduleExpressionTimezone: UTC
+      FlexibleTimeWindow: { Mode: "OFF" }
+      Target:
+        Arn: !GetAtt RunnerFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"job":"sweep","watchlist":"methane"}'
+        RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
+
+  SweepFlaring:
+    Type: AWS::Scheduler::Schedule
+    Condition: WithFunction
+    Properties:
+      Name: earthdeck-sweep-flaring
+      GroupName: !Ref ScheduleGroup
+      State: !Ref SchedulesState
+      ScheduleExpression: cron(40 0/6 * * ? *)
+      ScheduleExpressionTimezone: UTC
+      FlexibleTimeWindow: { Mode: "OFF" }
+      Target:
+        Arn: !GetAtt RunnerFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"job":"sweep","watchlist":"flaring"}'
+        RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
+
+  Analyst:
+    Type: AWS::Scheduler::Schedule
+    Condition: WithFunction
+    Properties:
+      Name: earthdeck-analyst
+      GroupName: !Ref ScheduleGroup
+      State: !Ref SchedulesState
+      ScheduleExpression: cron(50 0/6 * * ? *)
+      ScheduleExpressionTimezone: UTC
+      FlexibleTimeWindow: { Mode: "OFF" }
+      Target:
+        Arn: !GetAtt RunnerFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"job":"analyst"}'
+        RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
+
+  Export:
+    Type: AWS::Scheduler::Schedule
+    Condition: WithFunction
+    Properties:
+      Name: earthdeck-export
+      GroupName: !Ref ScheduleGroup
+      State: !Ref SchedulesState
+      ScheduleExpression: cron(0 1/6 * * ? *)
+      ScheduleExpressionTimezone: UTC
+      FlexibleTimeWindow: { Mode: "OFF" }
+      Target:
+        Arn: !GetAtt RunnerFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"job":"export"}'
+        RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
+
+  # ── watchdog ──────────────────────────────────────────────────────────────────────────
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: earthdeck-alerts
+      Tags: [{ Key: Project, Value: earthdeck }]
+
+  AlertEmail:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref AlertTopic
+      Protocol: email
+      Endpoint: !Ref NotifyEmail
+
+  AlertTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics: [!Ref AlertTopic]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: CloudWatchAlarms
+            Effect: Allow
+            Principal: { Service: cloudwatch.amazonaws.com }
+            Action: sns:Publish
+            Resource: !Ref AlertTopic
+            Condition:
+              StringEquals: { aws:SourceAccount: !Ref AWS::AccountId }
+
+  # 14 consecutive hours with no JobSuccess datapoint (missing = breaching) → email.
+  NoSuccessAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Condition: WithFunction
+    Properties:
+      AlarmName: earthdeck-no-successful-job-14h
+      AlarmDescription: No earthdeck job has succeeded for 14 hours. Check /aws/lambda/earthdeck and state/heartbeat.json.
+      Namespace: earthdeck
+      MetricName: JobSuccess
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 14
+      DatapointsToAlarm: 14
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions: [!Ref AlertTopic]
+      OKActions: [!Ref AlertTopic]
+
+Outputs:
+  StateBucketName:
+    Value: !Ref StateBucket
+  SiteBucketName:
+    Value: !Ref SiteBucket
+  ArtifactsBucketName:
+    Value: !Ref ArtifactsBucket
+  DistributionId:
+    Value: !Ref Distribution
+  DistributionDomainName:
+    Value: !GetAtt Distribution.DomainName
+  FunctionName:
+    Condition: WithFunction
+    Value: !Ref RunnerFunction
+  LogGroupName:
+    Condition: WithFunction
+    Value: !Ref RunnerLogGroup
+  AlertTopicArn:
+    Value: !Ref AlertTopic
+  SiteUrl:
+    Value: !Sub https://${DomainName}/
