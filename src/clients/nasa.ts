@@ -165,7 +165,8 @@ export async function fires(
   assertBBox(bbox);
   const [west, south, east, north] = bbox;
   const source = query.source ?? "VIIRS_SNPP_NRT";
-  const dayRange = Math.max(1, Math.min(10, Math.round(query.dayRange ?? 1)));
+  // FIRMS area API rejects day ranges above 5 ("Invalid day range. Expects [1..5]") — observed 2026-09-26.
+  const dayRange = Math.max(1, Math.min(5, Math.round(query.dayRange ?? 1)));
   const area = `${west},${south},${east},${north}`;
   let url = `${FIRMS_AREA}/${mapKey}/${source}/${area}/${dayRange}`;
   if (query.date) url += `/${query.date}`;
