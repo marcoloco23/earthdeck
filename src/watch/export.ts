@@ -8,6 +8,7 @@
 //   ledger/{checkpoint,pub,entries.jsonl,tile/**}                     — the verification surface
 //   api/stats.json                 counts + published false-positive rate per rule
 //   api/pulse.json                 world_pulse snapshot (fresh, else cached, else omitted)
+//   developers/index.html          verify-it-yourself commands, feeds, API, schema (kept off the landing)
 //   schema/finding-event.v1.json, trust.html (+ TRUST.md), sitemap.xml, robots.txt
 //   assets/**, og.png              the built site bundle (dist/site, `pnpm build`)
 //
@@ -23,7 +24,7 @@ import { PUBLIC_STATUSES, STATUSES, type Finding, type Status } from "../ledger/
 import { ledgerDir as defaultLedgerDir } from "../config.js";
 import { SITE } from "../site.config.js";
 import { readHeartbeat, type Heartbeat } from "./journal.js";
-import { casePage, FALLBACK_TEMPLATE, fillTemplate, landingPage, robots, sitemap, trustPage, watchIndexPage, type CaseData, type Ctx } from "./site-render.js";
+import { casePage, developersPage, FALLBACK_TEMPLATE, fillTemplate, landingPage, robots, sitemap, trustPage, watchIndexPage, type CaseData, type Ctx } from "./site-render.js";
 
 const PKG_ROOT = fileURLToPath(new URL("../../", import.meta.url)); // dist/watch → root, src/watch → root
 const MARKER = ".earthdeck-site";
@@ -53,7 +54,8 @@ export interface RateCell {
 
 export interface SiteStats {
   generatedAt: string;
-  site: { name: string; baseUrl: string | null; repo: string; contact: string | null; trust: boolean };
+  /** `contact` is always null: the public site is anonymous (no address, no repo link). */
+  site: { name: string; baseUrl: string | null; contact: null; trust: boolean };
   ledger: { size: number; root: string | null; checkpoint: string | null };
   lastSweep: Heartbeat | null;
   cases: { total: number; public: number; confirmed: number; candidates: number; falsePositives: number };
@@ -82,7 +84,7 @@ export function computeStats(
   findings: readonly Finding[],
   ledger: { size: number; root: string | null; checkpoint: string | null },
   lastSweep: Heartbeat | null,
-  site: { baseUrl?: string | null; contact?: string | null; trust?: boolean } = {},
+  site: { baseUrl?: string | null; trust?: boolean } = {},
   now = new Date(),
 ): SiteStats {
   const byStatus = Object.fromEntries(STATUSES.map((s) => [s, 0])) as Record<Status, number>;
@@ -119,7 +121,7 @@ export function computeStats(
   for (const r of Object.values(byRule)) r.versions.sort();
   return {
     generatedAt: now.toISOString(),
-    site: { name: SITE.name, baseUrl: site.baseUrl ?? null, repo: SITE.repo, contact: site.contact ?? null, trust: site.trust ?? false },
+    site: { name: SITE.name, baseUrl: site.baseUrl ?? null, contact: null, trust: site.trust ?? false },
     ledger,
     lastSweep,
     cases: {
@@ -146,7 +148,7 @@ export interface ExportOptions {
   ledgerDir?: string;
   /** Public origin for canonical/OG/JSON-LD/sitemap. Default SITE.baseUrl; null = none (no sitemap). */
   baseUrl?: string | null;
-  /** Right-of-reply email shown on case pages (mailto). */
+  /** Accepted for compatibility (the runner passes it) and ignored: the public site is anonymous. */
   contact?: string;
   /** Built site bundle (index.html template, assets/, og.png). Default dist/site; null = unstyled fallback. */
   siteDir?: string | null;
@@ -223,7 +225,7 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
     findings,
     { size: ledger?.size ?? 0, root: ledger ? ledger.root().toString("hex") : null, checkpoint: ledger?.checkpointText() ?? null },
     readHeartbeat(join(lDir, "watch")),
-    { baseUrl, contact: opts.contact ?? null, trust },
+    { baseUrl, trust },
     now,
   );
   write("api/stats.json", JSON.stringify(stats));
@@ -248,7 +250,8 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
   // ---- pages ----
   const ctx = (depth: number, path: string): Ctx => ({ depth, path, baseUrl, stats });
   const published = findings.filter((f) => PUBLIC_STATUSES.includes(f.status));
-  write("index.html", fillTemplate(tpl, 0, "landing", landingPage(ctx(0, ""), published)));
+  write("index.html", fillTemplate(tpl, 0, "landing", landingPage(ctx(0, ""), findings)));
+  write("developers/index.html", fillTemplate(tpl, 1, "developers", developersPage(ctx(1, "developers/"))));
   write("watch/index.html", fillTemplate(tpl, 1, "watch", watchIndexPage(ctx(1, "watch/"), findings)));
   for (const d of cases) {
     const path = `watch/case/${d.finding.findingId}/`;
@@ -266,6 +269,7 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
     const pages = [
       { path: "", lastmod: stats.generatedAt },
       { path: "watch/", lastmod: findings[0]?.updatedAt ?? stats.generatedAt },
+      { path: "developers/" },
       ...published.map((f) => ({ path: `watch/case/${f.findingId}/`, lastmod: f.updatedAt })),
       ...(trust ? [{ path: "trust.html" }] : []),
     ];
@@ -361,7 +365,7 @@ export async function runExportCli(args: string[]): Promise<void> {
   if (!out) {
     process.stdout.write(
       [
-        "usage: earthdeck watch export --out <dir> [--base-url https://…] [--contact email]",
+        "usage: earthdeck watch export --out <dir> [--base-url https://…]",
         "                              [--no-pulse | --pulse-cache <file>] [--trust TRUST.md] [--force]",
         `Writes the public ${SITE.name} site (landing + case pages + ledger + feeds) as static files.`,
         `--base-url defaults to ${SITE.baseUrl} (src/site.config.ts); it drives canonical URLs, og:*, JSON-LD and sitemap.xml.`,

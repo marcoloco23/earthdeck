@@ -14,7 +14,7 @@ import { seedDemo } from "../src/ledger/cli.js";
 import { tilePath as nodeTilePath } from "../src/ledger/merkle.js";
 import type { Finding } from "../src/ledger/schema.js";
 import { computeStats, exportSite, livingValueOf } from "../src/watch/export.js";
-import { esc, fillTemplate, renderMarkdown, safeUrl } from "../src/watch/site-render.js";
+import { esc, fillTemplate, parseNarration, plainArea, renderMarkdown, safeUrl } from "../src/watch/site-render.js";
 import { SITE } from "../src/site.config.js";
 import { apiPaths } from "../web/src/api.js";
 import { leafTile, parseCheckpoint, tilePath, verifyCheckpointSignature, verifyInclusion } from "../web/src/proof.js";
@@ -126,6 +126,20 @@ test("export writes a self-contained, relative, server-rendered site", async () 
     const text = readFileSync(join(out, f), "utf8");
     assert.ok(!/localhost|127\.0\.0\.1/.test(text), `${f} mentions a local server`);
   }
+  // The public site is anonymous: no owner name, handle, personal host, email or repo link —
+  // even though --contact was passed. (ledger/** is the signed log itself: base64 signatures
+  // could spell anything, and its bytes are what verification checks, so it is left out here.)
+  for (const f of files.filter((x) => /\.(html|json|geojson|xml|txt|md)$/.test(x) && !x.startsWith("ledger/"))) {
+    const text = readFileSync(join(out, f), "utf8");
+    assert.ok(!/marc|sperzel|marcoloco|github\.com|mailto:|reply@example\.org/i.test(text), `${f} is not anonymous`);
+    assert.ok(!/[\w.+-]+@[\w-]+(\.[\w-]+)*\.[a-z]{2,}/i.test(text), `${f} holds an email address`);
+  }
+  // No "@" anywhere a reader sees it: rendered page bodies, stats, sitemap, robots.
+  for (const f of files.filter((x) => x.endsWith(".html"))) {
+    const html = readFileSync(join(out, f), "utf8");
+    assert.ok(!html.slice(html.indexOf("<body")).includes("@"), `${f} shows an @`);
+  }
+  for (const f of ["api/stats.json", "sitemap.xml", "robots.txt"]) assert.ok(!readFileSync(join(out, f), "utf8").includes("@"), `${f} holds an @`);
 
   // JSON shapes: the dashboard's own bodies.
   const ledger = JSON.parse(readFileSync(join(out, "api/ledger.json"), "utf8"));
@@ -142,6 +156,8 @@ test("export writes a self-contained, relative, server-rendered site", async () 
   const stats = JSON.parse(readFileSync(join(out, "api/stats.json"), "utf8"));
   assert.equal(stats.site.name, SITE.name);
   assert.equal(stats.site.baseUrl, BASE);
+  assert.equal(stats.site.contact, null, "--contact is ignored: the public site is anonymous");
+  assert.ok(!("repo" in stats.site));
   assert.equal(stats.lastSweep.sweepId, "sweep-1");
   assert.equal(stats.ledger.size, 9);
   assert.match(stats.ledger.root, /^[0-9a-f]{64}$/);
@@ -161,6 +177,28 @@ test("export writes a self-contained, relative, server-rendered site", async () 
   assert.deepEqual(jsonLdOf(landing).map((x) => x["@type"]), ["Organization", "WebSite", "Dataset"]);
   assert.ok(landing.includes(`href="watch/case/${PUB_ID}/"`));
   assert.ok(!landing.includes("<!--ssr:"));
+  // First screen: the one sentence is the h1; map markers (published + still being checked), the
+  // three plain numbers, and the latest cases in plain words.
+  assert.match(landing, new RegExp(`<h1 class="top-line">${SITE.oneLine.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</h1>`));
+  assert.equal(landing.match(/class="pin pin--pub/g)?.length, 1);
+  assert.equal(landing.match(/class="pin pin--open/g)?.length, 3, "two seeded candidates-in-progress + the hostile candidate");
+  for (const k of ["Cases published", "Times we were wrong", "Last check", "Latest cases", "How the planet is doing", "Being checked", "34 hectares — about 48 football fields"]) {
+    assert.ok(landing.includes(k), `landing lacks ${k}`);
+  }
+  // …and nothing for developers: no commands, hashes, rule ids, tiers, feeds or JSON links.
+  const landingBody = landing.slice(landing.indexOf("<body"));
+  for (const k of ['class="cmd"', 'class="hash"', "npx ", "forest_loss", "tier", ".json", "checkpoint", "@"]) {
+    assert.ok(!landingBody.includes(k), `landing mentions ${k}`);
+  }
+  assert.ok(!landing.includes("<script>alert"), "hostile titles are escaped on the landing too");
+
+  // Developers page: the commands, feeds and schema the landing leaves out.
+  const dev = readFileSync(join(out, "developers/index.html"), "utf8");
+  assert.equal(dev.match(/<h1\b/g)?.length, 1);
+  assert.ok(dev.includes('src="../assets/index-abc.js"'));
+  for (const k of ["npx -y earthdeck ledger verify", `${BASE}/ledger/entries.jsonl`, 'href="../feed.json"', 'href="../schema/finding-event.v1.json"', "Source code: coming."]) {
+    assert.ok(dev.includes(k), `developers page lacks ${k}`);
+  }
 
   // Case page: full content in HTML, Report JSON-LD with the publish date, assets rebased.
   const page = readFileSync(join(out, `watch/case/${PUB_ID}/index.html`), "utf8");
@@ -171,15 +209,20 @@ test("export writes a self-contained, relative, server-rendered site", async () 
   const report2 = jsonLdOf(page)[0]!;
   assert.equal(report2["@type"], "Report");
   assert.equal(report2.datePublished, "2026-09-02T09:01:00Z");
-  for (const s of ["Why this was published", "Challenge this finding", "Verify", "gfw-integrated-alerts", "2784", "IBAMA", "Rule FP rate", "mailto:reply@example.org", "template=right-of-reply.md"]) {
+  for (const s of ["What we saw", "What it might not be", "What would change our mind", "Why this was published", "Two separate sources agreed", "Right of reply", "Global Forest Watch alerts", "Technical details", "Verify", "gfw-integrated-alerts", "2784", "IBAMA", "Rule FP rate", PUB_ID]) {
     assert.ok(page.includes(s), `case page lacks ${s}`);
   }
   assert.ok(page.includes(`data-index="${one.inclusion.index}"`));
+  // The plain part comes first; ids, rule names and the proof only inside the closed details block.
+  const tech = page.indexOf('<details class="tech"');
+  assert.ok(tech > page.indexOf("What would change our mind") && !page.includes('<details class="tech" open'));
+  for (const k of ["forest_loss", "gfw-integrated-alerts", 'class="hash"']) assert.ok(page.indexOf(k, page.indexOf("<body")) > tech, `${k} above the technical details`);
 
   // Unpublished pages exist (transparency) but are noindex and not in the sitemap.
   const cand = readFileSync(join(out, "watch/case/01994a2e-0000-7000-8000-00000000d002/index.html"), "utf8");
   assert.ok(cand.includes('<meta name="robots" content="noindex, follow" />'));
-  assert.ok(cand.includes("Not published."));
+  assert.ok(cand.includes("Not published yet: only one source has seen this so far."));
+  assert.ok(cand.includes("Why this is not published"));
   const sm = readFileSync(join(out, "sitemap.xml"), "utf8");
   assert.ok(sm.includes(`<loc>${BASE}/watch/case/${PUB_ID}/</loc>`));
   assert.ok(!sm.includes("d002"));
@@ -260,6 +303,14 @@ test("render primitives: escaping, URL allow-list, markdown, template fill", () 
   assert.equal(esc(`<a href="x">'&'</a>`), "&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;");
   assert.equal(safeUrl("javascript:alert(1)"), null);
   assert.equal(safeUrl("https://ok.example/a?b=1"), "https://ok.example/a?b=1");
+  assert.equal(plainArea(232), "232 hectares — about 320 football fields");
+  assert.equal(plainArea(0.5), "0.5 hectares");
+  assert.deepEqual(parseNarration("Forest cleared near a river\n\nAbout 34 hectares went.\n\nKey numbers:\n- ha: 34 [x]\n\nConfidence: high\nCaveats:\n- could be fire"), {
+    headline: "Forest cleared near a river",
+    body: "About 34 hectares went.",
+    caveats: ["could be fire"],
+  });
+  assert.deepEqual(parseNarration("## Free-form\n\ntext"), { headline: null, body: "## Free-form\n\ntext", caveats: [] });
   assert.equal(renderMarkdown("## Hi **there**\n\n[x](javascript:alert(1))", 1), "<h3>Hi <strong>there</strong></h3>\n<p>[x](javascript:alert(1))</p>");
   const tpl = `<head><!--ssr:head--><script src="./assets/a.js"></script><link href="./assets/a.css"></head><body data-page=""><!--ssr:body--></body>`;
   assert.equal(fillTemplate(tpl, 3, "case", { head: "<title>$&</title>", body: "B" }), `<head><title>$&</title><script src="../../../assets/a.js"></script><link href="../../../assets/a.css"></head><body data-page="case">B</body>`);
