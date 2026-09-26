@@ -35,6 +35,30 @@ for $0–5/month.
 - **Trust rests on checkable evidence, not on the AI.** Subjects are assets, places and
   institutions — never individuals.
 
+## Principle: view the world whole
+
+Everything is connected; a watchdog that sees only its own metric produces unintended
+consequences. Built in, not just said:
+
+1. **Context on every finding.** The `created` event carries a `context` block (ENSO phase,
+   drought / precipitation anomaly, fire weather, seasonality, recent quakes/events) drawn
+   from the tools we already have (`enso`, `climate_history`, `river_discharge`, `events`).
+   A forest loss during an El Niño drought is not the same event as one under a bulldozer,
+   and the context decides both the wording and who the case is routed to.
+2. **Displacement, not just local wins.** GFW alerts cut deforestation 18 % in Africa and
+   measurably nowhere else (Moffette 2021) — pressure moves the chainsaws next door. Every
+   rule keeps a **regional baseline** (the AOI's neighbourhood) so the ledger can tell "it
+   stopped" from "it moved". Control AOIs measure our own false-positive rate.
+3. **Every rule declares its blind spots.** `blindSpots[]` is a required field on a rule
+   (e.g. flaring: "venting is invisible to VIIRS — pair with S5P CH₄"). Goodhart is a
+   design input, not a surprise.
+4. **Couplings in the pulse.** Indicators are scored in isolation today; a later layer
+   surfaces coupled pairs (coal share ↓ *because* demand ↓?) so the dashboard doesn't
+   reward the wrong thing.
+5. **The system is part of the system.** Alerts have got monitors killed; public metrics
+   become targets. Hence aggregated geometry on Indigenous lands, independent signals,
+   and human gates — the trust contract below.
+
 ## The trust contract (schema-enforced, learned from MARS / GFW / Carbon Mapper / Berkeley Protocol)
 
 1. **No finding without evidence.** Every `created` event carries `evidence[]` (scene IDs,
@@ -157,6 +181,8 @@ single-binary (SQLite) on a $2–5/month box.
 **M2 — The sweep** (`earthdeck watch --once`)
 - watchlists + seed lists (incl. control AOIs) · kernel (journal, watermarks, `finding_key`
   UNIQUE, cooldown) · rules `forest_loss`, `fires_in_protected` · CLI + doctor + README
+- "view the world whole": `context` block on `created`, `blindSpots[]` required on every
+  rule, regional baseline per rule (neighbourhood ring around the AOI)
 
 **M3 — Attribution + methane wedge**
 - `protected_areas`, `emitters`, `methane_plumes`, `flaring` tools; rules `methane_anomaly`,
@@ -184,7 +210,11 @@ MVP = M1 + M2. Don't start M3 before one real sweep has opened one real case end
 - [x] M1 `world_pulse` + OWID client + fixtures
 - [x] M1 Watch tab (cases list, case page, pulse grid)
 - [x] M1 `earthdeck ledger verify|show`
-- [ ] M2 … (see milestones)
+- [ ] M2 schema: `context` on `created`; rule definition type with `blindSpots[]`, `secondSignal`, `baseline`
+- [ ] M2 watchlist format + validation + seed lists (incl. control AOIs)
+- [ ] M2 kernel: journal (sweeps/steps/tool_calls/heartbeats), watermarks, `finding_key`, cooldown
+- [ ] M2 rules: `forest_loss` (GFW → NDVI drop), `fires_in_protected` (FIRMS cluster → later pass / NBR)
+- [ ] M2 `earthdeck watch --once [--watchlist f] [--dry-run]` + doctor + README
 
 ## Files to create / modify
 
@@ -231,3 +261,4 @@ MVP = M1 + M2. Don't start M3 before one real sweep has opened one real case end
   watermark scheduling; R2/Parquet/PMTiles publishing; analyst narrates but never confirms;
   data-source licence rules; Art. 50 disclosure + two-clock TRUST.md. M1 started.
 - 2026-09-26: **M1 shipped.** 27 tools, 151 tests. JSON Schema export deferred; OWID URL verify-live.
+- 2026-09-26: principle "view the world whole" added (context block, blind spots, regional baseline, couplings). M2 started.
