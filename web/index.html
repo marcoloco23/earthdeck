@@ -2,28 +2,70 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0a0d12" />
     <title>earthdeck · mission control</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='8.25' fill='%230c1016' stroke='%235cc8ff' stroke-width='1.5'/%3E%3Cellipse cx='10' cy='10' rx='3.6' ry='8.25' fill='none' stroke='%235cc8ff' stroke-width='1.2' opacity='.55'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
   </head>
   <body>
     <div id="app">
       <header id="topbar">
-        <span class="logo">◉ earthdeck</span>
-        <span class="tagline">mission control — live Earth observation</span>
-        <span id="status" class="status status--off">connecting…</span>
+        <div class="brand">
+          <svg class="brand-mark" viewBox="0 0 20 20" aria-hidden="true">
+            <circle cx="10" cy="10" r="8.25" fill="none" stroke="currentColor" stroke-width="1.5" />
+            <ellipse cx="10" cy="10" rx="3.6" ry="8.25" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.55" />
+            <path d="M1.9 10h16.2" stroke="currentColor" stroke-width="1.2" opacity="0.55" />
+          </svg>
+          <span class="brand-name">earthdeck</span>
+          <span class="brand-sub">Mission control</span>
+        </div>
+        <div class="telemetry" aria-live="polite">
+          <span id="status" class="pill pill--off" title="Live card stream (SSE)"><span class="pill-dot"></span><span class="pill-text">Connecting</span></span>
+          <span id="last-card" class="tele" title="Time since the newest card arrived"><span class="tele-k">Last card</span> <span class="tele-v">—</span></span>
+          <span id="heartbeat" class="tele" title="Findings ledger: size and last activity"><span class="tele-k">Ledger</span> <span class="tele-v">—</span></span>
+        </div>
       </header>
       <main id="stage">
-        <div id="map"></div>
-        <aside id="sidebar">
+        <div id="map" aria-label="Map"></div>
+        <aside id="sidebar" aria-label="Mission feed">
           <div id="feed-head">
-            <nav id="tabs">
-              <button class="tab tab--on" data-tab="feed" type="button">Feed</button>
-              <button class="tab" data-tab="watch" type="button">Watch</button>
+            <nav id="tabs" role="tablist" aria-label="Views">
+              <button class="tab tab--on" data-tab="feed" type="button" role="tab" aria-selected="true">Feed <span class="tab-count" id="feed-count"></span></button>
+              <button class="tab" data-tab="watch" type="button" role="tab" aria-selected="false">Watch <span class="tab-count" id="watch-count"></span></button>
             </nav>
-            <button id="clear" title="Clear feed">clear</button>
+            <button id="clear" class="btn btn--ghost" type="button" title="Clear the feed and map overlays">Clear</button>
           </div>
-          <div id="feed"></div>
-          <div id="empty">Waiting for Claude. Ask it to look at a place — imagery, events, and analysis will stream in here.</div>
+          <div id="feed-pane">
+            <div id="filters" role="toolbar" aria-label="Filter cards by type" hidden></div>
+            <div id="feed"></div>
+            <div id="empty" class="empty">
+              <div class="empty-orb" aria-hidden="true"></div>
+              <h2 class="empty-title">Waiting for the first card</h2>
+              <p class="empty-text">
+                Every tool Claude runs streams a card here — imagery, indices, fires, quakes, climate series — and the map
+                flies to it.
+              </p>
+              <div class="empty-label">Try asking Claude</div>
+              <ul class="empty-list">
+                <li>“Show me active fires in the Pantanal this week.”</li>
+                <li>“How has Arctic sea ice changed since 1980?”</li>
+                <li>“Compare NDVI around Manaus, 2025 vs now.”</li>
+              </ul>
+              <div class="empty-label">Connect Claude Code</div>
+              <code class="cmd">claude mcp add earthdeck -- npx -y earthdeck</code>
+              <p class="empty-hint">No Claude handy? <code>npx -y earthdeck demo</code> runs a zero-key tour on its own dashboard.</p>
+            </div>
+          </div>
           <div id="watch" hidden></div>
         </aside>
       </main>

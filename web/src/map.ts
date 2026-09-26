@@ -245,8 +245,9 @@ export function showQuakes(card: Card): void {
 
   if (card.bbox) {
     fitBBox(card.bbox);
-  } else if (quakes.length > 0) {
-    const b = new maplibregl.LngLatBounds([quakes[0].lon, quakes[0].lat], [quakes[0].lon, quakes[0].lat]);
+  } else if (quakes[0]) {
+    const q0 = quakes[0];
+    const b = new maplibregl.LngLatBounds([q0.lon, q0.lat], [q0.lon, q0.lat]);
     for (const q of quakes) b.extend([q.lon, q.lat]);
     map?.fitBounds(b, { padding: 80, duration: 900, maxZoom: 5 });
   }
