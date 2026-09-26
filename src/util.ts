@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomFillSync, randomUUID } from "node:crypto";
 import type { BBox } from "./types.js";
 
 export function newId(): string {
@@ -58,4 +58,18 @@ export function clampWidth(width: number, maxDim = 2048): number {
 export function bboxCenter(bbox: BBox): [number, number] {
   const [west, south, east, north] = bbox;
   return [(west + east) / 2, (south + north) / 2];
+}
+
+/**
+ * UUIDv7 (RFC 9562): 48-bit Unix-ms timestamp + version/variant bits + 74 random bits.
+ * Time-ordered, so ledger ids sort chronologically as plain strings.
+ */
+export function uuidv7(now = Date.now()): string {
+  const b = Buffer.alloc(16);
+  b.writeUIntBE(now, 0, 6);
+  randomFillSync(b, 6, 10);
+  b[6] = (b[6]! & 0x0f) | 0x70; // version 7
+  b[8] = (b[8]! & 0x3f) | 0x80; // RFC 4122 variant
+  const h = b.toString("hex");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }

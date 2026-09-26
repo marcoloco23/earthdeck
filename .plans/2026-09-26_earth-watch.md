@@ -1,269 +1,232 @@
 # Plan: Earth Watch — the public accountability loop
 
-**Date**: 2026-09-26
-**Status**: PLANNING
+**Date**: 2026-09-26 (rev. 2 — rewritten after the architecture research)
+**Status**: IN PROGRESS (M1)
 **Phase**: Horizon 3 (the Watchdog), pulled forward as a public-good MVP. See VISION.md §14.
+**Research**: [`docs/research/2026-09-26_earth-watch-architecture.md`](../docs/research/2026-09-26_earth-watch-architecture.md)
+— the ten-year architecture this plan implements. Read it for the *why*; this file is the *what*.
 
 ## Goal
 
 Turn earthdeck from a *monitoring toolkit* into a **standing, public, evidence-first watch
 on the planet**: an agent that sweeps the Earth around the clock with the tools we already
-have, writes every finding to a tamper-evident public ledger with its evidence, tracks
-whether anything happened about it, and publishes an honest "how are we doing" pulse —
-good news and bad — that anyone can read and anyone can check.
+have, writes every finding to an **independently verifiable** public ledger with its
+evidence, tracks whether anything happened about it, and publishes an honest "how are we
+doing" pulse — good news and bad — that anyone can read and anyone can check.
 
 The one-line product: **"Here is what changed on Earth, here is the proof, here is who was
 told, and here is whether it was fixed."**
 
-## Background
+## The one-line architecture
 
-The brainstorm (2026-09-26) landed on four conclusions, which this plan implements:
+> **The repo is the platform, static open-format files are the product, and the LLM is a
+> step inside a deterministic state machine — never the thing that decides.**
 
-1. **Detection is mostly solved; consequences aren't.** GFW, FIRMS, S5P, Climate TRACE all
-   publish alerts. Almost nobody openly links an alert to a responsible asset, routes it to
-   someone with leverage, and records what happened next. The loop is
-   `detect → verify → attribute → route → track the response`. earthdeck today does steps
-   1–2 (26 tools). Steps 3–5 are the impact and the moat (cumulative history, VISION §4).
-2. **The audience is the public first.** Trust is earned in the open; leverage-holders
-   (buyers under EUDR, lenders, regulators, journalists) consume the *same* ledger via a
-   machine-readable feed. One product, two doors. Nothing elitist, nothing paywalled.
-3. **Trust must rest on evidence, not on the AI.** Every finding carries scene IDs, dates,
-   method + version, confidence, and a re-runnable recipe. We publish our own error rate.
-   Assets and institutions are watched — never individuals. Named parties get a right of
-   reply, and no finding names anyone without a human sign-off.
-4. **Balance is a feature.** A pulse that says "6 improving, 3 worsening, 1 accelerating"
-   is more trustworthy *and* more motivating than a news feed. Education is part of the job.
+Every format is an IETF / OGC / Apache / C2SP standard, so servers, schedulers, LLM vendors
+and even our own Node code are replaceable around a self-describing corpus of files. Runs
+for $0–5/month.
 
-Constraints inherited from CLAUDE.md: open data only, best-effort dashboard push, exact
-dep pinning, respect quotas, no commit/push without approval. Node ≥ 20 (so no
-`node:sqlite`; the ledger is a JSONL append log, zero new deps).
+## Strategy decisions (unchanged from rev. 1)
 
-## Strategy decisions (the ones the plan hinges on)
+- **Public first, leverage second, same ledger.** The public is the trust we're building;
+  journalists, NGOs and leverage-holders (EUDR buyers, lenders, regulators) consume the same
+  ledger via machine-readable feeds. One product, two doors, nothing paywalled.
+- **Wedge order:** methane & flaring → deforestation / EUDR (30 Dec 2026) → fishing, mining, water.
+- **Trust rests on checkable evidence, not on the AI.** Subjects are assets, places and
+  institutions — never individuals.
 
-### Who it's for — "public first, leverage second, same ledger"
+## The trust contract (schema-enforced, learned from MARS / GFW / Carbon Mapper / Berkeley Protocol)
 
-| Audience | What they get | Why they matter |
-| --- | --- | --- |
-| **The public** (primary) | The Watch site: open cases with evidence, the world pulse, plain-language explainers | They are the trust we're building. A watchdog nobody reads has no teeth. |
-| Journalists / NGOs | JSON + GeoJSON feed, per-case evidence bundles, `earthdeck` MCP for their own digging | Amplifiers. They turn a ledger row into a story. |
-| Leverage-holders (EUDR buyers, lenders, regulators) | The same feed, filtered by asset/commodity/country; EUDR deadline 30 Dec 2026 makes this a *need* | They are the "route" step. Response tracking only works if someone can act. |
-| Contributors | Detector recipes + watchlists as plain JSON in the repo; PR a watch, PR a detector | Open source is how a watch on the whole planet gets staffed. |
-
-### Wedge — methane & flaring first, deforestation/EUDR second
-
-- **Methane / flaring**: highest climate impact per unit of effort (methane drives ~30 % of
-  current warming; fixing a super-emitter is often a wrench, not a policy), fully open
-  data (Sentinel-5P via CDSE — we already have the OAuth client; Climate TRACE asset
-  emissions, no key; UNEP IMEO MARS notifications), clear responsible parties (the
-  operator of a named facility), and "notified vs. fixed" is a *new* thing to publish.
-- **Deforestation / EUDR**: `forest_alerts` already works. Adding protected-area and
-  concession attribution makes it a case, and the legal deadline creates demand.
-- Later: illegal fishing (Global Fishing Watch), mining creep, reservoir drawdown.
-
-### The trust contract (non-negotiable, written into the schema)
-
-1. A finding cannot exist without an `evidence[]` block. The ledger rejects it.
-2. Status is a state machine: `candidate → verified → published → notified → resolved |
-   ignored | false_positive`. Only `published+` rows appear on the public site.
-   `candidate → verified` needs a second, independent signal (e.g. GFW alert **and** an NDVI
-   drop; S5P plume **and** a Climate TRACE asset at that point) *or* a human review.
-3. `false_positive` rows are **never deleted** — they are our published error rate.
-4. Naming a party (`attribution.party`) requires `review.by` set (a human). The agent may
-   propose, never publish, a name. A `reply` field exists for the named party's response.
-5. Subjects are **assets, places, and institutions**. No detector may target a person.
-6. Rows are hash-chained (`prevHash` → `hash` over canonical JSON). Anyone can verify the
-   log wasn't edited after the fact; a reproduction recipe (`recipe`) re-runs the tool calls.
-
-### Around-the-clock, for free
-
-`earthdeck watch --once` is a deterministic sweep that runs anywhere (laptop, cron,
-**GitHub Actions on a schedule**). Actions runs it every N hours with the keys in repo
-secrets, commits the ledger to a `watch-data` branch, and deploys a static export to
-GitHub Pages. That's a 24/7 public watch with zero infrastructure cost. The optional
-**analyst** step (Claude via `claude -p` / the Messages API) runs after each sweep to
-cross-check candidates with a second tool and write the plain-language explanation —
-so the AI reasons, but the deterministic layer decides what *counts* as a finding.
-
-## Approach
-
-Option A: Build the public site as a separate app (Next.js etc.) reading from a hosted DB.
-Option B: Extend the existing Node dashboard + a static export; JSONL ledger in-repo.
-Option C: Only ship MCP tools (attribution/pulse) and leave the ledger to users.
-
-**Decision: B.** Zero new runtime deps, reuses the card feed + SSE + chart renderer, keeps
-the whole thing self-hostable and forkable (open-source requirement), and the static
-export gives a public URL without running a server. C doesn't build the moat (history);
-A splits the codebase and adds hosting cost before there's a reason.
+1. **No finding without evidence.** Every `created` event carries `evidence[]` (scene IDs,
+   acquisition times, method `{name, version, params}`, digests of derived rasters).
+2. **Confidence = number of independent detectors.** A candidate becomes `confirmed` only
+   when a *second independent signal* (different sensor physics, different provider, or a
+   later revisit) agrees — decided by the deterministic layer, never an LLM judge.
+   Unconfirmed candidates **expire** (default 180 days, GLAD's rule).
+3. **Tiers of consequence.** Tier 0 (auto: candidate/confirmed/expired) · Tier 1 (one
+   reviewer: publish a place-level finding) · Tier 2 (**two distinct reviewers, neither the
+   trigger**: name a party) · Tier 3 (right-of-reply timer before a named finding goes public).
+4. **Two clocks.** 72 h private notice to the responsible party / authority, 30-day public
+   release with any reply embedded verbatim. "No response" is a public state.
+5. **Nothing is deleted.** `retracted` and `false_positive` are events, kept forever, and
+   are our published error rate.
+6. **Name assets, places and institutions; owners only via cited registries** (Climate
+   TRACE / GEM ownership, stake threshold); never natural persons. Geometry on Indigenous
+   lands is aggregated/delayed (community monitors have been killed acting on alerts).
+7. **Independently verifiable.** The ledger is an RFC 6962 Merkle log (C2SP tlog-tiles
+   layout) with Ed25519-signed checkpoints; checkpoints are witnessed externally (Sigstore
+   Rekor via Actions OIDC, OpenTimestamps). `earthdeck ledger verify` re-derives everything.
+8. **AI disclosure.** Narrations carry model id, prompt hash, transcript hash and the
+   reviewer; every published finding carries the "AI-drafted, human-reviewed" marker (EU AI
+   Act Art. 50, from 2 Aug 2026).
 
 ## Architecture
 
 ```
- watchlists/*.json ──► earthdeck watch [--once|--every 6h]  (src/watch/runner.ts)
-   (AOIs + detectors)        │  runs the real MCP server in-process (as demo.ts does)
-                             │  for each AOI × detector: call tools → candidate findings
-                             ▼
-                       detectors (src/watch/detectors/*.ts)  — pure rules over tool output
-                             │  forest-loss · fires-in-protected · methane-plume · flaring
-                             ▼
-                       ledger (src/ledger/*.ts) ── data/ledger.jsonl (append-only, hash-chained)
-                             │  status machine · evidence required · attribution needs review
-                             ├──► optional analyst (src/watch/analyst.ts): 2nd-signal check + narrative
-                             ├──► dashboard cards (finding / pulse) via push.ts (best-effort)
-                             └──► GET /api/ledger, /api/ledger/:id, /feed.json, /feed.geojson
-                                       │
-                       web/  "Watch" view: open cases · case page w/ evidence · world pulse
-                       `earthdeck watch export` → static site (dist/site) → GitHub Pages
+ watchlists/*.json ──► Watch Kernel  (src/watch/, pure TS, no LLM in core)
+   AOIs × rules            │ sweep: watermark-driven catch-up (never "now − N h")
+                           │ rules declare their required 2nd signal; thresholds pre-registered
+                           │ journal: sweeps · steps(input_hash) · tool_calls · candidates · heartbeats
+                           ▼
+              candidate ──2nd signal agrees──► confirmed ──review──► published ──notify──► …
+                           │                                   ▲
+                           │            LlmStep adapter (narrate ONLY; Ajv-validated; evidence_refs
+                           │            must resolve to journaled tool calls; numeric-faithfulness check)
+                           ▼
+ Ledger (src/ledger/) — event-sourced, append-only
+   entries.jsonl   one DSSE envelope per line; payload = JCS (RFC 8785) in-toto Statement
+   tile/…          RFC 6962 Merkle tree in C2SP tlog-tiles layout (static files)
+   checkpoint      C2SP signed note, Ed25519 (+ Rekor / OpenTimestamps anchors in M4)
+   findings = fold(events by findingId)  → materialised view, rebuildable, never authoritative
+                           │
+   Dashboard (src/dashboard/server.ts) — local mission control + review queue
+     GET /api/ledger  /api/ledger/:id  /feed.json  /feed.geojson  /ledger/checkpoint  /ledger/tile/*
+     cards: finding · worldpulse
+   Static export → site shell on Pages, data (GeoParquet/PMTiles) on R2 — M4
 ```
 
-New MCP tools (so Claude — and contributors' agents — can work the loop interactively):
+### Data model (v1 predicate `https://earthdeck.dev/finding-event/v1`)
 
-| Tool | Backend | Key | Purpose in the loop |
+- Event kinds: `created` · `evidence_added` · `confirmed` · `status_changed` ·
+  `attributed` · `narrated` · `reviewed` · `notified` · `replied` · `retracted`.
+- Status (projection): `candidate → confirmed → published → notified → (replied|no_response)
+  → resolved | ignored`; side exits `expired`, `false_positive`, `retracted`.
+- Ids: UUIDv7 (RFC 9562). Times: RFC 3339 `Z`. Geometry: GeoJSON (RFC 7946). Evidence
+  refs: STAC-Item-shaped `{id, collection, datetime, href?}` + method `{name, version, params}`.
+- Each event carries `prev` (hash of the previous event of the same finding) for cheap
+  fork detection, plus `actor` (`system:<rule@ver>` | `reviewer:<handle>` | `model:<id>`).
+- Envelope: DSSE `{payloadType: "application/vnd.in-toto+json", payload, signatures[]}`;
+  Statement `{_type: in-toto v1, subject: [{name: findingId, digest}], predicateType, predicate}`.
+- JSON Schema 2020-12 published in `schema/`; zod at runtime. v2 is added beside v1, never in place.
+
+### Ledger integrity
+
+- Leaf = `sha256(0x00 ‖ envelopeBytes)`; node = `sha256(0x01 ‖ L ‖ R)` (RFC 6962).
+- Tiles: `tile/<L>/<N>` (256 hashes, partial suffix `.p/<W>`), `tile/entries/<N>`.
+- Checkpoint: `earthdeck.dev/findings/v1\n<size>\n<base64 root>\n\n— earthdeck <base64 sig>\n`.
+  Never sign a checkpoint inconsistent with a previous one (consistency proof checked on
+  every append). Unknown signatures are ignored (key rotation + witness cosigning).
+- `verify`: rebuild the tree from `entries.jsonl`, compare to `checkpoint`, verify the
+  signature, verify consistency against a previously seen checkpoint, verify each finding's
+  `prev` chain, validate every payload against the schema.
+- Zero new runtime deps: `node:crypto` (SHA-256, Ed25519), a vendored ~100-line RFC 8785
+  canonicalizer tested against the RFC vectors. `@sigstore/sign` (Rekor) + OpenTimestamps
+  are M4, in the Actions workflow, not in the server.
+
+### Watch Kernel rules (M2+)
+
+| Rule | Primary detector | Required 2nd signal | Tier |
 | --- | --- | --- | --- |
-| `world_pulse(indicators?)` | Our World in Data grapher CSV + World Bank API | none | civilization vital signs w/ direction + "better when" |
-| `protected_areas(bbox)` | OSM Overpass `boundary=protected_area` (zero-key); Protected Planet/WDPA when token set | none / opt | attribution: is this inside a reserve? |
-| `emitters(bbox, sector?)` | Climate TRACE assets API | none | attribution: which facility is here, what does it emit? |
-| `methane_plumes(bbox, days)` | Sentinel-5P CH₄ via CDSE Statistics + (verify) UNEP MARS public plumes | CDSE OAuth | detect: column-CH₄ anomaly vs. window baseline |
-| `flaring(bbox, days)` | VIIRS Nightfire (EOG, free registration) — fallback: VIIRS fires w/ high FRP at known O&G assets | opt | detect: flaring at emitters |
-| `ledger_find(id?, status?, bbox?)` / `ledger_add(finding)` / `ledger_update(id, status, note)` | local ledger | none | Claude can read, propose, and advance cases (never publish a name) |
+| `forest_loss@1` | GFW integrated alerts (high+) ≥ threshold ha | NDVI drop via `eo_compare` (median composite) | 1 |
+| `fires_in_protected@1` | FIRMS cluster inside a protected-area / LandMark polygon | NBR burn index or a later FIRMS pass | 1 |
+| `methane_anomaly@1` | S5P CH₄ column anomaly vs 90-day window (CDSE Statistics) | Climate TRACE / GEM asset at the point **or** EMIT/MARS plume | 2 |
+| `flaring@1` | FIRMS high-FRP persistence at a known O&G asset | VNF monthly aggregate (redistributable) | 2 |
 
-`world_pulse` reuses `src/series.ts` exactly like `planet_pulse`. Indicator registry
-(`src/clients/owid.ts`) is a table: slug, label, unit, `betterWhen: "up" | "down"`, source
-URL — so a contributor adds an indicator with one line. Initial set (all OWID, zero-key):
-child mortality ↓, extreme poverty ↓, life expectancy ↑, solar+wind share ↑, coal share ↓,
-CO₂ per capita ↓, forest area ↑, protected land share ↑, deaths from disasters ↓, literacy
-↑, conflict deaths ↓ (UCDP via OWID), renewable capacity additions ↑. Output: each with
-latest, 10-y trend, `direction` (improving/worsening/flat vs. `betterWhen`), and
-`accelerating` (trend of the last 5 y vs. the prior 10).
+### Scheduling (M4)
+
+GitHub Actions cron is best-effort (hours late / skipped in 2026; auto-disables after 60
+idle days). Therefore: watermark-driven catch-up, results keyed `(aoi, source, obs_time)`
+so re-runs upsert, dedicated workflow with `workflow_dispatch` + `concurrency` + keepalive,
+heartbeat row per sweep, external watchdog on `now − last_sweep > 2× period`. v2 = Temporal
+single-binary (SQLite) on a $2–5/month box.
+
+### Data-source rules baked in
+
+- `protected_areas`: OSM `boundary=protected_area` (ODbL, kept as a separate table) +
+  LandMark (CC BY). WDPA: **IDs and intersection stats only**, never geometry.
+- `flaring`: VNF **monthly/annual aggregates only** (nightly not redistributable). Drop
+  `VIIRS_SNPP_NRT` before 1 Nov 2026; default NOAA-20/21.
+- `methane_plumes`: S5P via CDSE + EMIT plume GeoJSON (public domain) + UNEP MARS
+  (30-day embargo). Carbon Mapper: link only (NC + revocable).
+- `emitters`: Climate TRACE `/v7` pinned in config; GEM ownership as versioned static files.
+- `world_pulse`: OWID grapher CSV + World Bank v2 + UN SDG + UNHCR + UCDP; per-indicator
+  upstream licence recorded; every series snapshotted locally with licence metadata.
+- **US federal sources are the durability risk** → every source has a configured substitute.
 
 ## Milestones
 
-**M1 — Memory (the ledger) + the pulse.** *Zero-key, fully offline-testable, ships the
-"balanced dashboard" alone.*
-- `src/ledger/{schema,store,hash}.ts`: Finding type (zod), JSONL append store w/ in-memory
-  index, hash chain, status machine, validation (evidence required; party ⇒ review).
-- Dashboard: `/api/ledger*`, `/feed.json`, `/feed.geojson`; `finding` + `worldpulse` card
-  types; a **Watch** tab in `web/` (cases list → case page: map, evidence, timeline, status).
-- `world_pulse` tool + `src/clients/owid.ts` + `worldpulse` card (reuses `chart.ts`).
-- Tests: ledger round-trip, chain verification detects tampering, status transitions,
-  "no evidence ⇒ reject", "party without review ⇒ reject", OWID parser + direction logic.
+**M1 — Memory + pulse** (zero-key, fully offline-testable) ← *current*
+- `src/ledger/jcs.ts` (RFC 8785) · `merkle.ts` (RFC 6962 + tlog-tiles) · `checkpoint.ts`
+  (signed note, Ed25519) · `schema.ts` (events, statement, envelope, status machine, tiers)
+  · `store.ts` (append, fold, query, verify) · tests incl. tampering + RFC vectors
+- Dashboard: `/api/ledger*`, `/feed.json`, `/feed.geojson`, `/ledger/checkpoint`,
+  `/ledger/tile/*`; `finding` + `worldpulse` card types; **Watch** tab
+- `world_pulse` tool + `src/clients/owid.ts` registry (`betterWhen`, direction, acceleration)
+- `earthdeck ledger verify|show` CLI
 
-**M2 — The sweep (`earthdeck watch`).** *Needs GFW/FIRMS/CDSE keys for live runs; the
-runner + detectors are offline-testable against fixtures.*
-- `watchlists/` JSON format (id, name, bbox, tags, detectors[], `party?` w/ source URL) +
-  a seed list: ~10 protected areas / high-risk concessions (Amazon, Congo, Borneo), ~5
-  oil & gas basins (Permian, Turkmenistan, Algeria, Iraq, Niger Delta), 3 control AOIs
-  (expected-quiet, to measure our false-positive rate).
-- `src/watch/runner.ts` (in-process MCP client like `demo.ts`; rate-limited; resumable;
-  `--once` / `--every`), `src/watch/detectors/{forestLoss,firesInProtected,methane,flaring}.ts`
-  (pure functions: tool output → candidate | null, with thresholds in the watchlist).
-- Dedup: same AOI + detector within `cooldownDays` → update existing case, don't open a new one.
-- `earthdeck watch` CLI in `src/cli.ts`; doctor learns the new keys.
+**M2 — The sweep** (`earthdeck watch --once`)
+- watchlists + seed lists (incl. control AOIs) · kernel (journal, watermarks, `finding_key`
+  UNIQUE, cooldown) · rules `forest_loss`, `fires_in_protected` · CLI + doctor + README
 
-**M3 — Attribution + methane wedge.**
-- `protected_areas`, `emitters`, `methane_plumes`, `flaring` tools + clients + fixtures.
-- Detectors gain `attribution` (auto-proposed asset/reserve; `party` stays unreviewed).
-- Case page shows attribution + a "response" timeline (notified → resolved/ignored).
-- `ledger_*` MCP tools so Claude can triage interactively on the dashboard.
+**M3 — Attribution + methane wedge**
+- `protected_areas`, `emitters`, `methane_plumes`, `flaring` tools; rules `methane_anomaly`,
+  `flaring`; `ledger_*` MCP tools (read / propose / advance — never publish a name)
 
-**M4 — Public & around-the-clock.**
-- `earthdeck watch export` → `dist/site` (static Watch site + feeds; no server needed).
-- `.github/workflows/watch.yml`: schedule (every 6 h), runs `watch --once` with secrets,
-  commits `data/ledger.jsonl` to `watch-data`, deploys Pages.
-- `src/watch/analyst.ts` (optional; `ANTHROPIC_API_KEY` or `claude -p`): for each new
-  candidate, run one independent cross-check tool and draft the explanation +
-  `recipe`; writes back as `verified` only when the 2nd signal agrees. Prompt + tool
-  allow-list kept in `src/watch/analyst.prompt.md`.
-- Response tracking: `notify` step records *who* was told (public contact/regulator URL,
-  never personal data) and starts the "days open" clock shown on the site.
+**M4 — Public + around the clock**
+- static export (site shell on Pages, GeoParquet + PMTiles on R2, DuckDB-WASM) ·
+  scheduled Actions (watermarks, keepalive, watchdog) · Rekor + OpenTimestamps anchors ·
+  `LlmStep` (Claude Code headless first; Ajv + faithfulness check) · two-clock notify/reply
 
-**M5 — Open it up.**
-- `CONTRIBUTING.md` + `docs/detectors.md` + `docs/watchlists.md` (recipe format, how to PR a
-  watch, review rules); the trust contract published as `TRUST.md`; issue templates for
-  "false positive" and "right of reply".
-- Published accuracy page: counts by status, false-positive rate per detector, generated
-  from the ledger.
+**M5 — Open it up**
+- `TRUST.md` (the contract above), `CONTRIBUTING.md`, `docs/{detectors,watchlists}.md`,
+  system card, published per-detector error rate, issue templates (false positive / right of reply)
 
-M1 + M2 are the MVP; M3–M4 make it a watchdog; M5 makes it a movement.
+MVP = M1 + M2. Don't start M3 before one real sweep has opened one real case end-to-end.
 
 ## Implementation steps
 
-- [ ] M1: ledger schema + store + hash chain + tests
-- [ ] M1: dashboard ledger endpoints + feeds; `finding`/`worldpulse` in `CARD_TYPES`
-- [ ] M1: `world_pulse` tool, OWID client + registry, fixtures + tests
-- [ ] M1: Watch tab in `web/` (cases list, case page, pulse grid)
-- [ ] M2: watchlist format + seed lists + validation
-- [ ] M2: runner (in-process MCP, rate limits, dedup/cooldown, `--once`/`--every`)
-- [ ] M2: detectors forestLoss + firesInProtected (+ tests on fixtures)
-- [ ] M2: `earthdeck watch` CLI + doctor updates + README section
-- [ ] M3: `protected_areas` (Overpass), `emitters` (Climate TRACE), `methane_plumes` (S5P), `flaring`
-- [ ] M3: methane + flaring detectors; attribution on cases; `ledger_*` tools
-- [ ] M4: static export + Pages + scheduled Actions workflow
-- [ ] M4: analyst step (2nd-signal verification + narrative) + response tracking
-- [ ] M5: CONTRIBUTING / TRUST / docs / accuracy page
+- [ ] M1 `jcs.ts` + RFC 8785 vectors
+- [ ] M1 `merkle.ts` (leaf/node hashing, root, inclusion + consistency proofs, tiles) + vectors
+- [ ] M1 `checkpoint.ts` (signed note format, Ed25519 sign/verify, key load/generate)
+- [ ] M1 `schema.ts` (zod events + envelope, transitions, tiers) + `schema/finding-event.v1.json`
+- [ ] M1 `store.ts` (JSONL append, fold → findings, query, verify) + tampering tests
+- [ ] M1 dashboard endpoints + feeds + card types
+- [ ] M1 `world_pulse` + OWID client + fixtures
+- [ ] M1 Watch tab (cases list, case page, pulse grid)
+- [ ] M1 `earthdeck ledger verify|show`
+- [ ] M2 … (see milestones)
 
 ## Files to create / modify
 
 | File | Change |
 | --- | --- |
-| `src/ledger/schema.ts` | `Finding`, `Evidence`, `Attribution`, `Status` (zod); transition table |
-| `src/ledger/store.ts` | JSONL append-only store, in-memory index, query, `verifyChain()` |
-| `src/ledger/hash.ts` | canonical JSON + SHA-256 chain (`node:crypto`) |
-| `src/clients/owid.ts` | OWID grapher CSV fetch + indicator registry (`betterWhen`) |
-| `src/clients/{overpass,climatetrace,s5p,eog}.ts` | attribution/detection clients |
-| `src/tools/{worldpulse,attribution,methane,ledger}.ts` | new MCP tools |
-| `src/watch/{runner,watchlist,analyst}.ts`, `src/watch/detectors/*.ts` | the sweep |
-| `src/cli.ts` | `watch` subcommand (`--once`, `--every`, `export`) |
-| `src/dashboard/server.ts` | `/api/ledger*`, `/feed.*`, new card types, static ledger dir |
-| `src/config.ts` | `EARTHDECK_LEDGER_PATH`, `PROTECTED_PLANET_TOKEN`, `EOG_TOKEN`, `ANTHROPIC_API_KEY` |
-| `web/src/{watch,case}.ts`, `web/src/cards.ts`, `web/index.html` | Watch tab + cards |
-| `watchlists/*.json` | seed AOIs (protected areas, O&G basins, controls) |
-| `data/ledger.jsonl` | the ledger (committed on the `watch-data` branch, gitignored on main) |
-| `.github/workflows/watch.yml` | scheduled sweep + Pages deploy |
-| `test/{ledger,owid,detectors,watchlist}.test.ts` | offline tests |
-| `TRUST.md`, `CONTRIBUTING.md`, `docs/*.md` | the contract + how to contribute |
-| `VISION.md` §14, `ROADMAP.md`, `CONTINUITY.md`, `README.md` | ledgers |
+| `src/ledger/{jcs,merkle,checkpoint,schema,store}.ts` | the ledger |
+| `schema/finding-event.v1.json` | JSON Schema 2020-12 contract |
+| `src/clients/owid.ts`, `src/tools/worldpulse.ts` | world pulse |
+| `src/dashboard/server.ts`, `src/types.ts` | endpoints, feeds, card types |
+| `web/src/{watch,cards,main}.ts`, `web/index.html`, `web/src/styles.css` | Watch tab |
+| `src/cli.ts`, `src/config.ts` | `ledger` subcommand; `EARTHDECK_LEDGER_DIR`, `EARTHDECK_LEDGER_KEY` |
+| `test/{jcs,merkle,checkpoint,ledger,owid}.test.ts` | offline tests |
+| M2+: `src/watch/**`, `watchlists/*.json`, `src/tools/{attribution,methane,ledger}.ts`, `.github/workflows/watch.yml`, `TRUST.md` | later milestones |
 
 ## Testing
 
-- `pnpm test` stays fully offline: every new client behind the `fetch` mock with fixtures
-  (OWID CSV, Overpass JSON, Climate TRACE assets, S5P statistics, GFW alerts already exist).
-- Ledger: write 3 rows → `verifyChain()` ok; edit row 2 on disk → chain fails at row 2;
-  invalid transitions throw; missing evidence throws; `party` without `review.by` throws.
-- Detectors: fixture tool outputs → expected candidate (and control fixtures → `null`).
-- Runner: dry run against a 1-AOI watchlist with mocked tools produces exactly one case,
-  a second run inside cooldown updates it instead of duplicating.
-- Live (when keys/network exist): `earthdeck watch --once --watchlist watchlists/amazon.json`
-  opens real cases from real GFW alerts; dashboard shows them in the Watch tab; export builds.
+- Offline: RFC 8785 test vectors; RFC 6962 vectors (empty tree, sizes 1–8 roots, inclusion
+  + consistency proofs from Go `sumdb/tlog` examples); checkpoint round-trip + bad
+  signature; store: append 3 → verify ok; edit line 2 on disk → verify fails at leaf 1;
+  invalid transition throws; missing evidence throws; `attributed` with a party and < 2
+  reviewers throws; same reviewer twice throws; OWID CSV parse + direction/acceleration.
+- Live (when network): `world_pulse` against OWID; dashboard Watch tab renders seeded cases.
 
 ## Risks / edge cases
 
-- **False accusations.** Mitigated by the trust contract: two-signal rule, human review to
-  name, published false-positive rate, right of reply, control AOIs. This is the project's
-  reputation; err toward *not* publishing.
-- **Data-source uncertainty** (verify on first networked session): OWID grapher CSV URL
-  shape; Climate TRACE asset endpoint + rate limits; UNEP MARS plume access; EOG Nightfire
-  needs registration (fallback to FIRMS FRP at emitter locations); Overpass load (rate-limit
-  ≤ 1 req/s, descriptive UA, cache boundaries in the watchlist).
-- **Quotas.** GFW/FIRMS/CDSE per-key limits: the runner sleeps between AOIs, caps AOIs per
-  sweep, and backs off on 429 (CLAUDE.md rule 5).
-- **Surveillance drift.** Detectors are reviewed against "assets and institutions only";
-  10 m data is non-identifying; no person-targeting tooling ever enters `src/watch`.
-- **Ledger growth.** JSONL + index is fine to ~10⁵ rows; migrate to SQLite/Postgres when a
-  hosted tier exists (VISION §7 H3). Keep the schema versioned (`v: 1`) now.
-- **Goodhart / gaming.** Multiple independent signals per case; publish methodology.
-- **Scope creep.** M1+M2 is the MVP. Don't start M3 tools before a real sweep has opened a
-  real case end-to-end.
+- False accusations — the trust contract; err toward *not* publishing.
+- Verify-live items from the research: CDSE quotas, MARS API, Climate TRACE auth, GFW
+  tiers, OWID rate limits, Protected Planet API version, Armored Witness onboarding.
+- Ledger growth: one tree; shard by year (`…/findings/2027`) only if it gets unwieldy.
+- Node ≥ 20: no `node:sqlite`; journal is files + in-memory index until v2 (Temporal/SQLite).
 
-## Definition of done (MVP = M1 + M2)
+## Definition of done (M1)
 
 - [ ] builds + typechecks; offline tests green; CI green
-- [ ] `earthdeck watch --once` on the seed watchlist opens real cases into `data/ledger.jsonl`
-- [ ] Watch tab shows cases with evidence + the world pulse; feeds served
-- [ ] `verifyChain()` passes on the produced ledger
-- [ ] CONTINUITY.md + PROGRESS.md + ROADMAP.md + VISION.md §14 updated
+- [ ] `earthdeck ledger verify` passes on a seeded ledger and fails on a tampered one
+- [ ] Watch tab shows cases with evidence + the world pulse; feeds + checkpoint + tiles served
+- [ ] CONTINUITY.md + PROGRESS.md + ROADMAP.md updated
 
 ## Notes / log
 
-- 2026-09-26: plan drafted from the accountability-loop brainstorm. Decisions: public first;
-  methane/flaring wedge then EUDR; evidence-not-AI as the trust anchor; Option B (extend
-  dashboard + JSONL + static export + Actions cron) for zero-cost 24/7.
+- 2026-09-26: rev. 1 drafted from the brainstorm (hash-chained JSONL, "every 6 h" cron).
+- 2026-09-26: rev. 2 after the five-stream architecture research. Seven changes: witnessed
+  Merkle log instead of hash chain; event-sourced findings + new states + four-eyes naming;
+  watermark scheduling; R2/Parquet/PMTiles publishing; analyst narrates but never confirms;
+  data-source licence rules; Art. 50 disclosure + two-clock TRUST.md. M1 started.
