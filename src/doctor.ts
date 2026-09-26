@@ -3,7 +3,7 @@
 // unlock the rest. Friendly output, no jargon, exits 0 unless a zero-key source is down
 // (or the Watch section finds a ledger that fails verification / an invalid watchlist).
 
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { cdseCreds, climateTraceBase, firmsMapKey, geeCreds, gfwApiKey, ledgerDir, overpassUrl, SERVER_VERSION, USER_AGENT } from "./config.js";
 import { Ledger } from "./ledger/store.js";
@@ -164,6 +164,9 @@ function kb(bytes: number): string {
   return bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+/** `earthdeck discover` output older than this is flagged stale (the forest list is a 30-day window). */
+const GENERATED_STALE_DAYS = 14;
+
 function ago(iso: string, now: number): string {
   const h = (now - Date.parse(iso)) / 3_600_000;
   return h < 1 ? `${Math.max(0, Math.round(h * 60))} min ago` : h < 48 ? `${h.toFixed(1)} h ago` : `${(h / 24).toFixed(1)} days ago`;
@@ -172,6 +175,8 @@ function ago(iso: string, now: number): string {
 export interface WatchCheckOptions {
   ledgerDir?: string;
   watchlistsPath?: string;
+  /** Discover output (default <watchlistsPath>/generated). */
+  generatedPath?: string;
   env?: NodeJS.ProcessEnv;
   now?: number;
 }
@@ -226,6 +231,29 @@ export function watchChecks(o: WatchCheckOptions = {}): { lines: string[]; faile
     } catch (err) {
       failed = true;
       line("✗", "Watchlists", `invalid: ${(err instanceof Error ? err.message : String(err)).split("\n")[0]}`);
+    }
+  }
+
+  const genPath = o.generatedPath ?? join(wlPath, "generated");
+  if (!existsSync(genPath)) {
+    line("·", "Generated watchlists", `none at ./${genPath} — \`earthdeck discover\` builds them from data`);
+  } else {
+    try {
+      const wls = loadWatchlists(genPath);
+      const aois = wls.flatMap((w) => w.aois);
+      let at: string | null = null;
+      try {
+        at = (JSON.parse(readFileSync(join(genPath, "_summary.json"), "utf8")) as { generatedAt?: string }).generatedAt ?? null;
+      } catch {
+        /* no summary — still usable */
+      }
+      const ageDays = at ? (now - Date.parse(at)) / 86_400_000 : null;
+      const stale = ageDays == null || ageDays > GENERATED_STALE_DAYS;
+      const detail = `${wls.length} list(s), ${aois.length} AOIs (${aois.filter((a) => a.control).length} control) in ./${genPath}, generated ${at ? `${at.slice(0, 10)} (${ago(at, now)})` : "at an unknown time"}`;
+      line(stale ? "·" : "✓", "Generated watchlists", stale ? `${detail} — stale, re-run \`earthdeck discover\`` : detail);
+    } catch (err) {
+      failed = true;
+      line("✗", "Generated watchlists", `invalid: ${(err instanceof Error ? err.message : String(err)).split("\n")[0]}`);
     }
   }
 

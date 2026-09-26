@@ -41,12 +41,12 @@ export function parseWatchlist(json: unknown, where = "watchlist"): Watchlist {
   return wl;
 }
 
-/** Load one file or every `*.json` in a directory. */
+/** Load one file or every `*.json` in a directory (`_*.json`, e.g. discover's `_summary.json`, is metadata — skipped). */
 export function loadWatchlists(path: string): Watchlist[] {
   const st = statSync(path);
   const files = st.isDirectory()
     ? readdirSync(path)
-        .filter((f) => f.endsWith(".json"))
+        .filter((f) => f.endsWith(".json") && !f.startsWith("_"))
         .sort()
         .map((f) => join(path, f))
     : [path];
