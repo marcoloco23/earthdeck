@@ -151,7 +151,7 @@ export function siteFoot(c: Ctx): string {
           <li><b>NOAA</b> — ONI (CPC), OISST, Mauna Loa CO₂ (GML), Coral Reef Watch. U.S. Government work, public domain.</li>
           <li><b>EOG</b> — VIIRS Nightfire, Earth Observation Group, Payne Institute, Colorado School of Mines. Monthly and annual aggregates only.</li>
         </ul>
-        <p class="foot-note">${esc(SITE.name)} — findings are machine-generated and AI-narrated; publication requires independent confirmation and human review. <a class="link" href="${esc(SITE.repo)}" rel="noopener">${esc(SITE.credit)}</a> (MIT) · <a class="link" href="${rel(c, "feed.json")}">feed.json</a> · <a class="link" href="${rel(c, "api/stats.json")}">stats.json</a> · snapshot ${esc(gen)} UTC</p>
+        <p class="foot-note">${esc(SITE.fullName)} — findings are machine-generated and AI-narrated; publication requires independent confirmation and human review. <a class="link" href="${esc(SITE.repo)}" rel="noopener">${esc(SITE.credit)}</a> (MIT) · <a class="link" href="${rel(c, "feed.json")}">feed.json</a> · <a class="link" href="${rel(c, "api/stats.json")}">stats.json</a> · snapshot ${esc(gen)} UTC</p>
       </div>
     </footer>`;
 }
@@ -264,7 +264,7 @@ export function landingPage(c: Ctx, published: Finding[]): { head: string; body:
   const orgId = `${site}#org`;
   const ld = [
     { "@context": "https://schema.org", "@type": "Organization", "@id": orgId, name: SITE.organization.name, url: c.baseUrl ?? SITE.organization.url, sameAs: [SITE.repo] },
-    { "@context": "https://schema.org", "@type": "WebSite", name: SITE.name, url: abs(c, "") ?? undefined, description: SITE.description, publisher: { "@id": orgId } },
+    { "@context": "https://schema.org", "@type": "WebSite", name: SITE.fullName, alternateName: SITE.name, url: abs(c, "") ?? undefined, description: SITE.description, publisher: { "@id": orgId } },
     datasetLd(c, orgId),
   ];
   const dots = published
@@ -355,7 +355,7 @@ export function landingPage(c: Ctx, published: Finding[]): { head: string; body:
     </main>
     ${siteFoot(c)}`;
   return {
-    head: head(c, { title: `${SITE.name} — ${SITE.tagline.join(" ")}`, description: SITE.description, jsonld: ld }),
+    head: head(c, { title: `${SITE.fullName} — ${SITE.tagline.join(" ")}`, description: SITE.description, jsonld: ld }),
     body,
   };
 }
@@ -365,7 +365,7 @@ function datasetLd(c: Ctx, orgId: string): Record<string, unknown> {
     "@context": "https://schema.org",
     "@type": "Dataset",
     "@id": `${abs(c, "watch/") ?? "watch/"}#dataset`,
-    name: `${SITE.name} findings ledger`,
+    name: `${SITE.fullName} findings ledger`,
     description:
       "Every environmental finding Earth Watch has opened — candidates, confirmations, reviews, publications, replies and false positives — as signed in-toto/DSSE events in an RFC 6962 transparency log with a signed checkpoint.",
     url: abs(c, "watch/") ?? undefined,

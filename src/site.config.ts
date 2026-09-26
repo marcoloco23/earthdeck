@@ -4,8 +4,10 @@
 // Rename here, re-export, done. ("earthdeck" stays only where it names the CLI/npm package.)
 
 export const SITE = {
-  /** Product name: page titles, wordmark, JSON-LD, og:site_name. */
+  /** Wordmark and short name: header, page-title suffix, og:site_name. */
   name: "Vital",
+  /** Longer form where one reads better: landing title, JSON-LD, dataset name, footer. */
+  fullName: "Vital Earth",
   /** Small label after the wordmark in the header. */
   byline: "Earth’s vital signs",
   /** Hero headline, one entry per line. */
@@ -15,11 +17,11 @@ export const SITE = {
     "An autonomous, evidence-backed watch on Earth’s living systems: forest loss, fires in protected land, methane and gas flaring — every case published with evidence anyone can verify against a signed, append-only ledger.",
   /**
    * Public origin used for canonical URLs, og:url/og:image, JSON-LD and sitemap.xml when
-   * `--base-url` isn't passed. (vital.earth once registered.)
+   * `--base-url` isn’t passed. (The interim host vital.marcsperzel.com serves the same export.)
    */
-  baseUrl: "https://vital.marcsperzel.com",
+  baseUrl: "https://vitalearth.io",
   /** The publisher, for JSON-LD `Organization`. */
-  organization: { name: "Vital", url: "https://vital.marcsperzel.com" },
+  organization: { name: "Vital Earth", url: "https://vitalearth.io" },
   /** Where issues (right of reply, false positives) are filed, and the footer credit link. */
   repo: "https://github.com/marcoloco23/earthdeck",
   /** Footer credit for the engine underneath. */
