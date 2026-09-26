@@ -1,5 +1,5 @@
 // AWS Lambda entry point (handler `dist/runner/lambda.handler`, Node.js 22). EventBridge
-// Scheduler invokes it with `{ job, watchlist?, dryRun? }`; it loads secrets from SSM, pulls
+// Scheduler invokes it with `{ job, watchlist?, shard?, timeBudgetSec?, dryRun? }`; it loads secrets from SSM, pulls
 // the ledger from the state bucket into /tmp, runs `node dist/cli.js …`, and — only when
 // `ledger verify` passes — pushes the ledger back. See infra/README.md.
 //
@@ -43,6 +43,8 @@ export async function handler(event: unknown, context?: LambdaContext): Promise<
       siteDir: "/tmp/site",
       env: { ...process.env, ...secrets, HOME: "/tmp" },
       budgetMs: () => (context ? context.getRemainingTimeInMillis() - RESERVE_MS : 780_000),
+      // Sweeps get `--time-budget` = remaining − 90 s from this (see sweepTiming in core.ts).
+      ...(context ? { remainingMs: () => context.getRemainingTimeInMillis() } : {}),
     },
     {
       store: await s3Store(region),

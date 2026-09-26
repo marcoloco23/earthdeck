@@ -1,4 +1,4 @@
-// Server-side (export-time) HTML for the public Earth Watch site. Every page ships its full
+// Server-side (export-time) HTML for the public site. Every page ships its full
 // content in the HTML — crawlers and no-JS readers get the whole case — and the small site
 // bundle (web/src/site/main.ts) only enhances: relative times, copy buttons, the "include
 // unpublished" switch, the world pulse, and the in-browser proof check.
@@ -366,7 +366,7 @@ export function landingPage(c: Ctx, findings: Finding[]): { head: string; body: 
 
   const fp = s.falsePositiveRate.overall;
   const num = (v: string, k: string, title = "") => `<div class="num"${title ? ` title="${esc(title)}"` : ""}><dt>${esc(k)}</dt><dd>${v}</dd></div>`;
-  const wrongTitle = fp.decided ? `${fp.falsePositives} of the ${fp.decided} cases we could settle turned out wrong. We keep them on the site.` : "No case has been settled yet.";
+  const wrongTitle = fp.decided ? `${fp.falsePositives} of the ${fp.decided} cases we could settle were false alarms — caught by our own checks before anything was published. We keep them on the site.` : "No case has been settled yet.";
   const flow: [string, string][] = [
     ["Spot", "satellites flag a change"],
     ["Double-check", "a second, separate source must agree"],
@@ -390,7 +390,7 @@ export function landingPage(c: Ctx, findings: Finding[]): { head: string; body: 
           </figure>
           <dl class="nums" aria-label="So far">
             ${num(String(s.cases.public), "Cases published")}
-            ${num(fp.decided ? `${fp.falsePositives}<span class="num-of"> of ${fp.decided}</span>` : "0", "Times we were wrong", wrongTitle)}
+            ${num(fp.decided ? `${fp.falsePositives}<span class="num-of"> of ${fp.decided}</span>` : "0", "False alarms we caught", wrongTitle)}
             ${num(s.lastSweep ? time(s.lastSweep.at, plainDate(s.lastSweep.at), "ago") : "—", "Last check", s.lastSweep ? `${s.lastSweep.at.replace("T", " ").slice(0, 16)} UTC` : "")}
           </dl>
         </div>
@@ -462,7 +462,7 @@ export function developersPage(c: Ctx): { head: string; body: string } {
       <p class="band-note">Every case page also carries its own inclusion proof, checked in your browser, under “Technical details”.</p>
     </main>
     ${siteFoot(c)}`;
-  return { head: head(c, { title: `For developers · ${SITE.name}`, description: "Verify every Earth Watch case yourself: the signed ledger, three commands, data feeds, API and schema." }), body };
+  return { head: head(c, { title: `For developers · ${SITE.name}`, description: `Verify every ${SITE.name} case yourself: the signed ledger, three commands, data feeds, API and schema.` }), body };
 }
 
 function datasetLd(c: Ctx, orgId: string): Record<string, unknown> {
@@ -472,7 +472,7 @@ function datasetLd(c: Ctx, orgId: string): Record<string, unknown> {
     "@id": `${abs(c, "watch/") ?? "watch/"}#dataset`,
     name: `${SITE.fullName} findings ledger`,
     description:
-      "Every environmental finding Earth Watch has opened — candidates, confirmations, reviews, publications, replies and false positives — as signed in-toto/DSSE events in an RFC 6962 transparency log with a signed checkpoint.",
+      `Every environmental finding ${SITE.name} has opened — candidates, confirmations, reviews, publications, replies and false positives — as signed in-toto/DSSE events in an RFC 6962 transparency log with a signed checkpoint.`,
     url: abs(c, "watch/") ?? undefined,
     creator: { "@id": orgId, "@type": "Organization", name: SITE.organization.name },
     ...(SITE.dataLicense ? { license: SITE.dataLicense } : {}),

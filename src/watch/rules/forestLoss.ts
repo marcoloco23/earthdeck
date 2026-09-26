@@ -57,6 +57,7 @@ export const forestLoss = defineRule({
     "Persistent cloud can delay optical confirmation for months (SAR-only RADD alerts stay 'candidate').",
   ],
   requires: ["GFW_API_KEY", "CDSE_CLIENT_ID", "CDSE_CLIENT_SECRET"],
+  confirmRequires: ["CDSE_CLIENT_ID", "CDSE_CLIENT_SECRET"],
   ringKm: 25,
   defaults: { days: 90, minConfidence: "high", minAlerts: 50, minHa: 5, ndviDrop: 0.1, minValidPct: 60 },
 

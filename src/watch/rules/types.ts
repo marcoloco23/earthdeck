@@ -13,6 +13,9 @@ export class ToolError extends Error {
   constructor(
     readonly tool: string,
     message: string,
+    /** Upstream HTTP status / body when the tool reported one (quota detection). */
+    readonly status?: number,
+    readonly body?: unknown,
   ) {
     super(`${tool}: ${message}`);
     this.name = "ToolError";
@@ -57,6 +60,9 @@ export interface Rule {
   blindSpots: string[];
   /** Env keys the rule needs (for doctor / graceful skip). */
   requires: string[];
+  /** Subset of `requires` only the confirmation step spends (e.g. optical checks): when that
+   *  provider is out of quota, detection still runs and confirmation is deferred. */
+  confirmRequires?: string[];
   /** Default neighbourhood ring for the regional baseline, km. */
   ringKm: number;
   defaults: Record<string, unknown>;

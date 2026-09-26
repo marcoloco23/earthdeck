@@ -8,7 +8,9 @@ import { pushFindingCard } from "../dashboard/push.js";
 import { CANDIDATE_TTL_DAYS, TERMINAL_STATUSES, eventPayload, type Context, type Finding } from "../ledger/schema.js";
 import type { Ledger } from "../ledger/store.js";
 import { uuidv7 } from "../util.js";
+import { createHash } from "node:crypto";
 import { Journal } from "./journal.js";
+import { providersForRequires, QuotaExceeded, type QuotaGovernor } from "./quota.js";
 import { bboxPolygon, ringBBox, ToolError, type Rule, type RuleContext, type ToolCall } from "./rules/types.js";
 import type { WatchAoi, Watchlist } from "./watchlist.js";
 
@@ -29,6 +31,33 @@ export interface SweepOptions {
   /** Env presence check for rule.requires; default reads process.env. */
   hasKey?: (name: string) => boolean;
   log?: (line: string) => void;
+  /** Only pairs in this shard: stable hash(aoi.id, rule) mod count === index. */
+  shard?: Shard;
+  /** Wall-clock deadline (ms since epoch): stop opening new pairs when the next might not fit. */
+  deadline?: number;
+  /** Clock for the deadline (default Date.now). */
+  clock?: () => number;
+  /** Per-day provider caps; pairs needing an exhausted provider are skipped `quota:<provider>`. */
+  quota?: QuotaGovernor;
+}
+
+export interface Shard {
+  index: number;
+  count: number;
+}
+
+/** `"3/8"` → { index: 3, count: 8 }. */
+export function parseShard(s: string): Shard {
+  const m = /^(\d+)\/(\d+)$/.exec(s.trim());
+  const index = m ? Number(m[1]) : NaN;
+  const count = m ? Number(m[2]) : NaN;
+  if (!m || count < 1 || index >= count) throw new Error(`--shard must be i/n with 0 ≤ i < n (got "${s}")`);
+  return { index, count };
+}
+
+/** Deterministic shard of an AOI×rule pair (sha256, first 32 bits). */
+export function shardOf(aoiId: string, rule: string, count: number): number {
+  return createHash("sha256").update(`${aoiId}\n${rule}`).digest().readUInt32BE(0) % count;
 }
 
 export interface SweepReport {
@@ -43,6 +72,8 @@ export interface SweepReport {
   gaps: { aoi: string; rule: string; message: string }[];
   skipped: { aoi: string; rule: string; reason: string }[];
   dryRun: boolean;
+  /** Set when the deadline stopped the sweep early: `done` of `total` pairs were visited. */
+  budgetExhausted?: { done: number; total: number };
 }
 
 export async function sweep(o: SweepOptions): Promise<SweepReport> {
@@ -77,23 +108,60 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
   }
 
   const pairs: { aoi: WatchAoi; ruleName: string; params: Record<string, unknown> }[] = [];
-  for (const wl of o.watchlists) for (const aoi of wl.aois) for (const r of aoi.rules) if (!o.onlyRules || o.onlyRules.includes(r.name)) pairs.push({ aoi, ruleName: r.name, params: r.params });
+  for (const wl of o.watchlists)
+    for (const aoi of wl.aois)
+      for (const r of aoi.rules) {
+        if (o.onlyRules && !o.onlyRules.includes(r.name)) continue;
+        if (o.shard && shardOf(aoi.id, r.name, o.shard.count) !== o.shard.index) continue;
+        pairs.push({ aoi, ruleName: r.name, params: r.params });
+      }
+  // Least-recently-swept first (never-swept first of all), so a budget- or quota-cut sweep
+  // rotates through the list instead of starving its tail. Stable for equal watermarks.
+  const lastSwept = (p: (typeof pairs)[number]) => o.journal.watermark(p.aoi.id, p.ruleName) ?? "";
+  pairs.sort((a, b) => (lastSwept(a) < lastSwept(b) ? -1 : lastSwept(a) > lastSwept(b) ? 1 : 0));
   const capped = o.maxPairs ? pairs.slice(0, o.maxPairs) : pairs;
   report.pairs = capped.length;
 
+  const clock = o.clock ?? Date.now;
+  let longestPairMs = 0;
   for (const [i, { aoi, ruleName, params }] of capped.entries()) {
     if (i > 0 && o.delayMs) await new Promise((r) => setTimeout(r, o.delayMs));
+    // Budget: open the next pair only if one more (as long as the slowest so far) still fits.
+    const pairStart = clock();
+    if (o.deadline !== undefined && pairStart + longestPairMs > o.deadline) {
+      report.budgetExhausted = { done: i, total: capped.length };
+      o.journal.append({ t: new Date().toISOString(), sweepId, kind: "budget_exhausted", done: i, total: capped.length });
+      log(`budget exhausted: ${i} of ${capped.length} pairs done`);
+      break;
+    }
+    try {
+      await runPair(aoi, ruleName, params);
+    } finally {
+      longestPairMs = Math.max(longestPairMs, clock() - pairStart);
+    }
+  }
+
+  async function runPair(aoi: WatchAoi, ruleName: string, params: Record<string, unknown>): Promise<void> {
     const rule = o.rules.get(ruleName);
     if (!rule) {
       report.gaps.push({ aoi: aoi.id, rule: ruleName, message: "unknown rule" });
       o.journal.append({ t: now, sweepId, kind: "gap", aoi: aoi.id, rule: ruleName, message: "unknown rule" });
-      continue;
+      return;
     }
     const missing = rule.requires.filter((k) => !hasKey(k));
     if (missing.length) {
       report.skipped.push({ aoi: aoi.id, rule: ruleName, reason: `missing ${missing.join(", ")}` });
       o.journal.append({ t: now, sweepId, kind: "skip", aoi: aoi.id, rule: ruleName, message: `missing ${missing.join(", ")}` });
-      continue;
+      return;
+    }
+    // Only detect-time providers gate the pair; confirm-only providers defer confirmation instead.
+    const detectRequires = rule.requires.filter((k) => !(rule.confirmRequires ?? []).includes(k));
+    const quotaBlock = o.quota ? providersForRequires(detectRequires).map((p) => o.quota!.blocked(p)).find(Boolean) : null;
+    const confirmBlocked = (): string | null => (o.quota ? providersForRequires(rule.confirmRequires ?? []).map((p) => o.quota!.blocked(p)).find(Boolean) ?? null : null);
+    if (quotaBlock) {
+      report.skipped.push({ aoi: aoi.id, rule: ruleName, reason: quotaBlock });
+      o.journal.append({ t: now, sweepId, kind: "skip", aoi: aoi.id, rule: ruleName, message: quotaBlock });
+      return;
     }
     const ctx: RuleContext = { aoi, params, now, since: o.journal.watermark(aoi.id, rule.name), call };
     const key = Journal.findingKey(rule.name, rule.version, aoi.id);
@@ -105,7 +173,9 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
     try {
       if (open?.status === "candidate") {
         // An unconfirmed candidate: try the independent signal again.
-        const conf = await rule.confirm(ctx, { observedAt: open.observedAt, evidence: open.evidence, values: valuesOf(open), geometry: open.geometry });
+        const deferred = confirmBlocked();
+        if (deferred) log(`· ${rule.name} @ ${aoi.id}: confirmation deferred (${deferred})`);
+        const conf = deferred ? null : await rule.confirm(ctx, { observedAt: open.observedAt, evidence: open.evidence, values: valuesOf(open), geometry: open.geometry });
         if (conf) {
           if (!report.dryRun) o.ledger.append({ kind: "confirmed", findingId: open.findingId, actor, signal: conf.signal, independence: conf.independence, at: now });
           report.confirmed.push(open.findingId);
@@ -114,14 +184,14 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
           await card(open.findingId, o.ledger, report.dryRun);
         } else log(`· ${rule.name} @ ${aoi.id}: candidate, no independent signal yet`);
         o.journal.setWatermark(aoi.id, rule.name, now);
-        continue;
+        return;
       }
 
       const candidate = await rule.detect(ctx);
       if (!candidate) {
         log(`· ${rule.name} @ ${aoi.id}: quiet`);
         o.journal.setWatermark(aoi.id, rule.name, now);
-        continue;
+        return;
       }
       o.journal.append({ t: now, sweepId, kind: "candidate", aoi: aoi.id, rule: rule.name, values: candidate.values });
 
@@ -136,7 +206,7 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
         }
         log(`+ ${rule.name} @ ${aoi.id}: ${fresh.length} new evidence on open case`);
         o.journal.setWatermark(aoi.id, rule.name, now);
-        continue;
+        return;
       }
 
       // New finding: context first (best-effort), then the created event, then a confirmation attempt.
@@ -191,7 +261,9 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
       o.journal.append({ t: now, sweepId, kind: "created", aoi: aoi.id, rule: rule.name, findingId, control: aoi.control });
       log(`● ${rule.name} @ ${aoi.id}: candidate opened${aoi.control ? " (CONTROL — counts as a false positive)" : ""}`);
 
-      const conf = await rule.confirm(ctx, candidate);
+      const deferredNew = confirmBlocked();
+      if (deferredNew) log(`· ${rule.name} @ ${aoi.id}: confirmation deferred (${deferredNew})`);
+      const conf = deferredNew ? null : await rule.confirm(ctx, candidate);
       if (conf) {
         if (!report.dryRun) o.ledger.append({ kind: "confirmed", findingId, actor, signal: conf.signal, independence: conf.independence, at: now });
         report.confirmed.push(findingId);
@@ -201,6 +273,13 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
       await card(findingId, o.ledger, report.dryRun);
       o.journal.setWatermark(aoi.id, rule.name, now);
     } catch (err) {
+      if (err instanceof QuotaExceeded) {
+        // Cap reached mid-pair: a skip, not a gap — watermark untouched, retried on a later day.
+        report.skipped.push({ aoi: aoi.id, rule: rule.name, reason: `quota:${err.provider}` });
+        o.journal.append({ t: now, sweepId, kind: "skip", aoi: aoi.id, rule: rule.name, message: `quota:${err.provider}` });
+        log(`○ ${rule.name} @ ${aoi.id}: quota:${err.provider}`);
+        return;
+      }
       // A failed pair is a coverage gap: recorded, watermark untouched, sweep continues.
       const message = err instanceof Error ? err.message : String(err);
       report.gaps.push({ aoi: aoi.id, rule: rule.name, message });
@@ -216,7 +295,7 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
 }
 
 function summary(r: SweepReport): Record<string, unknown> {
-  return { pairs: r.pairs, created: r.created.length, confirmed: r.confirmed.length, evidenceAdded: r.evidenceAdded.length, expired: r.expired.length, gaps: r.gaps.length, skipped: r.skipped.length, dryRun: r.dryRun };
+  return { pairs: r.pairs, created: r.created.length, confirmed: r.confirmed.length, evidenceAdded: r.evidenceAdded.length, expired: r.expired.length, gaps: r.gaps.length, skipped: r.skipped.length, dryRun: r.dryRun, ...(r.budgetExhausted ? { budgetExhausted: r.budgetExhausted } : {}) };
 }
 
 function valuesOf(f: Finding): Record<string, number> {

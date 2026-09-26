@@ -182,7 +182,7 @@ test("export writes a self-contained, relative, server-rendered site", async () 
   assert.match(landing, new RegExp(`<h1 class="top-line">${SITE.oneLine.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</h1>`));
   assert.equal(landing.match(/class="pin pin--pub/g)?.length, 1);
   assert.equal(landing.match(/class="pin pin--open/g)?.length, 3, "two seeded candidates-in-progress + the hostile candidate");
-  for (const k of ["Cases published", "Times we were wrong", "Last check", "Latest cases", "How the planet is doing", "Being checked", "34 hectares — about 48 football fields"]) {
+  for (const k of ["Cases published", "False alarms we caught", "Last check", "Latest cases", "How the planet is doing", "Being checked", "34 hectares — about 48 football fields"]) {
     assert.ok(landing.includes(k), `landing lacks ${k}`);
   }
   // …and nothing for developers: no commands, hashes, rule ids, tiers, feeds or JSON links.

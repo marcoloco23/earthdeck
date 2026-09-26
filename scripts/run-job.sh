@@ -3,6 +3,8 @@
 #
 #   scripts/run-job.sh sweep controls --dry-run
 #   scripts/run-job.sh sweep amazon
+#   scripts/run-job.sh sweep all-generated --shard 3/8
+#   scripts/run-job.sh sweep generated/forest-hotspots --time-budget 300 --dry-run
 #   scripts/run-job.sh analyst
 #   scripts/run-job.sh export
 #
@@ -13,23 +15,32 @@ PROFILE=${AWS_PROFILE:-personal}
 REGION=us-east-1
 FUNCTION=earthdeck
 
-usage() { echo "usage: $0 <sweep|analyst|export|all> [watchlist] [--dry-run]" >&2; exit 2; }
+usage() { echo "usage: $0 <sweep|analyst|export|all> [watchlist] [--shard i/n] [--time-budget SEC] [--dry-run]" >&2; exit 2; }
 [ $# -ge 1 ] || usage
 JOB=$1
 shift
 WATCHLIST=""
+SHARD=""
+BUDGET=""
 DRY=false
-for a in "$@"; do
-  case "$a" in
+while [ $# -gt 0 ]; do
+  case "$1" in
     --dry-run) DRY=true ;;
+    --shard) [ $# -ge 2 ] || usage; SHARD=$2; shift ;;
+    --time-budget) [ $# -ge 2 ] || usage; BUDGET=$2; shift ;;
     -*) usage ;;
-    *) WATCHLIST=$a ;;
+    *) WATCHLIST=$1 ;;
   esac
+  shift
 done
+case "$SHARD" in "" | [0-9]*/[0-9]*) ;; *) usage ;; esac
+case "$BUDGET" in "" | *[!0-9]*) [ -z "$BUDGET" ] || usage ;; esac
 case "$JOB" in sweep | analyst | export | all) ;; *) usage ;; esac
 
 PAYLOAD="{\"job\":\"$JOB\""
 [ -n "$WATCHLIST" ] && PAYLOAD="$PAYLOAD,\"watchlist\":\"$WATCHLIST\""
+[ -n "$SHARD" ] && PAYLOAD="$PAYLOAD,\"shard\":\"$SHARD\""
+[ -n "$BUDGET" ] && PAYLOAD="$PAYLOAD,\"timeBudgetSec\":$BUDGET"
 [ "$DRY" = true ] && PAYLOAD="$PAYLOAD,\"dryRun\":true"
 PAYLOAD="$PAYLOAD}"
 

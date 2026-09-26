@@ -19,6 +19,8 @@ import {
   parsePayload,
   runPayload,
   stepsFor,
+  sweepTiming,
+  watchlistPaths,
   syncPlan,
   uploadDecision,
   CACHE_DEFAULT,
@@ -315,4 +317,74 @@ test("src/runner stays out of the MCP server / CLI import graph", () => {
   };
   rec("src");
   assert.deepEqual(offenders, []);
+});
+
+// ── scale: generated watchlists, shards, time budgets ──────────────────────────────────
+
+test("parsePayload: generated lists, all-generated/all-handwritten, shard, timeBudgetSec", () => {
+  assert.deepEqual(parsePayload({ job: "sweep", watchlist: "all-generated", shard: "3/8" }), { job: "sweep", watchlist: "all-generated", shard: "3/8" });
+  assert.deepEqual(parsePayload({ job: "sweep", watchlist: "generated/forest-hotspots", timeBudgetSec: 300 }), { job: "sweep", watchlist: "generated/forest-hotspots", timeBudgetSec: 300 });
+  assert.deepEqual(parsePayload('{"job":"sweep","watchlist":"all-handwritten"}'), { job: "sweep", watchlist: "all-handwritten" });
+  assert.throws(() => parsePayload({ job: "sweep", watchlist: "generated/../x" }), /payload: watchlist/);
+  assert.throws(() => parsePayload({ job: "sweep", watchlist: "generated/" }), /payload: watchlist/);
+  assert.throws(() => parsePayload({ job: "sweep", watchlist: "nope" }), /payload: watchlist/);
+  assert.throws(() => parsePayload({ job: "sweep", shard: "8/8" }), /payload: shard/);
+  assert.throws(() => parsePayload({ job: "sweep", shard: "a/b" }), /payload: shard/);
+  assert.throws(() => parsePayload({ job: "sweep", timeBudgetSec: 0 }), /payload: timeBudgetSec/);
+  assert.throws(() => parsePayload({ job: "sweep", timeBudgetSec: 12.5 }), /payload: timeBudgetSec/);
+  assert.throws(() => parsePayload({ job: "analyst", shard: "0/8" }), /shard is only valid/);
+  assert.throws(() => parsePayload({ job: "export", timeBudgetSec: 60 }), /timeBudgetSec is only valid/);
+});
+
+test("cliArgs: watchlist targets map to --watchlist paths; shard and budget pass through", () => {
+  assert.deepEqual(watchlistPaths("all-generated"), ["watchlists/generated"]);
+  assert.deepEqual(watchlistPaths("generated/methane-basins"), ["watchlists/generated/methane-basins.json"]);
+  assert.deepEqual(watchlistPaths("all-handwritten"), ["watchlists/amazon.json", "watchlists/congo-borneo.json", "watchlists/controls.json", "watchlists/methane.json", "watchlists/flaring.json"]);
+  assert.deepEqual(cliArgs({ job: "sweep", watchlist: "all-generated", shard: "2/8", timeBudgetSec: 681, dryRun: false }, "/s"), ["watch", "--once", "--watchlist", "watchlists/generated", "--shard", "2/8", "--time-budget", "681"]);
+  assert.equal(cliArgs({ job: "sweep", watchlist: "all-handwritten", dryRun: true }, "/s").filter((a) => a === "--watchlist").length, 5);
+  assert.deepEqual(stepsFor({ job: "sweep", watchlist: "all-generated", shard: "1/8", timeBudgetSec: 100 }), [{ job: "sweep", watchlist: "all-generated", shard: "1/8", timeBudgetSec: 100, dryRun: false }]);
+});
+
+test("sweepTiming: --time-budget = remaining − 90 s (capped by a request), kill at remaining − 60 s", () => {
+  assert.deepEqual(sweepTiming(895_000), { timeBudgetSec: 805, killAfterMs: 835_000 });
+  assert.deepEqual(sweepTiming(895_000, 300), { timeBudgetSec: 300, killAfterMs: 835_000 });
+  assert.deepEqual(sweepTiming(895_000, 900), { timeBudgetSec: 805, killAfterMs: 835_000 });
+  assert.deepEqual(sweepTiming(90_500), { timeBudgetSec: 0, killAfterMs: 30_500 });
+  assert.ok(sweepTiming(60_000).timeBudgetSec < 0);
+});
+
+test("runStep: in Lambda (remainingMs) a sweep gets --time-budget from the remaining time; too little time → failed, nothing run", async () => {
+  const h = harness({ job: () => 0 });
+  let remaining = 880_400;
+  h.cfg.remainingMs = () => remaining;
+  const seen: number[] = [];
+  const exec = h.deps.exec;
+  h.deps.exec = async (args, opts) => {
+    if (args[0] === "watch") seen.push(opts.timeoutMs);
+    return exec(args, opts);
+  };
+  const r = await runPayload({ job: "sweep", watchlist: "all-generated", shard: "0/8" }, h.cfg, h.deps);
+  assert.equal(r.ok, true);
+  assert.deepEqual(h.calls[1], ["watch", "--once", "--watchlist", "watchlists/generated", "--shard", "0/8", "--time-budget", "790"]);
+  assert.equal(r.steps[0]!.timeBudgetSec, 790);
+  assert.equal(r.steps[0]!.shard, "0/8");
+  assert.deepEqual(seen, [820_400]);
+
+  remaining = 80_000;
+  const r2 = await runPayload({ job: "sweep", watchlist: "all-generated" }, h.cfg, h.deps);
+  assert.equal(r2.ok, false);
+  assert.match(r2.steps[0]!.reason ?? "", /no time left to sweep/);
+  h.cleanup();
+});
+
+test("infra: every schedule Input is a valid payload; 8 shards + hand-written + analyst + export", () => {
+  const yaml = readFileSync("infra/earthdeck.yaml", "utf8");
+  const inputs = [...yaml.matchAll(/^\s+Input: '(.+)'$/gm)].map((m) => parsePayload(m[1]!));
+  const shards = inputs.filter((p) => p.watchlist === "all-generated").map((p) => p.shard).sort();
+  assert.deepEqual(shards, ["0/8", "1/8", "2/8", "3/8", "4/8", "5/8", "6/8", "7/8"]);
+  assert.equal(inputs.filter((p) => p.watchlist === "all-handwritten").length, 1);
+  assert.equal(inputs.filter((p) => p.job === "analyst").length, 1);
+  assert.equal(inputs.filter((p) => p.job === "export").length, 1);
+  assert.equal(inputs.length, 11);
+  assert.match(yaml, /EARTHDECK_MAX_ANALYST_CASES: "10"/);
 });

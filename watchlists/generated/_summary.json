@@ -1,0 +1,82 @@
+{
+  "generatedAt": "2026-09-26T20:25:00.543Z",
+  "tool": "earthdeck discover",
+  "lists": {
+    "forest-hotspots": {
+      "file": "forest-hotspots.json",
+      "entities": 150,
+      "aois": 303,
+      "versions": {
+        "gadm__integrated_alerts__adm2_daily_alerts": "v20260926",
+        "gadm_administrative_boundaries": "v4.1.85",
+        "window": "2026-08-26..2026-09-24"
+      },
+      "skipped": [],
+      "source": "GFW Data API — integrated deforestation alerts (GLAD-L/GLAD-S2/RADD) + GADM 4.1"
+    },
+    "flaring-fields": {
+      "file": "flaring-fields.json",
+      "entities": 60,
+      "aois": 60,
+      "versions": {
+        "vnfYear": 2024,
+        "vnfFile": "2024_flare_summary_v20250730_j01.kml",
+        "sites": 14092
+      },
+      "source": "EOG VIIRS Nightfire annual global flare summary (Colorado School of Mines)"
+    },
+    "methane-basins": {
+      "file": "methane-basins.json",
+      "entities": 40,
+      "aois": 40,
+      "versions": {
+        "api": "https://api.climatetrace.org/v7"
+      },
+      "notes": [
+        "dropped 132 OtherBasins residual rows, 110 deepwater/offshore rows, 186 zero-CH₄ rows before clustering"
+      ],
+      "source": "Climate TRACE v7 (CC BY 4.0) — oil & gas production, refining, transport"
+    },
+    "protected-fires": {
+      "file": "protected-fires.json",
+      "entities": 80,
+      "aois": 126,
+      "versions": {
+        "wdpa_protected_areas": "v202512",
+        "wdpa_protected_areas__integrated_alerts__daily_alerts": "v20260926"
+      },
+      "source": "WDPA via GFW Data API (IDs/stats only) + GFW integrated alerts per protected area"
+    },
+    "controls-generated": {
+      "file": "controls-generated.json",
+      "entities": 20,
+      "aois": 20,
+      "versions": {
+        "ifl_intact_forest_landscapes": "v2021"
+      },
+      "skipped": [
+        "SAM_507_8: core box overlaps a forest-hotspot tile",
+        "AFR_128: core box overlaps a forest-hotspot tile",
+        "AFR_162: core box overlaps a forest-hotspot tile",
+        "SAM_370_1: core box overlaps a forest-hotspot tile",
+        "AFR_98: core box overlaps a forest-hotspot tile",
+        "SEA_168_1: interior too narrow (r = 0.118°)"
+      ],
+      "source": "Intact Forest Landscapes 2020 (Potapov et al.) via GFW Data API"
+    }
+  },
+  "totals": {
+    "aois": 549,
+    "controls": 20
+  },
+  "requests": {
+    "total": 19,
+    "bySource": {
+      "gfw": 15,
+      "eog-vnf": 1,
+      "climatetrace": 3
+    },
+    "budget": 200
+  },
+  "elapsedMs": 5434
+}
