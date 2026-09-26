@@ -9,7 +9,7 @@
 
 import { PUBLIC_STATUSES, TERMINAL_STATUSES, type Evidence, type Finding, type FindingEvent } from "../ledger/schema.js";
 import { SITE } from "../site.config.js";
-import type { SiteStats, RateCell } from "./export.js";
+import { livingValueOf, type SiteStats, type RateCell } from "./export.js";
 
 // TODO: import { GLOBAL_NATURE_VALUE } from "../clients/naturalvalue.js" once natural_value
 // (a3ab7a9) is on main — these are its figures (2007 US$, 2011 vs 1997 biome areas).
@@ -55,10 +55,93 @@ export function formatRate(c: RateCell | undefined): string {
   return `${(c.rate * 100).toFixed(c.rate > 0 && c.rate < 0.1 ? 1 : 0)} % · ${c.falsePositives} of ${c.decided} decided`;
 }
 
-export function issueUrl(template: "right-of-reply" | "false-positive", f: { findingId: string; title: string }, repo: string = SITE.repo): string {
-  const prefix = template === "right-of-reply" ? "Right of reply" : "False positive";
-  return `${repo}/issues/new?template=${template}.md&title=${encodeURIComponent(clip(`${prefix}: ${f.title} (${f.findingId})`, 240))}`;
+// ---- plain words (landing + top of case pages: for a general reader, no ids or jargon) -----------------
+
+/** One plain status word per status. */
+export const PLAIN_STATUS: Record<string, string> = {
+  candidate: "Being checked",
+  confirmed: "Being reviewed",
+  published: "Published",
+  notified: "Published",
+  replied: "Published",
+  no_response: "Published",
+  ignored: "Published",
+  resolved: "Resolved",
+  expired: "Couldn’t confirm",
+  false_positive: "Turned out wrong",
+  retracted: "Withdrawn",
+};
+export const plainStatus = (s: string) => `<span class="status-badge status--${safeStatus(s)}"><span class="status-dot"></span>${esc(PLAIN_STATUS[s] ?? words(s))}</span>`;
+
+/** Friendly names for the data sources evidence cites (fallback: the raw source id). */
+const SOURCE_NAMES: [RegExp, string][] = [
+  [/^gfw/, "Global Forest Watch alerts"],
+  [/^sentinel-2/, "Sentinel-2 satellite images"],
+  [/^sentinel-5p/, "Sentinel-5P satellite (methane)"],
+  [/^sentinel-1/, "Sentinel-1 radar images"],
+  [/^firms/, "NASA fire detections"],
+  [/^climate-trace/, "Climate TRACE facility records"],
+  [/nightfire|^eog/, "Gas-flare detections (VIIRS Nightfire)"],
+  [/^gbif/, "GBIF species records"],
+];
+export const sourceName = (src: string) => SOURCE_NAMES.find(([re]) => re.test(src))?.[1] ?? src;
+
+/** 2 significant figures with thousands separators: 324.9 → "320", 12345 → "12,000". */
+const sig2 = (v: number) => Number(v.toPrecision(2)).toLocaleString("en-US");
+
+/** Largest area (hectares) any evidence reports, or null. */
+export function areaHaOf(f: Finding): number | null {
+  let best: number | null = null;
+  for (const e of [...f.evidence, ...(f.confirmed ? [f.confirmed.signal] : [])]) {
+    for (const k of ["ha", "area_ha", "areaHa"]) {
+      const v = e.values?.[k];
+      if (typeof v === "number" && Number.isFinite(v) && v > 0 && (best === null || v > best)) best = v;
+    }
+  }
+  return best;
 }
+
+/** "232 hectares — about 320 football fields" (a 105 × 68 m pitch ≈ 0.714 ha). */
+export function plainArea(ha: number): string {
+  const fields = ha / 0.714;
+  const v = ha >= 10 ? Math.round(ha).toLocaleString("en-US") : String(Number(ha.toFixed(1)));
+  return `${v} hectare${v === "1" ? "" : "s"}${fields >= 1.5 ? ` — about ${sig2(fields)} football fields` : ""}`;
+}
+
+/** The analyst writes `headline ⏎⏎ narrative ⏎⏎ Key numbers: … Confidence: … Caveats: …`; split it. */
+export function parseNarration(text: string): { headline: string | null; body: string; caveats: string[] } {
+  const lines = text.split("\n");
+  const isLabel = (l: string) => /^(Key numbers|Confidence|Caveats):/.test(l.trim());
+  if (!lines.some(isLabel)) return { headline: null, body: text, caveats: [] };
+  const first = lines.findIndex((l) => l.trim());
+  const headline = lines[first]!.replace(/^#+\s*/, "").trim() || null;
+  const rest = lines.slice(first + 1);
+  const stop = rest.findIndex(isLabel);
+  const body = rest.slice(0, stop < 0 ? undefined : stop).join("\n").trim();
+  const ci = lines.findIndex((l) => l.trim() === "Caveats:");
+  const caveats = ci < 0 ? [] : lines.slice(ci + 1).map((l) => /^\s*-\s+(.*)$/.exec(l)?.[1]).filter((x): x is string => !!x);
+  return { headline, body, caveats };
+}
+
+/** The plain headline: the narration's when present, else the finding title. */
+export const plainTitle = (f: Finding) => (f.narration ? parseNarration(f.narration.text).headline : null) ?? f.title;
+
+/** "Sep 2, 2026" — a date a person reads. */
+const plainDate = (iso: string) => {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? dateOf(iso) : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+};
+
+/** Ledger actor ids can carry people's handles; pages never show them. */
+function plainActor(a: string): string {
+  if (a.startsWith("system:")) return `automatic rule ${a.slice(7).replace("@", " v")}`;
+  if (a.startsWith("model:")) return "AI model";
+  if (a.startsWith("reviewer:")) return "a reviewer";
+  return "the watch";
+}
+
+const REPLY_TEXT =
+  "If a case names or affects you, you can reply. A reply channel that keeps both sides on record is being set up; until then, every case page carries its ledger id so a reply can be attached to it.";
 
 // ---- page context ---------------------------------------------------------------------------------
 
@@ -119,18 +202,18 @@ export function head(c: Ctx, h: HeadSpec): string {
 
 const BRAND_MARK = `<svg class="brand-mark" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.25" fill="none" stroke="currentColor" stroke-width="1.5"/><ellipse cx="10" cy="10" rx="3.6" ry="8.25" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.55"/><path d="M1.9 10h16.2" stroke="currentColor" stroke-width="1.2" opacity="0.55"/></svg>`;
 
-export function siteTop(c: Ctx, current: "landing" | "cases" | "trust" | null): string {
+/** The shared header. On the landing, `line` (the one sentence) sits beside the wordmark as the page's h1. */
+export function siteTop(c: Ctx, current: "landing" | "cases" | "trust" | "developers" | null, line?: string): string {
   const cur = (k: string) => (current === k ? ` aria-current="page"` : "");
   const home = rel(c, "");
-  return `<header class="site-top">
-      <div class="wrap site-top-in">
-        <a class="brand" href="${home}">${BRAND_MARK}<span class="brand-name">${esc(SITE.name)}</span><span class="brand-sub">${esc(SITE.byline)}</span></a>
+  return `<header class="site-top${line ? " site-top--landing" : ""}">
+      <div class="wrap${line ? " wrap--wide" : ""} site-top-in">
+        <a class="brand" href="${home}">${BRAND_MARK}<span class="brand-name">${esc(SITE.name)}</span>${line ? "" : `<span class="brand-sub">${esc(SITE.byline)}</span>`}</a>
+        ${line ? `<h1 class="top-line">${esc(line)}</h1>` : ""}
         <nav class="site-nav" aria-label="Site">
           <a href="${rel(c, "watch/")}"${cur("cases")}>Cases</a>
-          <a href="${c.depth === 0 ? "" : home}#verify">Verify</a>
-          <a href="${c.depth === 0 ? "" : home}#challenge" class="nav-opt">Challenge</a>
-          ${c.stats.site.trust ? `<a href="${rel(c, "trust.html")}"${cur("trust")} class="nav-opt">Trust</a>` : ""}
-          <a href="${esc(SITE.repo)}" rel="noopener">GitHub</a>
+          <a href="${c.depth === 0 ? "" : home}#challenge">Reply</a>
+          <a href="${rel(c, "developers/")}"${cur("developers")}>Developers</a>
         </nav>
       </div>
     </header>`;
@@ -139,7 +222,7 @@ export function siteTop(c: Ctx, current: "landing" | "cases" | "trust" | null): 
 export function siteFoot(c: Ctx): string {
   const gen = c.stats.generatedAt.replace("T", " ").slice(0, 16);
   return `<footer class="site-foot">
-      <div class="wrap">
+      <div class="wrap${c.depth === 0 && c.path === "" ? " wrap--wide" : ""}">
         <h2 class="foot-h">Data sources &amp; attributions</h2>
         <ul class="attrib">
           <li><b>Global Forest Watch</b> — integrated deforestation alerts, World Resources Institute. CC BY 4.0.</li>
@@ -151,25 +234,13 @@ export function siteFoot(c: Ctx): string {
           <li><b>NOAA</b> — ONI (CPC), OISST, Mauna Loa CO₂ (GML), Coral Reef Watch. U.S. Government work, public domain.</li>
           <li><b>EOG</b> — VIIRS Nightfire, Earth Observation Group, Payne Institute, Colorado School of Mines. Monthly and annual aggregates only.</li>
         </ul>
-        <p class="foot-note">${esc(SITE.fullName)} — findings are machine-generated and AI-narrated; publication requires independent confirmation and human review. <a class="link" href="${esc(SITE.repo)}" rel="noopener">${esc(SITE.credit)}</a> (MIT) · <a class="link" href="${rel(c, "feed.json")}">feed.json</a> · <a class="link" href="${rel(c, "api/stats.json")}">stats.json</a> · snapshot ${esc(gen)} UTC</p>
+        <p class="foot-note">${esc(SITE.fullName)} — cases are found by automatic rules on open satellite data and written up by AI; nothing is published without a second, independent signal and a review. ${esc(SITE.credit)} · ${c.stats.site.trust ? `<a class="link" href="${rel(c, "trust.html")}">How we decide</a> · ` : ""}<a class="link" href="${rel(c, "developers/")}">For developers</a> · updated ${esc(gen)} UTC</p>
       </div>
     </footer>`;
 }
 
 // ---- small pieces (mirror web/src/ui.ts + watch.ts) ------------------------------------------------------
 
-const TIER_HINT = [
-  "Tier 0 — informational, no publication gate",
-  "Tier 1 — publishing needs one human approval",
-  "Tier 2 — publishing needs two distinct human approvals; naming a party allowed",
-  "Tier 3 — private notice + right-of-reply window before publication",
-];
-
-export const statusBadge = (s: string) => `<span class="status-badge status--${safeStatus(s)}"><span class="status-dot"></span>${esc(words(s))}</span>`;
-export const tierBadge = (t: number) => {
-  const ok = Number.isInteger(t) && t >= 0 && t <= 3;
-  return `<span class="tier tier--${ok ? t : "x"}" title="${esc(ok ? TIER_HINT[t] : "Tier unknown")}">${ok ? `T${t}` : "T?"}</span>`;
-};
 const time = (iso: string, text = dateOf(iso), cls = "") => `<time${cls ? ` class="${cls}"` : ""} datetime="${esc(iso)}">${esc(text)}</time>`;
 const copyBtn = (value: string) => `<button class="btn btn--ghost btn--xs" type="button" data-copy="${esc(value)}" hidden>Copy</button>`;
 const hash = (h: string) => `<span class="hashrow"><code class="hash" title="${esc(h)}">${esc(h.slice(0, 12))}…${esc(h.slice(-6))}</code>${copyBtn(h)}</span>`;
@@ -177,9 +248,13 @@ const cmdline = (cmd: string, attrs = "") => `<div class="cmdline"><code class="
 const section = (title: string, body: string, count?: number | string, id?: string) =>
   `<section class="case-section"${id ? ` id="${id}"` : ""}><h2 class="section-h">${esc(title)}${count !== undefined ? `<span class="section-n">${esc(count)}</span>` : ""}</h2>${body}</section>`;
 
+/** A case in plain words: status word, date, headline, then place · size · value of nature at stake. */
 function caseRow(f: Finding, href: string, cls = ""): string {
-  const meta = [f.aoi?.name ?? f.aoi?.id, `${f.rule.name}@${f.rule.version}`, `${f.evidence.length + (f.confirmed ? 1 : 0)} evidence`].filter(Boolean).join(" · ");
-  return `<a class="case-row${cls ? ` ${cls}` : ""}" href="${esc(href)}"><span class="case-top">${statusBadge(f.status)}${tierBadge(f.tier)}${time(f.updatedAt, dateOf(f.updatedAt), "case-when")}</span><span class="case-title">${esc(f.title)}</span><span class="case-meta">${esc(meta)}</span></a>`;
+  const ha = areaHaOf(f);
+  const lv = livingValueOf(f);
+  const meta = [f.aoi?.name, ha !== null ? plainArea(ha) : "", lv !== null ? `nature’s work worth ≈ ${fmtUsd(lv)} a year` : ""].filter(Boolean).join(" · ");
+  const title = plainTitle(f);
+  return `<a class="case-row${cls ? ` ${cls}` : ""}" href="${esc(href)}" data-case="${esc(f.findingId)}"><span class="case-top">${plainStatus(f.status)}${time(f.updatedAt, plainDate(f.updatedAt), "case-when")}</span><span class="case-title" title="${esc(title)}">${esc(title)}</span>${meta ? `<span class="case-meta">${esc(meta)}</span>` : ""}</a>`;
 }
 
 // ---- markdown-lite (TRUST.md, narration) -------------------------------------------------------------------
@@ -257,100 +332,84 @@ export function renderMarkdown(md: string, headingOffset = 0): string {
 
 // ---- landing -------------------------------------------------------------------------------------------------
 
-export function landingPage(c: Ctx, published: Finding[]): { head: string; body: string } {
+export function landingPage(c: Ctx, findings: Finding[]): { head: string; body: string } {
   const s = c.stats;
-  const base = c.baseUrl ?? "https://<this-site>";
-  const site = c.baseUrl ?? SITE.repo;
+  const site = c.baseUrl ?? SITE.organization.url;
   const orgId = `${site}#org`;
   const ld = [
-    { "@context": "https://schema.org", "@type": "Organization", "@id": orgId, name: SITE.organization.name, url: c.baseUrl ?? SITE.organization.url, sameAs: [SITE.repo] },
+    { "@context": "https://schema.org", "@type": "Organization", "@id": orgId, name: SITE.organization.name, url: c.baseUrl ?? SITE.organization.url },
     { "@context": "https://schema.org", "@type": "WebSite", name: SITE.fullName, alternateName: SITE.name, url: abs(c, "") ?? undefined, description: SITE.description, publisher: { "@id": orgId } },
     datasetLd(c, orgId),
   ];
-  const dots = published
+  const isPub = (f: Finding) => PUBLIC_STATUSES.includes(f.status);
+  // What's live: published cases plus the open ones still being checked or reviewed.
+  const live = findings.filter((f) => isPub(f) || f.status === "candidate" || f.status === "confirmed");
+  const latest = [...live].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 6);
+  const nPub = live.filter(isPub).length;
+
+  // Markers: plain links positioned over an equirectangular image, so lon/lat → % is linear.
+  const pct = (v: number) => Math.min(100, Math.max(0, v)).toFixed(2);
+  const pins = [...live]
+    .sort((a, b) => Number(isPub(a)) - Number(isPub(b))) // published drawn last, on top
     .map((f) => {
       const [w, so, e, n] = f.bbox;
-      const x = ((w + e) / 2 + 180).toFixed(2);
-      const y = (90 - (so + n) / 2).toFixed(2);
-      return `<a href="watch/case/${esc(f.findingId)}/"><title>${esc(f.title)}</title><circle class="dot-halo" cx="${x}" cy="${y}" r="1.8"/><circle class="dot-core" cx="${x}" cy="${y}" r="1.8"/></a>`;
+      const x = (((w + e) / 2 + 180) / 360) * 100;
+      const y = ((90 - (so + n) / 2) / 180) * 100;
+      const cls = ["pin", isPub(f) ? "pin--pub" : "pin--open", y < 18 ? "pin--below" : "", x < 14 ? "pin--l" : x > 86 ? "pin--r" : ""].filter(Boolean).join(" ");
+      const title = plainTitle(f);
+      return `<a class="${cls}" href="watch/case/${esc(f.findingId)}/" style="left:${pct(x)}%;top:${pct(y)}%" data-case="${esc(f.findingId)}" aria-label="${esc(`${PLAIN_STATUS[f.status] ?? words(f.status)}: ${title}`)}"><span class="pin-dot"></span><span class="pin-tip" aria-hidden="true">${esc(clip(title, 64))}</span></a>`;
     })
     .join("");
-  const fp = s.falsePositiveRate.overall;
-  const fpV = fp.rate === null ? "n/a" : `${(fp.rate * 100).toFixed(fp.rate > 0 && fp.rate < 0.1 ? 1 : 0)} %`;
-  const kpi = (k: string, v: string, sub: string, title = "", cls = "") =>
-    `<div class="kpi${cls}"${title ? ` title="${esc(title)}"` : ""}><div class="kpi-k">${esc(k)}</div><div class="kpi-v">${v}</div><div class="kpi-sub">${sub}</div></div>`;
-  const sweep = s.lastSweep
-    ? kpi("Last sweep", time(s.lastSweep.at, dateOf(s.lastSweep.at), "ago"), esc(s.lastSweep.at.replace("T", " ").slice(0, 16) + " UTC"), `Sweep ${s.lastSweep.sweepId}`)
-    : kpi("Last sweep", "—", `site built ${esc(dateOf(s.generatedAt))}`);
-  const rootK = s.ledger.root
-    ? kpi("Ledger root", `<code class="hash" title="${esc(s.ledger.root)}">${esc(s.ledger.root.slice(0, 10))}…</code>${copyBtn(s.ledger.root)}`, `${s.ledger.size} signed entries`, "", " kpi--root")
-    : kpi("Ledger root", "empty", "no entries yet", "", " kpi--root");
-  const latest = published.length
-    ? published.slice(0, 6).map((f) => caseRow(f, `watch/case/${f.findingId}/`)).join("")
-    : `<p class="band-lede">Nothing has passed confirmation and review yet. Every candidate is still listed — marked unpublished — in the <a class="link" href="watch/?all=1">cases index</a>.</p>`;
+  const rows = latest.length
+    ? latest.map((f) => `<li>${caseRow(f, `watch/case/${f.findingId}/`, `live-row${isPub(f) ? "" : " is-unpublished"}`)}</li>`).join("")
+    : `<li class="live-empty">No cases yet — the first check hasn’t found anything.</li>`;
 
-  const body = `${siteTop(c, "landing")}
-    <main>
-      <section class="hero wrap" aria-labelledby="hero-h">
-        <p class="eyebrow">Open planetary monitoring</p>
-        <h1 class="hero-h" id="hero-h">${SITE.tagline.map(esc).join("<br />")}</h1>
-        <p class="hero-lede">${esc(SITE.description)}</p>
-        <p class="hero-lede hero-lede--sub">An AI writes up what the sweep finds; the ledger refuses to publish anything that skipped independent confirmation or human review — and anyone can re-check it without trusting us.</p>
-        <div class="hero-cta"><a class="btn btn--primary btn--lg" href="watch/">Browse cases</a><a class="btn btn--lg" href="#verify">Verify it yourself</a></div>
-      </section>
-      <section class="wrap" aria-label="Where the published cases are">
-        <figure class="world">
-          <img class="world-img" src="https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&amp;REQUEST=GetMap&amp;VERSION=1.1.1&amp;LAYERS=VIIRS_Black_Marble&amp;STYLES=&amp;SRS=EPSG:4326&amp;BBOX=-180,-90,180,90&amp;WIDTH=1440&amp;HEIGHT=720&amp;FORMAT=image/jpeg" width="1440" height="720" alt="The Earth at night (NASA Black Marble) with the locations of ${published.length} published case${published.length === 1 ? "" : "s"}" decoding="async" fetchpriority="high" />
-          <svg class="world-dots" viewBox="0 0 360 180" preserveAspectRatio="none" role="group" aria-label="Published case locations">${dots}</svg>
-          <figcaption class="world-cap"><span>${published.length ? `${published.length} published case${published.length === 1 ? "" : "s"}` : "No published cases yet"}</span><span>NASA Black Marble via GIBS</span></figcaption>
-        </figure>
-      </section>
-      <section class="wrap kpis${s.livingValue ? " kpis--6" : ""}" aria-label="The ledger at a glance">
-        ${kpi("Published cases", String(s.cases.public), "passed confirmation + review")}
-        ${kpi("Independently confirmed", String(s.cases.confirmed), `of ${s.cases.total} finding${s.cases.total === 1 ? "" : "s"} in the ledger`)}
-        ${kpi("False-positive rate", fpV, fp.rate === null ? "no decided findings yet" : `${fp.falsePositives} of ${fp.decided} decided`, s.falsePositiveRate.definition)}
-        ${s.livingValue ? kpi("Living value", `≈ ${esc(fmtUsd(s.livingValue.usdPerYear))}<span class="kpi-unit">/yr</span>`, `value of nature at stake in ${s.livingValue.cases} open case${s.livingValue.cases === 1 ? "" : "s"}, USD/yr, order of magnitude`, s.livingValue.definition, " kpi--living") : ""}
-        ${sweep}
-        ${rootK}
-      </section>
-      <p class="wrap global-value">Nature does ≈ $${GLOBAL_NATURE_VALUE.usdPerYear.low / 1e12}–${GLOBAL_NATURE_VALUE.usdPerYear.high / 1e12} trillion a year of work for us — more than global GDP. <cite>${esc(GLOBAL_NATURE_VALUE.source)}</cite></p>
-      <section class="wrap band" aria-labelledby="how-h">
-        <h2 class="band-h" id="how-h">How a case is made</h2>
-        <p class="band-lede">A rule decides what counts as a finding. The AI explains it. The ledger refuses to publish anything that skipped a step.</p>
-        <ol class="pipeline">
-          <li><span class="pipe-n">01</span><h3>Detect</h3><p>Deterministic rules sweep watched places with open data — forest alerts, active fires, methane columns, flares. A rule fires; a candidate opens with its evidence.</p></li>
-          <li><span class="pipe-n">02</span><h3>Verify</h3><p>A candidate stays unpublished until an independent second signal — another sensor, provider or a later revisit — confirms it. Unconfirmed candidates expire.</p></li>
-          <li><span class="pipe-n">03</span><h3>Attribute</h3><p>Assets and institutions, never people — and only through a cited registry, with two human reviewers before any party is named.</p></li>
-          <li><span class="pipe-n">04</span><h3>Route</h3><p>The case goes to whoever can act on it. High-stakes cases get a 72-hour private notice and a right of reply before they are public.</p></li>
-          <li><span class="pipe-n">05</span><h3>Track</h3><p>Replies, resolutions, corrections and false positives are new signed events. Nothing is edited. Nothing is deleted.</p></li>
-        </ol>
-      </section>
-      <section class="wrap band" aria-labelledby="latest-h">
-        <div class="band-row"><h2 class="band-h" id="latest-h">Latest published cases</h2><a class="link" href="watch/">All cases →</a></div>
-        <div class="case-grid">${latest}</div>
-      </section>
-      <section class="wrap band" id="pulse-band" aria-labelledby="pulse-h" hidden>
-        <h2 class="band-h" id="pulse-h">World pulse</h2>
-        <p class="band-lede">The context every case sits in: civilization’s and the living planet’s vital signs from Our World in Data, each with an honest direction — good news and bad.</p>
-        <div id="pulse"></div>
-      </section>
-      <section class="wrap band" id="verify" aria-labelledby="verify-h">
-        <h2 class="band-h" id="verify-h">How to verify</h2>
-        <p class="band-lede">The ledger is a transparency log: every event is signed (DSSE, Ed25519), hashed into an RFC 6962 Merkle tree and sealed by a signed checkpoint. Three commands, no account, no trust in this website:</p>
-        <ol class="steps-v">
-          <li><h3>Mirror the log</h3><p>The raw entries, the signed checkpoint and the public key — static files on this site.</p>${cmdline(`mkdir ew && cd ew && curl -sf --remote-name-all ${base}/ledger/entries.jsonl ${base}/ledger/checkpoint && curl -sf ${base}/ledger/pub -o ledger.pub`, c.baseUrl ? "" : ' data-base-cmd=""')}</li>
-          <li><h3>Re-derive everything</h3><p>Checks every signature, the canonical form of every entry, every trust rule (no publication without confirmation and review), and that the root matches the checkpoint.</p>${cmdline("EARTHDECK_LEDGER_DIR=. npx -y earthdeck ledger verify")}</li>
-          <li><h3>Prove history wasn’t rewritten</h3><p>Keep today’s checkpoint. Next time, check that the new log extends it — a consistency proof, not a promise.</p>${cmdline("EARTHDECK_LEDGER_DIR=. npx -y earthdeck ledger verify --trusted ../saved-checkpoint")}</li>
-        </ol>
-        <p class="band-note">Machine-readable: <a class="link" href="feed.json">feed.json</a> · <a class="link" href="feed.geojson">feed.geojson</a> · <a class="link" href="api/stats.json">stats.json</a> · <a class="link" href="schema/finding-event.v1.json">event schema</a> · <a class="link" href="ledger/checkpoint">checkpoint</a></p>
-      </section>
-      <section class="wrap band" id="challenge" aria-labelledby="challenge-h">
-        <h2 class="band-h" id="challenge-h">How to challenge</h2>
-        <div class="challenge-grid">
-          <div><h3>Right of reply</h3><p>If a case names or affects you, reply. Your reply is recorded as a signed event and shown verbatim on the case page, next to the evidence. Every case page has a button that opens a pre-filled request.</p></div>
-          <div><h3>Report a false positive</h3><p>Think a case is wrong? Tell us why. If it is, it becomes a <em>false positive</em> — publicly, forever — and counts against its rule’s published false-positive rate.</p></div>
+  const fp = s.falsePositiveRate.overall;
+  const num = (v: string, k: string, title = "") => `<div class="num"${title ? ` title="${esc(title)}"` : ""}><dt>${esc(k)}</dt><dd>${v}</dd></div>`;
+  const wrongTitle = fp.decided ? `${fp.falsePositives} of the ${fp.decided} cases we could settle turned out wrong. We keep them on the site.` : "No case has been settled yet.";
+  const flow: [string, string][] = [
+    ["Spot", "satellites flag a change"],
+    ["Double-check", "a second, separate source must agree"],
+    ["Review", "a reviewer reads the evidence"],
+    ["Warn first", "the people named hear first"],
+    ["Keep the record", "nothing is edited or deleted"],
+  ];
+
+  const body = `${siteTop(c, "landing", SITE.oneLine)}
+    <main class="land">
+      <section class="live wrap wrap--wide" aria-label="What the watch has found">
+        <div class="live-map">
+          <figure class="world">
+            <div class="world-scroll">
+              <div class="world-in">
+                <img class="world-img" src="https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&amp;REQUEST=GetMap&amp;VERSION=1.1.1&amp;LAYERS=VIIRS_Black_Marble&amp;STYLES=&amp;SRS=EPSG:4326&amp;BBOX=-180,-90,180,90&amp;WIDTH=1440&amp;HEIGHT=720&amp;FORMAT=image/jpeg" width="1440" height="720" alt="The Earth at night with the places of ${nPub} published case${nPub === 1 ? "" : "s"} and ${live.length - nPub} still being checked" decoding="async" fetchpriority="high" />
+                <div class="pins">${pins}</div>
+              </div>
+            </div>
+            <figcaption class="world-cap"><span class="legend"><span class="lg lg--pub"></span>Published<span class="lg lg--open"></span>Being checked</span><span>Earth at night · NASA</span></figcaption>
+          </figure>
+          <dl class="nums" aria-label="So far">
+            ${num(String(s.cases.public), "Cases published")}
+            ${num(fp.decided ? `${fp.falsePositives}<span class="num-of"> of ${fp.decided}</span>` : "0", "Times we were wrong", wrongTitle)}
+            ${num(s.lastSweep ? time(s.lastSweep.at, plainDate(s.lastSweep.at), "ago") : "—", "Last check", s.lastSweep ? `${s.lastSweep.at.replace("T", " ").slice(0, 16)} UTC` : "")}
+          </dl>
         </div>
-        <div class="challenge-actions">${challengeButtons(s, null)}</div>
+        <div class="live-list">
+          <div class="live-head"><h2 class="live-h">Latest cases</h2><a class="link" href="watch/">All cases →</a></div>
+          <ol class="live-rows">${rows}</ol>
+        </div>
+      </section>
+      <section class="wrap wrap--wide strip" aria-labelledby="how-h">
+        <h2 class="strip-h" id="how-h">How a case is made</h2>
+        <ol class="flow">${flow.map(([k, v], i) => `<li><span class="flow-n">${i + 1}</span><b>${esc(k)}</b><span>${esc(v)}</span></li>`).join("")}</ol>
+      </section>
+      <section class="wrap wrap--wide strip" id="pulse-band" aria-labelledby="pulse-h" hidden>
+        <div class="strip-side"><h2 class="strip-h" id="pulse-h">World pulse</h2><button class="btn btn--ghost btn--xs pulse-toggle" type="button" aria-expanded="false" aria-controls="pulse">Show all</button></div>
+        <div class="strip-body"><p class="strip-lede">How the planet is doing — good news and bad.</p><div id="pulse" class="is-collapsed"></div><p class="global-value">Nature does about $${GLOBAL_NATURE_VALUE.usdPerYear.low / 1e12}–${GLOBAL_NATURE_VALUE.usdPerYear.high / 1e12} trillion worth of work for us every year. <cite>${esc(GLOBAL_NATURE_VALUE.source)}</cite></p></div>
+      </section>
+      <section class="wrap wrap--wide strip" id="challenge" aria-labelledby="challenge-h">
+        <h2 class="strip-h" id="challenge-h">Named in a case? Think it’s wrong?</h2>
+        <div class="strip-body"><p class="strip-lede">${esc(REPLY_TEXT)}</p><p class="strip-lede">If a case turns out wrong, it is marked “Turned out wrong” — in public — and it stays on this site.</p></div>
       </section>
     </main>
     ${siteFoot(c)}`;
@@ -358,6 +417,52 @@ export function landingPage(c: Ctx, published: Finding[]): { head: string; body:
     head: head(c, { title: `${SITE.fullName} — ${SITE.tagline.join(" ")}`, description: SITE.description, jsonld: ld }),
     body,
   };
+}
+
+/** For developers: every command, feed and machine-readable link the landing leaves out. */
+export function developersPage(c: Ctx): { head: string; body: string } {
+  const s = c.stats;
+  const base = c.baseUrl ?? "https://<this-site>";
+  const r = (p: string) => rel(c, p);
+  const link = (p: string, label: string, what: string) => `<li><a class="link" href="${r(p)}">${esc(label)}</a><span>${esc(what)}</span></li>`;
+  const body = `${siteTop(c, "developers")}
+    <main class="wrap wrap--narrow site-watch">
+      <header class="page-head">
+        <h1 class="page-h">For developers</h1>
+        <p class="band-lede">Verify it yourself, pull the data feeds, read the schema. No account and no trust in this website needed.</p>
+      </header>
+      ${section(
+        "Verify it yourself",
+        `<p class="section-lede">The ledger is a transparency log: every event is signed (DSSE, Ed25519), hashed into an RFC 6962 Merkle tree and sealed by a signed checkpoint. Three commands:</p>
+        <ol class="steps-v">
+          <li><h3>Mirror the log</h3><p>The raw entries, the signed checkpoint and the public key — static files on this site.</p>${cmdline(`mkdir ew && cd ew && curl -sf --remote-name-all ${base}/ledger/entries.jsonl ${base}/ledger/checkpoint && curl -sf ${base}/ledger/pub -o ledger.pub`, c.baseUrl ? "" : ' data-base-cmd=""')}</li>
+          <li><h3>Re-derive everything</h3><p>Checks every signature, the canonical form of every entry, every trust rule (no publication without confirmation and review), and that the root matches the checkpoint.</p>${cmdline("EARTHDECK_LEDGER_DIR=. npx -y earthdeck ledger verify")}</li>
+          <li><h3>Prove history wasn’t rewritten</h3><p>Keep today’s checkpoint. Next time, check that the new log extends it — a consistency proof, not a promise.</p>${cmdline("EARTHDECK_LEDGER_DIR=. npx -y earthdeck ledger verify --trusted ../saved-checkpoint")}</li>
+        </ol>
+        <dl class="kv">${s.ledger.root ? `<dt>Signed root</dt><dd>${hash(s.ledger.root)}</dd>` : ""}<dt>Entries</dt><dd>${esc(s.ledger.size)}</dd></dl>`,
+        undefined,
+        "verify",
+      )}
+      ${section(
+        "Data feeds & API",
+        `<ul class="dev-links">
+          ${link("feed.json", "feed.json", "published cases (JSON Feed)")}
+          ${link("feed.geojson", "feed.geojson", "published cases as GeoJSON")}
+          ${link("api/ledger.json", "api/ledger.json", "every finding, public or not")}
+          ${link("api/stats.json", "api/stats.json", "counts and false-positive rate per rule")}
+          ${link("api/pulse.json", "api/pulse.json", "world pulse snapshot (when available)")}
+          ${link("ledger/checkpoint", "ledger/checkpoint", "signed checkpoint")}
+          ${link("ledger/pub", "ledger/pub", "ledger public key")}
+          ${link("ledger/entries.jsonl", "ledger/entries.jsonl", "the full log")}
+          ${link("schema/finding-event.v1.json", "schema/finding-event.v1.json", "event schema (JSON Schema)")}
+          ${s.site.trust ? link("trust.html", "Trust policy", "what gets published, and why") : ""}
+        </ul>`,
+      )}
+      ${section("Source code", `<p class="section-lede">Source code: coming.</p>`)}
+      <p class="band-note">Every case page also carries its own inclusion proof, checked in your browser, under “Technical details”.</p>
+    </main>
+    ${siteFoot(c)}`;
+  return { head: head(c, { title: `For developers · ${SITE.name}`, description: "Verify every Earth Watch case yourself: the signed ledger, three commands, data feeds, API and schema." }), body };
 }
 
 function datasetLd(c: Ctx, orgId: string): Record<string, unknown> {
@@ -382,19 +487,6 @@ function datasetLd(c: Ctx, orgId: string): Record<string, unknown> {
   };
 }
 
-function challengeButtons(s: SiteStats, f: Finding | null): string {
-  const repo = s.site.repo;
-  const reply = f ? issueUrl("right-of-reply", f, repo) : `${repo}/issues/new?template=right-of-reply.md`;
-  const fp = f ? issueUrl("false-positive", f, repo) : `${repo}/issues/new?template=false-positive.md`;
-  const contact = s.site.contact && /^[^\s@<>"']+@[^\s@<>"']+$/.test(s.site.contact) ? s.site.contact : null;
-  const subject = encodeURIComponent(f ? `Right of reply: ${f.title} (${f.findingId})` : `${SITE.name}: right of reply`);
-  return [
-    `<a class="btn btn--primary" href="${esc(reply)}" rel="noopener">Right of reply</a>`,
-    `<a class="btn" href="${esc(fp)}" rel="noopener">Report a false positive</a>`,
-    contact ? `<a class="btn" href="mailto:${esc(contact)}?subject=${esc(subject)}">Email ${esc(contact)}</a>` : "",
-  ].join("");
-}
-
 // ---- cases index ----------------------------------------------------------------------------------------------
 
 export function watchIndexPage(c: Ctx, findings: Finding[]): { head: string; body: string } {
@@ -402,7 +494,7 @@ export function watchIndexPage(c: Ctx, findings: Finding[]): { head: string; bod
   const isPublic = (f: Finding) => PUBLIC_STATUSES.includes(f.status);
   const pub = findings.filter(isPublic);
   const rows = findings.map((f) => `<li class="case-item${isPublic(f) ? "" : " is-unpublished"}">${caseRow(f, `case/${f.findingId}/`)}</li>`).join("");
-  const orgId = `${c.baseUrl ?? SITE.repo}#org`;
+  const orgId = `${c.baseUrl ?? SITE.organization.url}#org`;
   const crumbs = c.baseUrl
     ? {
         "@context": "https://schema.org",
@@ -442,6 +534,12 @@ export function watchIndexPage(c: Ctx, findings: Finding[]): { head: string; bod
 }
 
 // ---- case page ---------------------------------------------------------------------------------------------------
+//
+// Top of the page is for anyone: headline, the plain write-up, a map, what we saw / what it might
+// not be / what would change our mind, why it was (not) published, and how to reply. Everything
+// technical — rule, ids, evidence methods, history, the proof — sits in a closed "Technical
+// details" block at the bottom. Actor ids from the ledger (which can carry people's handles) are
+// never rendered; they stay in the ledger files for verification only.
 
 export interface CaseData {
   finding: Finding;
@@ -451,11 +549,15 @@ export interface CaseData {
 
 const MAIN_PATH = ["candidate", "confirmed", "published", "notified", "resolved"];
 const NOT_PUBLIC: Record<string, string> = {
-  candidate: "a candidate — one signal, still waiting for an independent second one",
-  confirmed: "confirmed by an independent second signal and waiting for human review",
-  expired: "expired — no independent confirmation arrived in time",
-  false_positive: "a false positive — reviewers ruled the signal out",
+  candidate: "Not published yet: only one source has seen this so far. We wait for a second, separate one before anything goes up.",
+  confirmed: "Not published yet: a second, separate source agreed, and it is now waiting for a reviewer.",
+  expired: "Never published: no second source confirmed it in time, so it was dropped — but it stays on this site.",
+  false_positive: "Never published: on a closer look it turned out wrong. It stays on this site so mistakes are counted, not hidden.",
 };
+const CHANGE_MIND =
+  "Newer satellite images that show no change, a correction from the data source, or a reply with evidence from the ground. If that happens, the case is marked “Turned out wrong” — in public — and it stays on this site.";
+const NOT_SURE_DEFAULT =
+  "Satellite signals can be wrong: clouds, smoke, the seasons and sensor glitches can all look like change. That is why every case needs a second, separate source before it is published.";
 
 export function casePage(c: Ctx, d: CaseData): { head: string; body: string } {
   const f = d.finding;
@@ -465,50 +567,74 @@ export function casePage(c: Ctx, d: CaseData): { head: string; body: string } {
   const published = pubEv?.at;
   const where = f.aoi?.name ?? f.aoi?.id;
   const [w, so, e, n] = f.bbox;
+  const nar = f.narration ? parseNarration(f.narration.text) : null;
+  const title = plainTitle(f);
 
+  // What we saw: size and value in words, then each piece of evidence by its source's plain name.
+  const ha = areaHaOf(f);
+  const lv = livingValueOf(f);
+  const allEv = [...f.evidence, ...(f.confirmed ? [f.confirmed.signal] : [])];
+  const seen = [
+    ...(ha !== null ? [`<li><b>Area:</b> ${esc(plainArea(ha))}</li>`] : []),
+    ...(lv !== null ? [`<li><b>Nature’s work at stake:</b> about ${esc(fmtUsd(lv))} a year (a rough estimate of what this land does for people — clean water, carbon, food).</li>`] : []),
+    ...allEv.map((x) => {
+      const href = safeUrl(x.href);
+      return `<li><b>${esc(sourceName(x.source))}</b>${x.summary ? ` — ${esc(x.summary)}` : ""} <span class="seen-when">(${esc(plainDate(x.datetime))})</span>${href ? ` <a class="link" href="${esc(href)}" rel="noopener nofollow">See the source ↗</a>` : ""}</li>`;
+    }),
+  ];
+  const doubts = [...(nar?.caveats ?? []), ...(f.blindSpots ?? [])];
+  const replies = rightOfReplyHtml(f);
+
+  // Technical details (collapsed).
   const facts: [string, string][] = [
     ["Rule", `${f.rule.name} v${f.rule.version}`],
+    ["Tier", `T${f.tier}`],
     ...(f.aoi?.tags?.length ? ([["Tags", f.aoi.tags.join(", ")]] as [string, string][]) : []),
     ["Confirmed", f.confirmed ? `Yes — independent ${f.confirmed.independence} signal, ${dateOf(f.confirmed.at)}` : "Not yet — single signal"],
     ...(f.attribution ? ([["Subject", `${f.attribution.subject.kind}: ${f.attribution.subject.name}`]] as [string, string][]) : []),
     ...(f.attribution?.party ? ([["Party", `${f.attribution.party.name} (via ${f.attribution.party.registry.name}; ${f.attribution.reviewers.length} reviewers)`]] as [string, string][]) : []),
     ["Rule FP rate", formatRate(s.falsePositiveRate.byRule[f.rule.name])],
     ["Location", `${fmtLat((so + n) / 2)} ${fmtLon((w + e) / 2)}`],
+    ["Observed", dateOf(f.observedAt)],
+    ["Opened", `${dateOf(f.createdAt)} by ${plainActor(f.createdBy)}`],
   ];
-  const ev = [...f.evidence.map((x) => evidenceHtml(x, false)), ...(f.confirmed ? [evidenceHtml(f.confirmed.signal, true)] : [])];
+  const ev = allEv.map((x, i) => evidenceHtml(x, i >= f.evidence.length));
   const ctxHtml = contextHtml(f);
-  const replies = rightOfReplyHtml(f);
-  const hist = [...f.history].reverse().map((h) => tl(h.at, `${words(h.kind)} → ${words(h.status)}`, h.actor)).join("");
+  const hist = [...f.history].reverse().map((h) => tl(h.at, `${words(h.kind)} → ${words(h.status)}`, plainActor(h.actor))).join("");
 
   const body = `${siteTop(c, "cases")}
     <main class="wrap wrap--narrow site-watch">
       <nav class="crumbs" aria-label="Breadcrumb"><a class="btn btn--ghost btn--back" href="../../">All cases</a></nav>
       <article class="case" itemscope itemtype="https://schema.org/Report">
-        ${heroHtml(f)}
         <header class="case-head">
-          <div class="case-top">${statusBadge(f.status)}${tierBadge(f.tier)}</div>
-          <h1 class="case-h" itemprop="headline">${esc(f.title)}</h1>
-          <p class="case-sub">${[where ? esc(where) : "", `observed ${time(f.observedAt)}`, published ? `published ${time(published)}` : `opened ${time(f.createdAt)}`, `by ${esc(f.createdBy)}`].filter(Boolean).join(" · ")}</p>
+          <div class="case-top">${plainStatus(f.status)}</div>
+          <h1 class="case-h" itemprop="headline">${esc(title)}</h1>
+          <p class="case-sub">${[where ? esc(where) : "", `seen ${time(f.observedAt, plainDate(f.observedAt))}`, published ? `published ${time(published, plainDate(published))}` : ""].filter(Boolean).join(" · ")}</p>
         </header>
-        <p class="case-summary" itemprop="abstract">${esc(f.summary)}</p>
-        ${isPublic ? "" : `<p class="banner banner--muted">Not published. This finding is ${esc(NOT_PUBLIC[f.status] ?? words(f.status))}. It is shown because nothing is ever removed from the ledger — mistakes included.</p>`}
-        ${f.retracted ? `<p class="banner banner--danger">Retracted ${time(f.retracted.at)} — ${esc(f.retracted.reason)}</p>` : ""}
-        ${f.narration ? `<div class="narrative" itemprop="articleBody">${renderMarkdown(f.narration.text, 1)}<p class="disclosure">AI-drafted by ${esc(f.narration.model.id)}, ${f.narration.reviewedBy ? `reviewed by ${esc(f.narration.reviewedBy)}` : "not yet human-reviewed"}. Every claim cites evidence below.</p></div>` : ""}
-        ${stepperHtml(f)}
-        <dl class="kv kv--case">${facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd${k === "Rule FP rate" ? ` title="${esc(s.falsePositiveRate.definition)}"` : ""}>${esc(v)}</dd>`).join("")}</dl>
-        ${section("Evidence", ev.join(""), ev.length)}
-        ${ctxHtml ? section("Context", ctxHtml) : ""}
-        ${f.blindSpots?.length ? section("Blind spots", `<p class="section-lede">What this rule cannot see — read the finding with these in mind.</p><ul class="blind">${f.blindSpots.map((b) => `<li>${esc(b)}</li>`).join("")}</ul>`, f.blindSpots.length) : ""}
-        ${section(isPublic ? "Why this was published" : "Why this is not published", whyHtml(f, pubEv))}
-        ${replies ? section("Right of reply", replies) : ""}
-        ${section("Challenge this finding", `<p class="section-lede">Named in this finding, affected by it, or think it’s wrong? Replies are recorded in the ledger and shown verbatim on this page. Corrections are new signed events — never silent edits.</p><div class="challenge-actions">${challengeButtons(s, f)}</div>`, undefined, "challenge")}
-        ${section("History", `<ol class="tl">${hist}</ol>`, f.history.length)}
-        ${section("Verify", verifyHtml(c, d), undefined, "verify")}
+        ${nar ? `<div class="case-summary narrative" itemprop="articleBody">${renderMarkdown(nar.body, 1)}<p class="disclosure">Written by AI, then checked by a separate reviewer before publication. Every claim points at the evidence below.</p></div>` : `<p class="case-summary" itemprop="abstract">${esc(f.summary)}</p>`}
+        ${isPublic ? "" : `<p class="banner banner--muted">${esc(NOT_PUBLIC[f.status] ?? `Not published: ${PLAIN_STATUS[f.status] ?? words(f.status)}.`)}</p>`}
+        ${f.retracted ? `<p class="banner banner--danger">Withdrawn ${time(f.retracted.at, plainDate(f.retracted.at))} — ${esc(f.retracted.reason)}</p>` : ""}
+        ${heroHtml(f)}
+        ${section("What we saw", `<ul class="plain-list">${seen.join("")}</ul>`)}
+        ${section("What it might not be", doubts.length ? `<ul class="plain-list">${doubts.map((b) => `<li>${esc(b)}</li>`).join("")}</ul>` : `<p class="section-lede">${esc(NOT_SURE_DEFAULT)}</p>`)}
+        ${section("What would change our mind", `<p class="section-lede">${esc(CHANGE_MIND)}</p>`)}
+        ${section(isPublic ? "Why this was published" : "Why this is not published", `<p class="section-lede">${esc(whySentence(f, pubEv))}</p>`)}
+        ${section("Right of reply", `${replies}<p class="section-lede">${esc(REPLY_TEXT)}</p><p class="case-id">Ledger id <code>${esc(f.findingId)}</code>${copyBtn(f.findingId)}</p>`, undefined, "challenge")}
+        <details class="tech" id="technical">
+          <summary class="tech-sum">Technical details <span>rule, evidence ids, history, proof</span></summary>
+          <dl class="kv kv--case">${facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd${k === "Rule FP rate" ? ` title="${esc(s.falsePositiveRate.definition)}"` : ""}>${esc(v)}</dd>`).join("")}</dl>
+          ${stepperHtml(f)}
+          ${section("Evidence", ev.join(""), ev.length)}
+          ${ctxHtml ? section("Context", ctxHtml) : ""}
+          ${section("Publication gates", whyHtml(f, pubEv))}
+          ${section("History", `<ol class="tl">${hist}</ol>`, f.history.length)}
+          ${section("Verify", verifyHtml(c, d), undefined, "verify")}
+        </details>
       </article>
     </main>
     ${siteFoot(c)}`;
 
-  const orgId = `${c.baseUrl ?? SITE.repo}#org`;
+  const orgId = `${c.baseUrl ?? SITE.organization.url}#org`;
   const geo = f.geometry.type === "Point"
     ? { "@type": "GeoCoordinates", latitude: f.geometry.coordinates[1], longitude: f.geometry.coordinates[0] }
     : { "@type": "GeoShape", box: `${so} ${w} ${n} ${e}` };
@@ -526,7 +652,7 @@ export function casePage(c: Ctx, d: CaseData): { head: string; body: string } {
     publisher: { "@type": "Organization", "@id": orgId, name: SITE.organization.name, url: SITE.organization.url },
     about: { "@type": "Place", name: where ?? `${fmtLat((so + n) / 2)} ${fmtLon((w + e) / 2)}`, geo },
     keywords: [f.rule.name, ...(f.aoi?.tags ?? [])].join(", "),
-    isBasedOn: [...f.evidence, ...(f.confirmed ? [f.confirmed.signal] : [])].map((x) => safeUrl(x.href)).filter(Boolean),
+    isBasedOn: allEv.map((x) => safeUrl(x.href)).filter(Boolean),
     isPartOf: { "@id": `${abs(c, "watch/") ?? "watch/"}#dataset` },
     ...(f.narration ? { creativeWorkStatus: isPublic ? "Published" : "Draft" } : {}),
   };
@@ -542,6 +668,17 @@ export function casePage(c: Ctx, d: CaseData): { head: string; body: string } {
     }),
     body,
   };
+}
+
+/** "Why this was published", in one plain sentence. */
+function whySentence(f: Finding, pub: FindingEvent | undefined): string {
+  if (f.status === "retracted") return "It was published, then withdrawn — the reason is shown above.";
+  if (!PUBLIC_STATUSES.includes(f.status)) return NOT_PUBLIC[f.status] ?? `Not published: ${PLAIN_STATUS[f.status] ?? words(f.status)}.`;
+  const first = [...new Set(f.evidence.map((x) => sourceName(x.source)))].join(" and ");
+  const second = f.confirmed ? sourceName(f.confirmed.signal.source) : null;
+  const gates = pub && pub.kind === "status_changed" ? (pub as unknown as { gates?: { reviewedBy?: unknown } }).gates : undefined;
+  const reviewers = Math.max(new Set(f.reviews.filter((r) => r.decision === "approve").map((r) => r.actor)).size, Array.isArray(gates?.reviewedBy) ? gates.reviewedBy.length : 0);
+  return `Two separate sources agreed — ${first}${second ? `, then ${second}` : ""} — and ${reviewers <= 1 ? "a reviewer" : `${reviewers} reviewers`} checked the evidence before it went up.`;
 }
 
 function heroHtml(f: Finding): string {
@@ -615,7 +752,7 @@ function tl(at: string | null, what: string, sub: string, cls = ""): string {
 
 function rightOfReplyHtml(f: Finding): string {
   if (!f.notifications.length && !f.replies.length) return "";
-  const items = f.notifications.map((x) => tl(x.at, `Notified ${x.to.kind} · ${x.to.name}`, `Public from ${dateOf(x.publicAt)}`));
+  const items = f.notifications.map((x) => tl(x.at, `Told ${x.to.name} first`, `Public from ${plainDate(x.publicAt)}`));
   items.push(...f.replies.map((r) => tl(r.receivedAt, `Reply from ${r.from}`, `“${r.text}”`, "tl--reply")));
   if (f.notifications.length && !f.replies.length) items.push(tl(null, "No response recorded yet", "", "tl--waiting"));
   return `<ol class="tl">${items.join("")}</ol>`;
@@ -634,21 +771,22 @@ function whyHtml(f: Finding, pub: FindingEvent | undefined): string {
     check(f.confirmed !== null, f.confirmed ? `Independent confirmation — a different ${f.confirmed.independence} (${f.confirmed.signal.source}), ${dateOf(f.confirmed.at)}` : "Independent confirmation — not yet"),
     check(
       approvers.length >= needed,
-      needed === 0 ? "Human approval — not required at tier 0" : `Human approval — ${approvers.length} of ${needed} needed at tier ${f.tier}${approvers.length ? ` (${approvers.join(", ")})` : ""}`,
+      needed === 0 ? "Human approval — not required at tier 0" : `Human approval — ${approvers.length} of ${needed} needed at tier ${f.tier}`,
     ),
   ];
   if (f.tier >= 3) {
     const notice = f.notifications.find((x) => x.to.kind !== "public");
     items.push(check(!!notice, notice ? `Private notice to ${notice.to.name} — public from ${dateOf(notice.publicAt)}` : "Private notice + right-of-reply window — not yet"));
   }
-  if (f.narration) items.push(check(true, `Narration — AI-drafted by ${f.narration.model.id}${f.narration.reviewedBy ? `, reviewed by ${f.narration.reviewedBy}` : ""}`));
+  if (f.narration) items.push(check(true, `Narration — AI-drafted by ${f.narration.model.id}${f.narration.reviewedBy ? ", reviewed by a reviewer" : ""}`));
   let detail = "";
   if (pub && pub.kind === "status_changed") {
-    const rows: [string, string][] = [["Published", `${dateOf(pub.at)} by ${pub.actor}`]];
-    // `gates` is written by newer publishers; render whatever it holds, generically.
+    const rows: [string, string][] = [["Published", `${dateOf(pub.at)} by ${plainActor(pub.actor)}`]];
+    // `gates` is written by newer publishers; render whatever it holds, generically — but
+    // identities (narratedBy, reviewedBy, …) only as roles: ledger actor ids stay off the page.
     const gates = (pub as unknown as { gates?: unknown }).gates;
     const g = gates && typeof gates === "object" && !Array.isArray(gates) ? (gates as Record<string, unknown>) : {};
-    for (const [k, v] of Object.entries(g)) rows.push([humanKey(k), show(v)]);
+    for (const [k, v] of Object.entries(g)) rows.push([humanKey(k), /By$/.test(k) ? [v].flat().map((x) => plainActor(String(x))).join(", ") : show(v)]);
     if (!("policy" in g) && !("policyVersion" in g)) rows.push(["Policy", "version not recorded on this event"]);
     if (pub.reason) rows.push(["Note", pub.reason]);
     detail = `<dl class="kv gates-detail">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>`;

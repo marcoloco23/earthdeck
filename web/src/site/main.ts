@@ -12,7 +12,7 @@ import { ago } from "../ui";
 import type { Card } from "../types";
 
 const page = document.body.dataset.page ?? "";
-const DEPTH: Record<string, number> = { landing: 0, trust: 0, watch: 1, case: 3 };
+const DEPTH: Record<string, number> = { landing: 0, trust: 0, watch: 1, developers: 1, case: 3 };
 const prefix = "../".repeat(DEPTH[page] ?? 0);
 const api = apiPaths("static", prefix);
 const siteRoot = new URL(prefix || ".", location.href).href.replace(/\/+$/, "");
@@ -51,7 +51,29 @@ for (const code of document.querySelectorAll<HTMLElement>("[data-base-cmd]")) {
   if (btn) btn.dataset.copy = text;
 }
 
-// ---- landing: world pulse ------------------------------------------------------------------------
+// ---- landing: map ↔ list, and the world pulse -----------------------------------------------------
+
+if (page === "landing") {
+  // Hovering a case row lights its marker, and the other way round.
+  const linked = [...document.querySelectorAll<HTMLElement>("[data-case]")];
+  const hot = (id: string | undefined, on: boolean) => {
+    for (const el of linked) if (el.dataset.case === id) el.classList.toggle("is-hot", on);
+  };
+  for (const el of linked) {
+    el.addEventListener("pointerenter", () => hot(el.dataset.case, true));
+    el.addEventListener("pointerleave", () => hot(el.dataset.case, false));
+    el.addEventListener("focus", () => hot(el.dataset.case, true));
+    el.addEventListener("blur", () => hot(el.dataset.case, false));
+  }
+  // On a phone the map is a pannable strip: start it centred on the cases, not on the Atlantic.
+  const strip = document.querySelector<HTMLElement>(".world-scroll");
+  const pins = [...document.querySelectorAll<HTMLElement>(".pin")];
+  if (strip && pins.length && strip.scrollWidth > strip.clientWidth) {
+    const xs = pins.map((p) => parseFloat(p.style.left) / 100);
+    const mid = (Math.min(...xs) + Math.max(...xs)) / 2;
+    strip.scrollLeft = mid * strip.scrollWidth - strip.clientWidth / 2;
+  }
+}
 
 if (page === "landing") {
   void fetch(api.pulse!)
@@ -68,7 +90,32 @@ if (page === "landing") {
       const node = renderCard(card, () => {});
       node.removeAttribute("tabindex");
       node.classList.add("card--static", "no-enter");
-      document.getElementById("pulse")?.appendChild(node);
+      const box = document.getElementById("pulse");
+      if (!box) return;
+      box.appendChild(node);
+      // Collapsed by default: each group header carries its own tally; "Show all" opens the tiles.
+      for (const g of box.querySelectorAll<HTMLElement>(".tiles-group")) {
+        const tiles = g.nextElementSibling;
+        if (!tiles?.classList.contains("tiles")) continue;
+        const up = tiles.querySelectorAll(".wp--improving").length;
+        const down = tiles.querySelectorAll(".wp--worsening").length;
+        const tally = document.createElement("span");
+        tally.className = "tiles-tally";
+        for (const [cls, text] of [["wp--improving", `▲ ${up} better`], ["wp--worsening", `▼ ${down} worse`]] as const) {
+          const s = document.createElement("span");
+          s.className = cls;
+          s.textContent = text;
+          tally.appendChild(s);
+        }
+        g.appendChild(tally);
+      }
+      const toggle = document.querySelector<HTMLButtonElement>(".pulse-toggle");
+      toggle?.addEventListener("click", () => {
+        const open = toggle.getAttribute("aria-expanded") !== "true";
+        toggle.setAttribute("aria-expanded", String(open));
+        toggle.textContent = open ? "Show less" : "Show all";
+        box.classList.toggle("is-collapsed", !open);
+      });
       const band = document.getElementById("pulse-band");
       if (band) band.hidden = false;
     })
