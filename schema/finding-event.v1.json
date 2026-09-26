@@ -800,6 +800,37 @@
             "reason": {
               "type": "string",
               "maxLength": 2000
+            },
+            "gates": {
+              "type": "object",
+              "properties": {
+                "narratedBy": {
+                  "type": "string",
+                  "pattern": "^(reviewer|model):\\S"
+                },
+                "reviewedBy": {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^(reviewer|model):\\S"
+                  }
+                },
+                "noticeHours": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "policy": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "narratedBy",
+                "reviewedBy",
+                "policy"
+              ],
+              "additionalProperties": false
             }
           },
           "required": [
@@ -945,7 +976,7 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "pattern": "^reviewer:"
+                "pattern": "^(reviewer|model):"
               }
             }
           },
@@ -1110,6 +1141,14 @@
             "note": {
               "type": "string",
               "maxLength": 2000
+            },
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "publish",
+                "hold",
+                "reject"
+              ]
             }
           },
           "required": [
@@ -1192,6 +1231,9 @@
             "publicAt": {
               "type": "string",
               "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?Z$"
+            },
+            "unreachable": {
+              "type": "boolean"
             }
           },
           "required": [

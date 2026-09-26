@@ -118,12 +118,15 @@ is a ledger anyone can verify:
   JSON), in an **RFC 6962 Merkle log** with the C2SP `tlog-tiles` static layout and
   Ed25519 **signed checkpoints**. `earthdeck ledger verify` re-derives everything and
   catches edits, deletions, reordering and forged entries. Zero new dependencies.
-- **The trust contract is code** (`src/ledger/schema.ts`): no finding without evidence; a
-  candidate is *confirmed* only by an **independent second signal** (never an LLM judge);
-  tiers of human review; **two distinct reviewers to name a party**; a **72 h private
-  notice / 30-day public** right-of-reply clock; retractions and false positives are kept
-  forever as our published error rate; subjects are assets, places and institutions —
-  never people.
+- **The trust contract is code** (`src/ledger/schema.ts`; plain language: [TRUST.md](TRUST.md)):
+  no finding without evidence; a candidate is *confirmed* only by an **independent second
+  signal** (never an LLM judge); **publishing is autonomous and verified afterwards**
+  (policy `2026-09-26-autonomous`): a narration plus a *publish* verdict from a **different
+  identity** than the narrator, tier ≤ 2 (tier 3 needs a human), with the gates recorded
+  on the publish event and re-checked by the ledger; **two distinct reviewers and a 72 h
+  private notice to name a party**; a 30-day public right-of-reply clock; retractions and
+  false positives are kept forever as our published error rate; subjects are assets,
+  places and institutions — never people.
 - **`world_pulse`** (tool #27, zero-key): civilization's vital signs from Our World in
   Data, each with an honest *improving / worsening / flat* direction and pace — good news
   and bad, not a news feed.
@@ -156,9 +159,11 @@ own false-positive rate. Needs `GFW_API_KEY` + CDSE creds (forest) and `FIRMS_MA
 
 **Triage from Claude** — `ledger_list`, `ledger_get`, `ledger_verify` (read) and
 `ledger_advance`, `ledger_narrate`, `ledger_review`, `ledger_propose_attribution` (append)
-expose the ledger over MCP. Every write goes through the trust contract; these tools
-**never publish** — any move into a public status is refused (publishing is a human act),
-and naming a party still needs tier ≥ 2 and two distinct human reviewers.
+expose the ledger over MCP. Every write goes through the trust contract, which alone
+decides: `ledger_advance` publishes when the gates hold (it computes `gates` via
+`publishGates` if the model omits them) and retracts with a reason; `ledger_review` records
+a `publish | hold | reject` verdict; naming a party still needs tier ≥ 2, two distinct
+reviewer identities and the private-notice clock.
 `earthdeck doctor` has a **Watch** section (ledger verify, each rule's keys, watchlists,
 last sweep heartbeat).
 
