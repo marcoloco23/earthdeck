@@ -52,6 +52,16 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
    (new stack + migrate state, or keep internal names); domain (registration only after
    trademark check + Marc's explicit OK on the exact name + price); README/CLAUDE/VISION;
    `checkpoint` signer name stays "earthdeck" unless the key is rotated. Do it in one PR.
+2b. **Scale-out state (2026-09-26 late)**: `earthdeck discover` generates 549 AOIs
+   (`watchlists/generated/`, 19 API calls, 53 s; re-run every ~14 days — doctor warns when
+   stale). Runner sweeps `all-generated` in 8 shards per 6-h window (13.5-min budget each),
+   analyst +1:20, export +1:30, hand-written lists +1:40; per-day caps: CDSE 40, GFW 400,
+   FIRMS 3000, analyst 10 cases / $3. **Measured** (shard 0/8 dry run on Lambda): 82 pairs,
+   47 done in budget, 39 candidates, 13 optical confirmations, Copernicus 32 / GFW 69 /
+   FIRMS 86 calls. Confirm-only providers (Copernicus for forest_loss) *defer* confirmation
+   when spent — detection always runs. TODO: measure Copernicus PU per `eo_compare`/S5P
+   call (free tier 10k PU/month) and set the cap from data. Name: **TerraKeep**, slogan
+   "Keeping Earth within its limits." — package/repo/stack rename still pending (3b).
 3c. **Queued by Marc 2026-09-26 (in this order, one at a time — "take it slowly")**:
    1. **Backtest harness** — `earthdeck backtest --event <file>`: replay rules with the clock
       set to a past date for 8–10 documented events (2019 Amazon fires, 2020 Black Summer,
