@@ -20,6 +20,7 @@ import { registerSimilarTools } from "./tools/similar.js";
 import { registerWorldPulseTools } from "./tools/worldpulse.js";
 import { registerLedgerTools } from "./tools/ledger.js";
 import { registerMethaneTools } from "./tools/methane.js";
+import { registerAttributionTools } from "./tools/attribution.js";
 
 export function buildServer(): McpServer {
   const server = new McpServer(
@@ -30,7 +31,8 @@ export function buildServer(): McpServer {
         "(1) Earth observation — render satellite imagery for a bounding box, list live " +
         "natural-disaster events, search open archives (STAC, no key), and (with keys) compute " +
         "vegetation/water/burn indices, find active fires and persistent gas flares (flaring), surface deforestation alerts " +
-        "(forest_alerts), render all-weather Sentinel-1 SAR, " +
+        "(forest_alerts), attribute them — protected_areas (OSM/LandMark/WDPA lands in an AOI) and " +
+        "emitters (Climate TRACE assets in an AOI) — render all-weather Sentinel-1 SAR, " +
         "compare a place across two dates, and search by similarity — eo_similar finds everywhere " +
         "that 'looks like' a reference point via AlphaEarth embeddings (no key). (2) Planetary indicators (all no-key) — ENSO/" +
         "El Niño tracking (enso), ocean temperature history since 1981 (ocean_temp), CO₂ since " +
@@ -71,6 +73,7 @@ export function buildServer(): McpServer {
   registerWorldPulseTools(server);
   registerLedgerTools(server);
   registerMethaneTools(server);
+  registerAttributionTools(server);
 
   return server;
 }

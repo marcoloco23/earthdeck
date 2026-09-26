@@ -55,6 +55,22 @@ export function stacUrl(): string {
   return env("STAC_URL") ?? "https://earth-search.aws.element84.com/v1";
 }
 
+/**
+ * Overpass API endpoint for `protected_areas` (OSM, ODbL). Public instances are shared and
+ * rate-limited (≤10k req/day, a couple of concurrent slots) — override to use a mirror.
+ */
+export function overpassUrl(): string {
+  return env("OVERPASS_URL") ?? "https://overpass-api.de/api/interpreter";
+}
+
+/**
+ * Climate TRACE API base, pinned to v7 (`emitters`). The path churned v4→v6→v7; when v8
+ * ships, verify the response shape before bumping — override via EARTHDECK_CLIMATETRACE_BASE.
+ */
+export function climateTraceBase(): string {
+  return env("CLIMATETRACE_BASE") ?? "https://api.climatetrace.org/v7";
+}
+
 /** Directory holding the findings ledger (entries.jsonl, checkpoint, tiles, keys). */
 export function ledgerDir(): string {
   return env("LEDGER_DIR") ?? "data/ledger";

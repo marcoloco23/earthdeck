@@ -47,6 +47,9 @@ const calls = [
   ["river_discharge", { lat: -3.1, lon: -60.0 }], // Rio Negro at Manaus
   ["planet_pulse", {}],
   ["earthdata_search", { keyword: "soil moisture", bbox: MANAUS, limit: 5 }],
+  // ---- Attribution (M3) — São Félix do Xingu ----
+  ["protected_areas", { bbox: [-52.4, -6.9, -51.9, -6.4] }],
+  ["emitters", { bbox: [-52.4, -6.9, -51.9, -6.4], limit: 5 }],
 ];
 
 const { tools } = await client.listTools();

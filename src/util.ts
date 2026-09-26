@@ -60,6 +60,28 @@ export function bboxCenter(bbox: BBox): [number, number] {
   return [(west + east) / 2, (south + north) / 2];
 }
 
+/** True if [lon, lat] lies inside the bbox (edges inclusive). */
+export function bboxContains(bbox: BBox, lon: number, lat: number): boolean {
+  const [west, south, east, north] = bbox;
+  return lon >= west && lon <= east && lat >= south && lat <= north;
+}
+
+/**
+ * Square-ish bbox of `radiusKm` around a point (equirectangular approximation, fine for
+ * AOI-sized radii). Latitudes clamp to ±90; longitudes clamp to ±180 (no antimeridian wrap).
+ */
+export function pointRadiusToBBox(lon: number, lat: number, radiusKm: number): BBox {
+  const dLat = radiusKm / 111.32;
+  const cos = Math.max(Math.cos((lat * Math.PI) / 180), 0.01);
+  const dLon = radiusKm / (111.32 * cos);
+  return [
+    Math.max(-180, lon - dLon),
+    Math.max(-90, lat - dLat),
+    Math.min(180, lon + dLon),
+    Math.min(90, lat + dLat),
+  ];
+}
+
 /**
  * UUIDv7 (RFC 9562): 48-bit Unix-ms timestamp + version/variant bits + 74 random bits.
  * Time-ordered, so ledger ids sort chronologically as plain strings.

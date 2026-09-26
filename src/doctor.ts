@@ -5,7 +5,7 @@
 
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { cdseCreds, firmsMapKey, gfwApiKey, ledgerDir, SERVER_VERSION, USER_AGENT } from "./config.js";
+import { cdseCreds, climateTraceBase, firmsMapKey, gfwApiKey, ledgerDir, overpassUrl, SERVER_VERSION, USER_AGENT } from "./config.js";
 import { Ledger } from "./ledger/store.js";
 import { readHeartbeat } from "./watch/journal.js";
 import { RULES } from "./watch/rules/index.js";
@@ -31,6 +31,8 @@ const ZERO_KEY_CHECKS: Check[] = [
   { name: "USGS (quakes)", url: "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&limit=1" },
   { name: "NASA CMR (earthdata_search)", url: "https://cmr.earthdata.nasa.gov/search/collections.json?keyword=test&page_size=1" },
   { name: "Open-Meteo (climate/air/river)", url: "https://archive-api.open-meteo.com/v1/archive?latitude=0&longitude=0&start_date=2024-01-01&end_date=2024-01-01&daily=temperature_2m_mean" },
+  { name: "OSM Overpass (protected_areas)", url: `${overpassUrl()}?data=${encodeURIComponent("[out:json];out;")}`, anyResponse: true }, // shared instance often 504s when busy — an answer means reachable
+  { name: "Climate TRACE v7 (emitters)", url: `${climateTraceBase()}/definitions/sectors` },
 ];
 
 async function probe(check: Check, timeoutMs = 10_000): Promise<{ ok: boolean; detail: string }> {
