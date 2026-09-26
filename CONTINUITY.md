@@ -52,6 +52,20 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
    (new stack + migrate state, or keep internal names); domain (registration only after
    trademark check + Marc's explicit OK on the exact name + price); README/CLAUDE/VISION;
    `checkpoint` signer name stays "earthdeck" unless the key is rotated. Do it in one PR.
+3c. **Queued by Marc 2026-09-26 (in this order, one at a time — "take it slowly")**:
+   1. **Backtest harness** — `earthdeck backtest --event <file>`: replay rules with the clock
+      set to a past date for 8–10 documented events (2019 Amazon fires, 2020 Black Summer,
+      2023 Canada, 2023 Maui, Rumaila flaring 2024, São Félix 2025 loss, Permian methane
+      super-emitters, a known false alarm…); report detected / confirmed / lag; publish a
+      "would we have caught it" page. Data limits: GFW alerts ≥ 2015, VIIRS ≥ 2012.
+   2. **Coral bleaching rule** — NOAA CRW DHW crossing alert levels at a reef watchlist
+      (tool `coral_bleaching` exists); second signal: SST anomaly persistence / neighbour cell.
+   3. **Extreme-fire rule** — global VIIRS FRP/extent anomaly vs. the same weeks in prior
+      years (not only inside protected areas); confirm with a later pass + burn index.
+   4. **Radiation** — `radiation` tool + `radiation_anomaly` rule from open ground networks:
+      BfS ODL (DE, open JSON), EURDEP (EU), EPA RadNet (US), Safecast (global, CC0); dose
+      rate vs. station baseline, confirmed by a neighbouring station or second network.
+      Add to TRUST.md blind spots meanwhile: satellites cannot see radiation.
 4. **Next build steps**: (a) attribution onto cases in `created.context` (`protected_areas` +
    `emitters`); (b) `emitters` as the methane confirmer while EMIT is stale; (c) `ledger verify
    --remote <base-url>` (the case pages already print it); (d) GEE: Marc creates the GCP
