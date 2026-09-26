@@ -10,56 +10,44 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
 
 - Agent read full file: YES
 - Current task understood: YES
-- Current task: **Session 8b complete (2026-09-26, local Mac, Fable orchestrator + 6 Opus
-  workers in worktrees).** MVP = M2 live-verified + M3 shipped + UI overhaul + life layer.
-  **M2 exit criterion met**: first real `watch --once` sweep opened 8 findings, confirmed 2
-  by NDVI (São Félix 232 ha, Novo Progresso 727 ha); ledger verified. Controls (Jaú,
-  Salonga) fired at detect stage on ~15–19 ha/90 d of radar floodplain noise → tuned to
-  minHa 25 / minAlerts 300 (re-verified quiet), both recorded as `false_positive` via
-  `ledger_advance`. **Live bugs fixed**: GFW `byConfidence` is nested (every `created` was
-  rejected; dry-run now validates too); OWID ignores `country=` on several charts (filter by
-  code + `csvType=full` fallback + per-indicator `column`); FIRMS caps `dayRange` at 5.
-  **M3 shipped + live-verified**: `protected_areas` (Overpass + LandMark + WDPA ids/stats via
-  GFW — São Félix → APA Triunfo do Xingu), `emitters` (Climate TRACE v7: 59 cattle assets in
-  São Félix), `methane_plumes` (S5P CH₄ Permian +6 ppb vs baseline; EMIT feed stale since
-  2025-09-22; MARS gated), `flaring` (Rumaila 25 persistent clusters, 22 matched to EOG VNF
-  2024 sites — zero-key), rules `methane_anomaly@1.0` + `flaring@1.0` (Rumaila confirmed
-  live via VNF), `ledger_*` ×7 (never publish), doctor Watch section, JSON Schema export.
-  **UI**: design system + feed/Watch/case/verify pages + charts + mobile
-  (`docs/screenshots/ui-after-*.jpg`), Emil Kowalski skills in `.agents/skills`.
-  **Life layer**: see PROGRESS (biodiversity, species, coral_bleaching, world_pulse life
-  indicators). Tool count via `node scripts/list-tools.mjs`.
-- Session started: 2026-09-26 (Session 8b)
+- Current task: **Session 8c complete (2026-09-26 evening, local; Fable orchestrator + 6 more
+  Opus workers).** Product renamed **Vital** (earthdeck.co is someone else's; the CLI/npm
+  package keeps `earthdeck` for now). **The system now publishes on its own**: trust contract
+  `2026-09-26-autonomous` (`TRUST.md`) + `earthdeck analyst --once` (Opus narrates, Sonnet
+  reviews with verdict, publish through `publishGates`) — São Félix and Novo Progresso are
+  the first AI-published cases (ledger 18 entries, verify OK). **Living value**:
+  `natural_value` + `living_value_*` on findings + VISION §15 + research doc. **Public site**:
+  `earthdeck watch export` (static, SEO, per-case HTML, in-browser proofs). **Hosting**:
+  CloudFormation stack `earthdeck` in Marc's personal AWS (us-east-1), Lambda runner on a
+  6-hourly schedule, site at `https://vital.marcsperzel.com`. **GEE**: research + `gee_query`
+  client (needs a GCP project/key — UNCONFIRMED live). 283 tests, 43 tools. PR #4.
+- Session started: 2026-09-26 (Session 8c)
 
 ---
 
-## HANDOFF → next session (written 2026-09-26, local)
+## HANDOFF → next session (written 2026-09-26 late, local)
 
-Everything is merged on one branch and pushed; PR is a draft until Marc reviews. In order:
-
-1. `git checkout main && git pull` after the PR merges; `pnpm install && pnpm build && pnpm
-   test`. pnpm 11 needs `pnpm-workspace.yaml` `allowBuilds: esbuild` (committed).
-   `.env` holds GFW/CDSE/FIRMS keys; the CLI does not load it — use `node --env-file=.env
-   dist/cli.js …`. `node scripts/probe-tool.mjs <tool> '<json>'` calls any tool in-process.
-2. **Look at the dashboard** with the real ledger: `node --env-file=.env dist/cli.js
-   dashboard` → Watch tab shows the 8 real cases (2 confirmed, 2 false positives).
-3. **Next build steps (M3 tail → M4)**: (a) wire attribution *onto cases* — the kernel's
-   `created.context` should carry `protected_areas` + `emitters` hits for the AOI (tools
-   exist; ~1 h); (b) `methane_anomaly` needs a live confirmer while EMIT is stale → use
-   `emitters` proximity as the second signal (the `TODO(emitters)` hook in
-   `src/watch/rules/methaneAnomaly.ts`); (c) expose the sweep heartbeat on a dashboard
-   endpoint so the header shows it (UI worker note); (d) M4: `watch export` static site +
-   `.github/workflows/watch.yml` schedule.
-4. **Tuning with data**: Kayapó/Apyterewa (60 d, minHa 5) open at 16–34 ha — intended
-   sensitivity, confirmation gates them; methane 20 ppb threshold untuned; flaring Bakken
-   had one transient FIRMS fetch failure (kernel recorded a gap, correct).
-5. Known gaps: reviewer identity in `ledger_review` is unauthenticated (caller's honesty);
-   UNEP MARS needs email authorization; EMIT plume feed may have paused; Overpass public
-   server returns 504 under load (tool degrades, reports source unavailable).
-
-Sub-agents (Opus, isolated worktrees, one per disjoint file set, orchestrator merges) worked
-well today: six workers, ~4 h wall clock, every branch merged with only append-style
-conflicts in `src/index.ts`, `rules/index.ts`, `README.md`, `doctor.ts`.
+1. `git checkout main && git pull && pnpm install && pnpm build && pnpm test` (283). Keys in
+   `.env` incl. `ANTHROPIC_API_KEY`; run CLI with `node --env-file=.env dist/cli.js …`.
+2. **Hosting state**: stack `earthdeck` (profile `personal`, us-east-1). `scripts/deploy.sh`
+   is idempotent (`EARTHDECK_DOMAIN` overrides the host; default `vital.marcsperzel.com`).
+   `scripts/run-job.sh sweep controls --dry-run` exercises the runner; `scripts/seed-state.sh`
+   copies the local ledger to S3 (refuses unless keys match). Schedules: sweeps every 6 h
+   staggered (amazon :00 … flaring :40), analyst :50, export +1 h. Alarm email:
+   me@marcsperzel.com. Check `state/heartbeat.json` in the state bucket.
+3. **Naming is open**: Marc rejected `vitalearth.io` (registered 2026-09-26, $71/yr — drop it
+   or keep as redirect; check the refund window). `vital.earth` is taken. Do NOT register
+   anything without showing him the exact name + price first (memory: ask-before-purchases).
+   Brand strings live in `src/site.config.ts` (name, full name, tagline, base URL).
+4. **Next build steps**: (a) attribution onto cases in `created.context` (`protected_areas` +
+   `emitters`); (b) `emitters` as the methane confirmer while EMIT is stale; (c) `ledger verify
+   --remote <base-url>` (the case pages already print it); (d) GEE: Marc creates the GCP
+   project + service-account key (7 steps in `docs/research/2026-09-26_google-earth-engine.md`)
+   → live-verify `gee_query`; MapBiomas pasture to fix the pasture-as-grassland flaw in
+   `natural_value`; (e) community votes on cases (signal, not gate) — needs a tiny backend;
+   (f) `SITE.dataLicense` choice; (g) M5 docs (CONTRIBUTING, detectors, published error rate).
+5. Known risks: reviewer identity is self-declared model strings; EMIT plume feed stale since
+   2025-09-22; Overpass 504s under load; FIRMS throttles after bursts (kernel records gaps).
 
 
 ## WORKFLOW (every session)
