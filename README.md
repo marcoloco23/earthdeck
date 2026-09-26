@@ -172,6 +172,15 @@ Ed25519 seed; otherwise `ledger.key` is generated — **never commit it**; `ledg
 what you publish). Next: attribution + methane tools (M3), a scheduled public site with
 Rekor/OpenTimestamps witnessing (M4), TRUST.md (M5).
 
+## Hosting
+
+Earth Watch runs unattended on AWS from one CloudFormation stack: EventBridge Scheduler
+fires staggered sweeps every 6 h into a Lambda that pulls the ledger from S3, runs
+`earthdeck watch --once`, and pushes it back only after `ledger verify` passes; the static
+export is served by CloudFront. Deploy with `scripts/deploy.sh` — see
+[infra/README.md](infra/README.md) for the architecture, first-deploy walkthrough, costs
+(low single-digit USD/month), key rotation and tear-down.
+
 ## Setup details
 
 Want the dashboard alongside Claude? Run `npx -y earthdeck dashboard`

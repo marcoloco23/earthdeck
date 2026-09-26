@@ -18,3 +18,4 @@ npm-debug.log*
 data/ledger/ledger.key
 data/ledger/*.tmp
 data/
+build/
