@@ -45,6 +45,7 @@ Then just ask: *"What's the state of the planet right now?"* · *"Is El Niño co
 | `narrate` | Stream rich text notes/interpretations to the dashboard alongside the data — update one note in place as the story develops | — |
 | `eo_similar` | "Find everywhere that looks like this": AlphaEarth 64-d embedding similarity over a search area (2017–2025, 10 m source) | — |
 | `fires_in` | Active fire / thermal-anomaly detections (NASA FIRMS), near-real-time | `FIRMS_MAP_KEY` |
+| `flaring` | Gas flaring: night-time VIIRS heat clusters (~1 km) persisting across nights (NOAA-20/21 via FIRMS), matched to the EOG VIIRS Nightfire annual flare summary (per-site BCM, zero-key) | `FIRMS_MAP_KEY` |
 | `forest_alerts` | Integrated deforestation alerts (GLAD-L + GLAD-S2 + RADD via Global Forest Watch) — daily, 10 m, tropics | `GFW_API_KEY` |
 | `eo_render` | High-res (10 m) Sentinel-2 imagery — trueColor / falseColor / NDVI ramp; `composite: median` for a cloud-free temporal-median composite | CDSE |
 | `sar_render` | All-weather Sentinel-1 SAR backscatter (sees through cloud/smoke/night) — VV / VH / false-color | CDSE |
@@ -120,7 +121,8 @@ earthdeck dashboard        # → open the Watch tab
 AOI × rule in `watchlists/*.json`, journals every tool call, opens a *candidate* with the
 primary signal, and marks it *confirmed* only when the rule's **independent second signal**
 agrees (`forest_loss`: GFW alerts → NDVI drop in a Sentinel-2 median composite;
-`fires_in_protected`: VIIRS cluster → EONET event or re-detection on a later pass).
+`fires_in_protected`: VIIRS cluster → EONET event or re-detection on a later pass;
+`flaring`: night-time heat persisting ≥ N nights → a VNF annual flare site or a later pass).
 Every rule must declare its **blind spots** and keeps a **regional baseline** (the AOI vs
 its neighbourhood ring — "did it stop, or did it move?"); every finding carries **context**
 (ENSO phase, nearby EONET events). Watermarks make late or missed runs self-heal; failures
@@ -174,7 +176,7 @@ behave identically without it).
 
 | Key | Unlocks | How to get it |
 | --- | --- | --- |
-| `FIRMS_MAP_KEY` | `fires_in` (live wildfire detections) | Enter your email at [firms.modaps.eosdis.nasa.gov/api/map_key](https://firms.modaps.eosdis.nasa.gov/api/map_key/) — emailed instantly |
+| `FIRMS_MAP_KEY` | `fires_in` (live wildfire detections), `flaring` | Enter your email at [firms.modaps.eosdis.nasa.gov/api/map_key](https://firms.modaps.eosdis.nasa.gov/api/map_key/) — emailed instantly |
 | `CDSE_CLIENT_ID` + `CDSE_CLIENT_SECRET` | `eo_render`, `eo_index`, `eo_search`, `eo_compare`, `sar_render`, `sar_water`, `sar_flood` (10 m Sentinel imagery + radar) | Free account at [dataspace.copernicus.eu](https://dataspace.copernicus.eu/) → User Settings → **OAuth clients** → Create (copy the secret immediately — it's shown once) |
 | `GFW_API_KEY` | `forest_alerts` (integrated deforestation alerts) | Free [GFW account](https://www.globalforestwatch.org/), then mint a key per the [API-key guide](https://www.globalforestwatch.org/help/developers/guides/create-and-use-an-api-key/) |
 

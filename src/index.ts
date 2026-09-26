@@ -4,6 +4,7 @@ import { SERVER_NAME, SERVER_VERSION } from "./config.js";
 import { registerImageryTools } from "./tools/imagery.js";
 import { registerEventsTools } from "./tools/events.js";
 import { registerFireTools } from "./tools/fires.js";
+import { registerFlaringTools } from "./tools/flaring.js";
 import { registerAnalysisTools } from "./tools/analysis.js";
 import { registerSarTools } from "./tools/sar.js";
 import { registerStacTools } from "./tools/stac.js";
@@ -27,7 +28,7 @@ export function buildServer(): McpServer {
         "The data layer for the Earth system, over free open data. Two families: " +
         "(1) Earth observation — render satellite imagery for a bounding box, list live " +
         "natural-disaster events, search open archives (STAC, no key), and (with keys) compute " +
-        "vegetation/water/burn indices, find active fires, surface deforestation alerts " +
+        "vegetation/water/burn indices, find active fires and persistent gas flares (flaring), surface deforestation alerts " +
         "(forest_alerts), render all-weather Sentinel-1 SAR, " +
         "compare a place across two dates, and search by similarity — eo_similar finds everywhere " +
         "that 'looks like' a reference point via AlphaEarth embeddings (no key). (2) Planetary indicators (all no-key) — ENSO/" +
@@ -53,6 +54,7 @@ export function buildServer(): McpServer {
   registerImageryTools(server);
   registerEventsTools(server);
   registerFireTools(server);
+  registerFlaringTools(server);
   registerAnalysisTools(server);
   registerSarTools(server);
   registerStacTools(server);

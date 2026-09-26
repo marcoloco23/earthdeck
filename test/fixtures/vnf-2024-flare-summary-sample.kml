@@ -1,0 +1,677 @@
+<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document>
+<name>Flares in 2024</name>
+<Placemark>
+<Style id="highlightPlacemark1">
+<IconStyle>
+<scale>0.5</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>USA_UPS_2024_150.9261W_70.3428N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>USA</b></td><td>Vector: <b>1</b></td></tr>
+<tr><td>Lat=70.342760, Lon=-150.926137 deg.</td><td>T avg.=2004.83 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.005</td><td>56</td><td>44.643%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.005</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>-150.926137,70.34276,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark2">
+<IconStyle>
+<scale>0.5</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/blue.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>USA_UNKNOWN_2024_158.1234W_21.3502N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>USA</b></td><td>Vector: <b>2</b></td></tr>
+<tr><td>Lat=21.350206, Lon=-158.123397 deg.</td><td>T avg.=1457.22 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.001</td><td>230</td><td>30.000%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.001</td><td>Type: unknown</td></tr>
+</table>]]></description><Point>
+<coordinates>-158.123397,21.350206,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8608">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.1036E_30.5649N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8608</b></td></tr>
+<tr><td>Lat=30.564865, Lon=47.103553 deg.</td><td>T avg.=1671.73 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.312</td><td>397</td><td>100.000%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.312</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.103553,30.564865,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8614">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.2330E_30.5828N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8614</b></td></tr>
+<tr><td>Lat=30.582847, Lon=47.233034 deg.</td><td>T avg.=1712.26 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.046</td><td>385</td><td>66.494%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.046</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.233034,30.582847,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8625">
+<IconStyle>
+<scale>0.5</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.2820E_30.5758N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8625</b></td></tr>
+<tr><td>Lat=30.575845, Lon=47.281956 deg.</td><td>T avg.=1818.38 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.007</td><td>376</td><td>70.479%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.007</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.281956,30.575845,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8633">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3153E_30.5691N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8633</b></td></tr>
+<tr><td>Lat=30.569124, Lon=47.315296 deg.</td><td>T avg.=1647.85 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.225</td><td>370</td><td>99.460%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.225</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.315296,30.569124,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8634">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3170E_30.4960N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8634</b></td></tr>
+<tr><td>Lat=30.496016, Lon=47.317034 deg.</td><td>T avg.=1635.44 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.267</td><td>377</td><td>100.000%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.267</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.317034,30.496016,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8636">
+<IconStyle>
+<scale>0.5</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3193E_30.3642N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8636</b></td></tr>
+<tr><td>Lat=30.364183, Lon=47.319297 deg.</td><td>T avg.=1806.67 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.01</td><td>378</td><td>42.857%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.01</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.319297,30.364183,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8639">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3280E_30.6769N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8639</b></td></tr>
+<tr><td>Lat=30.676942, Lon=47.327984 deg.</td><td>T avg.=1690.81 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.043</td><td>361</td><td>96.953%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.043</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.327984,30.676942,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8642">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3276E_30.7642N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8642</b></td></tr>
+<tr><td>Lat=30.764165, Lon=47.327594 deg.</td><td>T avg.=1542.72 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.306</td><td>347</td><td>99.712%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.306</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.327594,30.764165,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8643">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3293E_30.6878N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8643</b></td></tr>
+<tr><td>Lat=30.687825, Lon=47.329315 deg.</td><td>T avg.=1610.57 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.251</td><td>351</td><td>99.715%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.251</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.329315,30.687825,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8644">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3273E_30.6114N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8644</b></td></tr>
+<tr><td>Lat=30.611383, Lon=47.327255 deg.</td><td>T avg.=1608.7 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.305</td><td>351</td><td>99.715%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.305</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.327255,30.611383,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8646">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3305E_30.5647N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8646</b></td></tr>
+<tr><td>Lat=30.564653, Lon=47.330521 deg.</td><td>T avg.=1612.24 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.164</td><td>366</td><td>100.000%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.164</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.330521,30.564653,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8647">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3386E_30.3594N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8647</b></td></tr>
+<tr><td>Lat=30.359363, Lon=47.338602 deg.</td><td>T avg.=1599.63 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.255</td><td>372</td><td>100.000%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.255</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.338602,30.359363,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8648">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3470E_30.5598N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8648</b></td></tr>
+<tr><td>Lat=30.559833, Lon=47.346999 deg.</td><td>T avg.=1654.42 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.125</td><td>360</td><td>99.722%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.125</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.346999,30.559833,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8649">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3484E_30.3155N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8649</b></td></tr>
+<tr><td>Lat=30.315488, Lon=47.348420 deg.</td><td>T avg.=1625.61 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.237</td><td>376</td><td>100.000%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.237</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.34842,30.315488,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8650">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3610E_30.2805N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8650</b></td></tr>
+<tr><td>Lat=30.280486, Lon=47.360993 deg.</td><td>T avg.=1582.98 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.205</td><td>368</td><td>100.000%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.205</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.360993,30.280486,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8651">
+<IconStyle>
+<scale>0.5</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3603E_30.3441N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8651</b></td></tr>
+<tr><td>Lat=30.344143, Lon=47.360305 deg.</td><td>T avg.=1888.18 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.001</td><td>371</td><td>9.973%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.001</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.360305,30.344143,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8654">
+<IconStyle>
+<scale>0.5</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3725E_30.3440N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8654</b></td></tr>
+<tr><td>Lat=30.343971, Lon=47.372468 deg.</td><td>T avg.=1898.23 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.0</td><td>371</td><td>2.695%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.0</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.372468,30.343971,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8655">
+<IconStyle>
+<scale>0.5</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/blue.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UNKNOWN_2024_47.3902E_30.5579N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8655</b></td></tr>
+<tr><td>Lat=30.557903, Lon=47.390179 deg.</td><td>T avg.=1031.3 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.0</td><td>363</td><td>81.267%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.0</td><td>Type: unknown</td></tr>
+</table>]]></description><Point>
+<coordinates>47.390179,30.557903,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8656">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3893E_30.2008N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8656</b></td></tr>
+<tr><td>Lat=30.200770, Lon=47.389252 deg.</td><td>T avg.=1581.27 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.111</td><td>365</td><td>99.452%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.111</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.389252,30.20077,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8657">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.3919E_30.2138N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8657</b></td></tr>
+<tr><td>Lat=30.213754, Lon=47.391871 deg.</td><td>T avg.=1569.23 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.185</td><td>367</td><td>99.728%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.185</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.391871,30.213754,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8674">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.4439E_30.4261N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8674</b></td></tr>
+<tr><td>Lat=30.426081, Lon=47.443908 deg.</td><td>T avg.=1704.79 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.028</td><td>375</td><td>78.933%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.028</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.443908,30.426081,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8700">
+<IconStyle>
+<scale>0.5</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.5887E_30.4036N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8700</b></td></tr>
+<tr><td>Lat=30.403606, Lon=47.588670 deg.</td><td>T avg.=1818.9 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.006</td><td>371</td><td>59.030%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.006</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.58867,30.403606,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8701">
+<IconStyle>
+<scale>0.5</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.5899E_30.5149N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8701</b></td></tr>
+<tr><td>Lat=30.514894, Lon=47.589905 deg.</td><td>T avg.=1968.25 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.002</td><td>367</td><td>6.812%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.002</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.589905,30.514894,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8702">
+<IconStyle>
+<scale>0.75</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.5976E_30.5312N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8702</b></td></tr>
+<tr><td>Lat=30.531243, Lon=47.597566 deg.</td><td>T avg.=1719.32 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.109</td><td>364</td><td>100.000%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.109</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.597566,30.531243,0</coordinates>
+</Point>
+</Placemark>
+<Placemark>
+<Style id="highlightPlacemark8703">
+<IconStyle>
+<scale>0.5</scale>
+<Icon>
+<href>http://maps.google.com/mapfiles/ms/micons/red.png</href>
+</Icon>
+</IconStyle>
+<LabelStyle>
+<scale>0</scale>
+</LabelStyle>
+</Style>
+<name>IRQ_UPS_2024_47.5941E_30.5066N_v0.2</name>
+<description><![CDATA[  <table width="400">
+<tr><td>Country: <b>IRQ</b></td><td>Vector: <b>8703</b></td></tr>
+<tr><td>Lat=30.506576, Lon=47.594057 deg.</td><td>T avg.=2016.58 K</td></tr>
+<tr><td  colspan="2"><table width="400">
+<tr><th>Year</th><th>BCM flared</th><td>Clear observations</td><td>Clear PCT</th></tr>
+<tr><td>2024</td><td>0.001</td><td>370</td><td>3.514%</td></tr>
+</table></td></tr>
+<tr><td>BCM_total=0.001</td><td>Type: oil upstream</td></tr>
+</table>]]></description><Point>
+<coordinates>47.594057,30.506576,0</coordinates>
+</Point>
+</Placemark></Document></kml>
