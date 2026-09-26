@@ -334,9 +334,19 @@ export function renderCard(card: Card, onFocus: (card: Card) => void): HTMLEleme
 
   if (type === "worldpulse") {
     const rows =
-      (card.payload.rows as Array<{ label: string; unit: string; status: string; latest?: { t: string; v: number | null } | null; direction?: string; pace?: string | null; pctPerDecade?: number | null; sparkline?: { t: string; v: number | null }[] }> | undefined) ?? [];
-    const grid = el("div", "tiles");
-    for (const r of rows.slice(0, 16)) {
+      (card.payload.rows as Array<{ label: string; unit: string; group?: string; status: string; latest?: { t: string; v: number | null } | null; direction?: string; pace?: string | null; pctPerDecade?: number | null; sparkline?: { t: string; v: number | null }[] }> | undefined) ?? [];
+    // One headed tile grid per group (civilization / life / planet) keeps a long pulse scannable.
+    let grid = el("div", "tiles");
+    let group: string | undefined;
+    let started = false;
+    for (const r of rows.slice(0, 40)) {
+      if (!started || r.group !== group) {
+        group = r.group;
+        started = true;
+        if (group) root.appendChild(el("div", "tiles-group", group));
+        grid = el("div", "tiles");
+        root.appendChild(grid);
+      }
       const dir = r.status !== "ok" ? "na" : r.direction ?? "flat";
       const cell = el("div", `tile wp--${/^[a-z]+$/.test(dir) ? dir : "na"}`);
       const v = r.status !== "ok" || !r.latest || r.latest.v === null ? "n/a" : `${fmtNum(r.latest.v)}`;
@@ -352,7 +362,6 @@ export function renderCard(card: Card, onFocus: (card: Card) => void): HTMLEleme
       cell.appendChild(el("div", "tile-sub", `${r.pace ? `${r.pace} · ` : ""}${r.latest?.t ?? ""}`));
       grid.appendChild(cell);
     }
-    root.appendChild(grid);
     if (typeof card.payload.summary === "string") root.appendChild(el("div", "card-note", card.payload.summary));
   }
 

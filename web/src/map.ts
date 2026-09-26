@@ -107,6 +107,10 @@ const CATEGORY_COLOR: Record<string, string> = {
   "Dust and Haze": "#d6b370",
   Earthquakes: "#a78bfa",
   Landslides: "#b45309",
+  // GBIF records (biodiversity tool) are categorized by kingdom.
+  Animalia: "#f59e0b",
+  Plantae: "#22c55e",
+  Fungi: "#e879f9",
 };
 
 /** Plot event points as colored markers, replacing the previous event layer. */

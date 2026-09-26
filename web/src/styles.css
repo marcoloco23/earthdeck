@@ -926,6 +926,17 @@ code {
 }
 
 /* ---- tiles (pulse, world pulse) ---- */
+.tiles-group {
+  margin: var(--s-3) 0 6px;
+  font-size: var(--fs-10);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+.tiles-group:first-of-type {
+  margin-top: 0;
+}
 .tiles {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

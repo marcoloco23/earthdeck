@@ -1,6 +1,6 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { assess, fetchIndicator, INDICATORS, indicator, type Assessment, type Indicator } from "../clients/owid.js";
+import { assess, fetchIndicator, INDICATOR_GROUPS, INDICATORS, indicator, type Assessment, type Indicator, type IndicatorGroup } from "../clients/owid.js";
 import { pushCard } from "../dashboard/push.js";
 import { OverviewError } from "../errors.js";
 import { safe } from "../result.js";
@@ -13,6 +13,7 @@ export interface PulseRow {
   slug: string;
   label: string;
   unit: string;
+  group: IndicatorGroup;
   betterWhen: "up" | "down";
   upstream: string;
   licence: string;
@@ -28,11 +29,12 @@ export interface PulseRow {
 
 /** Pure: build one row from a fetched series (exported for tests). */
 export function pulseRow(ind: Indicator, points: { t: string; v: number | null }[]): PulseRow {
-  const a = assess(points, ind.betterWhen);
+  const a = assess(points, ind.betterWhen, ind.flatPct);
   return {
     slug: ind.slug,
     label: ind.label,
     unit: ind.unit,
+    group: ind.group,
     betterWhen: ind.betterWhen,
     upstream: ind.upstream,
     licence: ind.licence,
@@ -46,16 +48,31 @@ export function pulseRow(ind: Indicator, points: { t: string; v: number | null }
   };
 }
 
-/** Register world_pulse — civilization's vital signs with an honest direction on each. */
+/**
+ * Pure: which indicators a call asks for — explicit slugs win, else the groups (default
+ * all) — ordered by group so the card renders one section per group.
+ */
+export function selectIndicators(slugs?: string[], groups?: IndicatorGroup[]): Indicator[] {
+  const picked = slugs?.length
+    ? slugs.map((s) => indicator(s) ?? unknownIndicator(s))
+    : INDICATORS.filter((i) => !groups?.length || groups.includes(i.group));
+  const order = (i: Indicator) => INDICATOR_GROUPS.indexOf(i.group);
+  return picked.map((ind, idx) => ({ ind, idx })).sort((a, b) => order(a.ind) - order(b.ind) || a.idx - b.idx).map((x) => x.ind);
+}
+
+/** Register world_pulse — civilization's and the planet's vital signs, each with an honest direction. */
 export function registerWorldPulseTools(server: McpServer): void {
   server.registerTool(
     "world_pulse",
     {
-      title: "World pulse — how is civilization doing?",
+      title: "World pulse — how are we and the living planet doing?",
       description:
-        "Civilization's vital signs from Our World in Data (zero-key): child mortality, extreme " +
-        "poverty, life expectancy, literacy, renewable and coal shares of electricity, solar " +
-        "capacity, CO₂ per person, forest area, protected land, disaster deaths. Each indicator " +
+        "Vital signs from Our World in Data (zero-key) in three groups — civilization (child " +
+        "mortality, extreme poverty, life expectancy, literacy, renewable and coal electricity, " +
+        "solar, disaster deaths), life (Living Planet Index, Red List Index, fish stocks, marine " +
+        "and land protected areas, forest area, tree cover loss) and planet (CO₂ per person, " +
+        "ocean pH, agricultural land, nitrogen, pesticides, freshwater withdrawals, plastic, " +
+        "ozone-depleting substances). Each indicator " +
         "declares which direction is better, so the result says plainly what is improving, what " +
         "is worsening, and what is accelerating — good news and bad, not a news feed. Fetched in " +
         "parallel; any source that fails is reported as unavailable. Posts a pulse card to the dashboard.",
@@ -64,17 +81,21 @@ export function registerWorldPulseTools(server: McpServer): void {
           .array(z.string())
           .optional()
           .describe(`Subset of indicator slugs (default: all). Known: ${INDICATORS.map((i) => i.slug).join(", ")}`),
+        groups: z
+          .array(z.enum(INDICATOR_GROUPS as [IndicatorGroup, ...IndicatorGroup[]]))
+          .optional()
+          .describe("Only these groups: civilization, life, planet (default: all). Ignored when `indicators` is given."),
       },
     },
-    async ({ indicators }) =>
+    async ({ indicators, groups }) =>
       safe(async () => {
-        const wanted = indicators?.length ? indicators.map((s) => indicator(s) ?? unknownIndicator(s)) : [...INDICATORS];
+        const wanted = selectIndicators(indicators, groups);
         const settled = await Promise.allSettled(wanted.map((ind) => fetchIndicator(ind)));
         const rows: PulseRow[] = settled.map((r, i) => {
           const ind = wanted[i]!;
           if (r.status === "fulfilled") return pulseRow(ind, r.value);
           const msg = r.reason instanceof Error ? r.reason.message : String(r.reason);
-          return { slug: ind.slug, label: ind.label, unit: ind.unit, betterWhen: ind.betterWhen, upstream: ind.upstream, licence: ind.licence, status: "unavailable", error: msg };
+          return { slug: ind.slug, label: ind.label, unit: ind.unit, group: ind.group, betterWhen: ind.betterWhen, upstream: ind.upstream, licence: ind.licence, status: "unavailable", error: msg };
         });
         const ok = rows.filter((r) => r.status === "ok");
         const counts = {

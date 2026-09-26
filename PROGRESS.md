@@ -44,7 +44,20 @@ APIs with the local `.env` keys.
       ring, blind spots, right of reply, Verify panel (checkpoint + inclusion proof), mobile
       at 390 px. `docs/screenshots/ui-{before,after}-*.jpg`. Emil Kowalski design skills
       vendored in `.agents/skills`.
-- [x] **Life layer**: _(see the biodiversity worker's paragraph below — filled at merge)_
+- [x] **Life layer** (Marc: "biodiversity, animals… fungi… anything that makes a difference
+      on a global scale" + "biodiversity metric"): `biodiversity` (GBIF occurrences by bbox/
+      place, kingdom filter incl. Fungi, taxon, years → records by kingdom, species, IUCN-
+      threatened species, licence mix, sample markers, and a **0–100 score** = 0.4 richness
+      + 0.2 record density + 0.2 threatened share + 0.2 kingdom evenness, with a `method`
+      block and six blind spots, labelled sampling-effort dependent; Manaus 343k records,
+      169 threatened species, score 66; Fungi-only 588 species, score 40) · `species`
+      (GBIF match + breadcrumb + IUCN + OpenTree OTT id; jaguar NT, fly agaric, redwood EN)
+      · `coral_bleaching` (NOAA Coral Reef Watch 5 km DHW/SST/alert via ERDDAP; GBR peak
+      DHW 9.14 on 2024-03-07 = the 2024 mass bleaching) · `world_pulse` → **23 indicators**
+      in three groups (civilization / life / planet: Living Planet Index 27 (1970=100),
+      Red List Index 0.74, fish stocks 64.5 % sustainable, tree cover loss 29.6 Mha, ocean
+      pH 8.04 at ALOHA with a log-aware flat threshold, fertilizer, pesticides, plastics,
+      ODS…), all 23 `status: ok` live; grouped pulse card.
 - [x] Chores: `pnpm-workspace.yaml` `allowBuilds: esbuild` (pnpm 11), `schema/` shipped in
       the package, doctor summary no longer hardcodes a tool ratio, `scripts/probe-tool.mjs`
       + `scripts/list-tools.mjs`, VISION §14 life-layer paragraph, ROADMAP M2/M3 ticked.
