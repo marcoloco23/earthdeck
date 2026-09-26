@@ -17,6 +17,7 @@ import { registerForestTools } from "./tools/forest.js";
 import { registerNarrateTools } from "./tools/narrate.js";
 import { registerSimilarTools } from "./tools/similar.js";
 import { registerWorldPulseTools } from "./tools/worldpulse.js";
+import { registerLedgerTools } from "./tools/ledger.js";
 
 export function buildServer(): McpServer {
   const server = new McpServer(
@@ -42,7 +43,10 @@ export function buildServer(): McpServer {
         "floods). Bounding boxes are [west, south, east, north] degrees. Results also stream to " +
         "a local dashboard if one is running (best-effort) — and `narrate` lets you stream YOUR " +
         "interpretation there too: post a note alongside data calls explaining what the results " +
-        "mean, and update it (same noteId, full text) as the picture develops.",
+        "mean, and update it (same noteId, full text) as the picture develops. The Earth Watch ledger " +
+        "is reachable via ledger_list/ledger_get/ledger_verify (read) and ledger_advance/" +
+        "ledger_narrate/ledger_review/ledger_propose_attribution (append) — these never publish; " +
+        "publication is a human act.",
     },
   );
 
@@ -62,6 +66,7 @@ export function buildServer(): McpServer {
   registerNarrateTools(server);
   registerSimilarTools(server);
   registerWorldPulseTools(server);
+  registerLedgerTools(server);
 
   return server;
 }
