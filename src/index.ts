@@ -17,6 +17,7 @@ import { registerForestTools } from "./tools/forest.js";
 import { registerNarrateTools } from "./tools/narrate.js";
 import { registerSimilarTools } from "./tools/similar.js";
 import { registerWorldPulseTools } from "./tools/worldpulse.js";
+import { registerMethaneTools } from "./tools/methane.js";
 
 export function buildServer(): McpServer {
   const server = new McpServer(
@@ -62,6 +63,7 @@ export function buildServer(): McpServer {
   registerNarrateTools(server);
   registerSimilarTools(server);
   registerWorldPulseTools(server);
+  registerMethaneTools(server);
 
   return server;
 }
