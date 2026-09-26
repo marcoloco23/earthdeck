@@ -35,10 +35,15 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
    copies the local ledger to S3 (refuses unless keys match). Schedules: sweeps every 6 h
    staggered (amazon :00 … flaring :40), analyst :50, export +1 h. Alarm email:
    me@marcsperzel.com. Check `state/heartbeat.json` in the state bucket.
-3. **Naming is open**: Marc rejected `vitalearth.io` (registered 2026-09-26, $71/yr — drop it
-   or keep as redirect; check the refund window). `vital.earth` is taken. Do NOT register
-   anything without showing him the exact name + price first (memory: ask-before-purchases).
-   Brand strings live in `src/site.config.ts` (name, full name, tagline, base URL).
+3. **Domain + name**: the site is served at **https://vitalearth.io** (registered 2026-09-26,
+   $71/yr, refund refused by AWS, auto-renew OFF; Marc dislikes the name but uses it since
+   it's paid). The public name is the neutral **"Earth Watch"** (`src/site.config.ts`);
+   "Vital Earth" is a taken trademark. **The site is anonymous**: no owner name, email or
+   GitHub handle anywhere (test in `test/site-export.test.ts` fails on any); right of reply
+   has no channel yet (a forwarding mailbox on the domain is a follow-up). Do NOT register
+   or buy anything without showing Marc the exact item + price first. IPv6 is disabled on
+   CloudFront on purpose (AAAA-only resolver answers broke the fresh domain on IPv6-less
+   networks); Tailscale MagicDNS on Marc's Mac negative-cached the name for an hour.
 4. **Next build steps**: (a) attribution onto cases in `created.context` (`protected_areas` +
    `emitters`); (b) `emitters` as the methane confirmer while EMIT is stale; (c) `ledger verify
    --remote <base-url>` (the case pages already print it); (d) GEE: Marc creates the GCP
