@@ -379,7 +379,7 @@ Resources:
           EARTHDECK_SITE_URL: !Sub "https://${DomainName}"
           # No EARTHDECK_CONTACT: the public site is anonymous — no personal email is ever exported.
           # Per-UTC-day caps (counted in ledger/watch/quota.json); see infra/README.md "Quotas".
-          EARTHDECK_MAX_CDSE_CALLS: "60"
+          EARTHDECK_MAX_CDSE_CALLS: "40"
           EARTHDECK_MAX_GFW_CALLS: "400"
           EARTHDECK_MAX_FIRMS_CALLS: "3000"
           EARTHDECK_MAX_ANALYST_CASES: "10"
