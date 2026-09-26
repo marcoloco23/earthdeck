@@ -22,53 +22,114 @@ export interface Indicator {
   licence: string;
   /** Entity to fetch (World aggregate by default). */
   entity?: string;
+  /** Column short name to read; default = first column after `year` (the chart's headline). */
+  column?: string;
+  /**
+   * "Flat" threshold in % of the mean per decade (default 1). Log-scale quantities need a
+   * finer one: ocean pH falling ~0.4 %/decade is ~+4 % more H⁺ per decade — not flat.
+   */
+  flatPct?: number;
+  /** Pulse section: civilization's vital signs, the living world, or the physical planet. */
+  group: IndicatorGroup;
 }
+
+export type IndicatorGroup = "civilization" | "life" | "planet";
+export const INDICATOR_GROUPS: readonly IndicatorGroup[] = ["civilization", "life", "planet"];
 
 /** The registry. Adding an indicator is one line — but check its upstream licence first. */
 export const INDICATORS: readonly Indicator[] = [
-  { slug: "child-mortality", label: "Child mortality (under-5)", unit: "% of live births", betterWhen: "down", upstream: "UN IGME", licence: "CC BY 4.0" },
-  { slug: "share-of-population-in-extreme-poverty", label: "Extreme poverty", unit: "% of population", betterWhen: "down", upstream: "World Bank PIP", licence: "CC BY 4.0" },
-  { slug: "life-expectancy", label: "Life expectancy at birth", unit: "years", betterWhen: "up", upstream: "UN WPP / HMD", licence: "CC BY 3.0 IGO" },
-  { slug: "cross-country-literacy-rates", label: "Adult literacy", unit: "%", betterWhen: "up", upstream: "UNESCO UIS / World Bank", licence: "CC BY 4.0" },
-  { slug: "share-electricity-renewables", label: "Renewable share of electricity", unit: "%", betterWhen: "up", upstream: "Ember / Energy Institute", licence: "CC BY 4.0" },
-  { slug: "share-electricity-coal", label: "Coal share of electricity", unit: "%", betterWhen: "down", upstream: "Ember / Energy Institute", licence: "CC BY 4.0" },
-  { slug: "installed-solar-pv-capacity", label: "Installed solar capacity", unit: "GW", betterWhen: "up", upstream: "IRENA", licence: "CC BY 4.0" },
-  { slug: "co-emissions-per-capita", label: "CO₂ emissions per person", unit: "t/yr", betterWhen: "down", upstream: "Global Carbon Budget", licence: "CC BY 4.0" },
-  { slug: "forest-area-km", label: "Forest area", unit: "km²", betterWhen: "up", upstream: "FAO FRA", licence: "CC BY 4.0" },
-  { slug: "terrestrial-protected-areas", label: "Protected land", unit: "% of land area", betterWhen: "up", upstream: "UNEP-WCMC via World Bank", licence: "CC BY 4.0" },
-  { slug: "number-of-deaths-from-natural-disasters", label: "Deaths from natural disasters", unit: "people/yr", betterWhen: "down", upstream: "EM-DAT (CRED)", licence: "EM-DAT terms — non-commercial; attribute" },
+  { slug: "child-mortality", label: "Child mortality (under-5)", unit: "% of live births", betterWhen: "down", upstream: "UN IGME", licence: "CC BY 4.0", group: "civilization" },
+  { slug: "share-of-population-in-extreme-poverty", label: "Extreme poverty", unit: "% of population", betterWhen: "down", upstream: "World Bank PIP", licence: "CC BY 4.0", group: "civilization" },
+  { slug: "life-expectancy", label: "Life expectancy at birth", unit: "years", betterWhen: "up", upstream: "UN WPP / HMD", licence: "CC BY 3.0 IGO", group: "civilization" },
+  { slug: "cross-country-literacy-rates", label: "Adult literacy", unit: "%", betterWhen: "up", upstream: "UNESCO UIS / World Bank", licence: "CC BY 4.0", group: "civilization" },
+  { slug: "share-electricity-renewables", label: "Renewable share of electricity", unit: "%", betterWhen: "up", upstream: "Ember / Energy Institute", licence: "CC BY 4.0", group: "civilization" },
+  { slug: "share-electricity-coal", label: "Coal share of electricity", unit: "%", betterWhen: "down", upstream: "Ember / Energy Institute", licence: "CC BY 4.0", group: "civilization" },
+  { slug: "installed-solar-pv-capacity", label: "Installed solar capacity", unit: "GW", betterWhen: "up", upstream: "IRENA", licence: "CC BY 4.0", group: "civilization" },
+  { slug: "co-emissions-per-capita", label: "CO₂ emissions per person", unit: "t/yr", betterWhen: "down", upstream: "Global Carbon Budget", licence: "CC BY 4.0", group: "planet" },
+  { slug: "forest-area-km", label: "Forest area", unit: "km²", betterWhen: "up", upstream: "FAO FRA", licence: "CC BY 4.0", group: "life" },
+  { slug: "terrestrial-protected-areas", label: "Protected land", unit: "% of land area", betterWhen: "up", upstream: "UNEP-WCMC via World Bank", licence: "CC BY 4.0", group: "life" },
+  // Multi-column chart: per-disaster-type columns come first, the total is last.
+  { slug: "number-of-deaths-from-natural-disasters", label: "Deaths from natural disasters", unit: "people/yr", betterWhen: "down", upstream: "EM-DAT (CRED)", licence: "EM-DAT terms — non-commercial; attribute", column: "total_dead_all_disasters_yearly", group: "civilization" },
+  // ── The living world & the physical planet (added 2026-09-26). Each slug live-verified
+  // to have a World row (full CSV) and its headline column checked against the header.
+  { slug: "global-living-planet-index", label: "Living Planet Index (wildlife populations)", unit: "index, 1970 = 100", betterWhen: "up", upstream: "WWF / ZSL Living Planet Report", licence: "CC BY 4.0 (OWID); WWF/ZSL — attribute", column: "lpi_final", group: "life" },
+  { slug: "red-list-index", label: "Red List Index (species survival)", unit: "index, 1 = none threatened", betterWhen: "up", upstream: "IUCN / BirdLife via UN SDG 15.5.1", licence: "CC BY 4.0", group: "life" },
+  { slug: "fish-stocks-within-sustainable-levels", label: "Fish stocks within sustainable levels", unit: "% of stocks", betterWhen: "up", upstream: "FAO SOFIA", licence: "CC BY 4.0", column: "sustainable_fish", group: "life" },
+  { slug: "marine-protected-areas", label: "Marine protected areas", unit: "% of territorial waters", betterWhen: "up", upstream: "UNEP-WCMC via World Bank", licence: "CC BY 4.0", group: "life" },
+  { slug: "tree-cover-loss", label: "Tree cover loss", unit: "ha/yr", betterWhen: "down", upstream: "Global Forest Watch (Hansen / UMD)", licence: "CC BY 4.0", group: "life" },
+  // Ocean acidification: no `code` column and daily rows at Station ALOHA (Hawaii).
+  { slug: "seawater-ph", label: "Ocean surface pH (Station ALOHA)", unit: "pH", betterWhen: "up", upstream: "Hawaii Ocean Time-series (Univ. of Hawaii)", licence: "CC BY 4.0", entity: "Hawaii", column: "ocean_ph_yearly_average", flatPct: 0.1, group: "planet" },
+  { slug: "share-of-land-area-used-for-agriculture", label: "Land used for agriculture", unit: "% of land area", betterWhen: "down", upstream: "FAO via World Bank", licence: "CC BY 4.0", group: "planet" },
+  { slug: "nitrogen-fertilizer-application-per-hectare-of-cropland", label: "Nitrogen fertilizer use", unit: "kg/ha of cropland", betterWhen: "down", upstream: "FAO", licence: "CC BY 4.0", group: "planet" },
+  { slug: "pesticide-use-tonnes", label: "Pesticide use", unit: "t/yr", betterWhen: "down", upstream: "FAO", licence: "CC BY 4.0", group: "planet" },
+  { slug: "annual-freshwater-withdrawals", label: "Freshwater withdrawals", unit: "m³/yr", betterWhen: "down", upstream: "FAO AQUASTAT via World Bank", licence: "CC BY 4.0", group: "planet" },
+  { slug: "global-plastics-production", label: "Plastic production", unit: "t/yr", betterWhen: "down", upstream: "Geyer et al. (2017) / OECD", licence: "CC BY 4.0", group: "planet" },
+  { slug: "consumption-of-ozone-depleting-substances", label: "Ozone-depleting substance consumption", unit: "ODP t/yr", betterWhen: "down", upstream: "UNEP Ozone Secretariat", licence: "CC BY 4.0", group: "planet" },
 ];
 
 export function indicator(slug: string): Indicator | undefined {
   return INDICATORS.find((i) => i.slug === slug);
 }
 
-/** OWID grapher CSV URL for one chart, filtered to one entity. */
-export function owidUrl(ind: Indicator): string {
-  const entity = ind.entity ?? "OWID_WRL";
-  return `${OWID_BASE}/${ind.slug}.csv?v=1&csvType=filtered&useColumnShortNames=true&country=${encodeURIComponent(entity)}`;
+/**
+ * OWID grapher CSV URL for one chart. `filtered` asks for one entity; live-verified
+ * 2026-09-26: some charts silently ignore `country=` and return every entity (and others
+ * only have the World row in the `full` CSV), so the parser filters by entity itself and
+ * `fetchIndicator` falls back to `full` when the filtered CSV lacks the entity.
+ */
+export function owidUrl(ind: Indicator, csvType: "filtered" | "full" = "filtered"): string {
+  const base = `${OWID_BASE}/${ind.slug}.csv?v=1&csvType=${csvType}&useColumnShortNames=true`;
+  return csvType === "filtered" ? `${base}&country=${encodeURIComponent(ind.entity ?? "OWID_WRL")}` : base;
+}
+
+export class OwidEntityMissing extends OverviewError {
+  constructor(entity: string) {
+    super(`OWID CSV: no rows for entity ${entity}`);
+  }
 }
 
 /**
- * Parse a grapher CSV (`Entity,Code,Year,<value>[,…]`) into annual points. Takes the first
- * numeric column after Year — grapher charts with several columns put the headline first.
+ * Parse a grapher CSV (`entity,code,year,<value>[,…]`) into annual points for one entity
+ * (matched on the `code` column, or on the `entity` name when the chart has no codes).
+ * Reads `column` if given, else the first column after `year` — grapher charts with
+ * several columns put the headline first. Daily charts (`day` instead of `year`, e.g.
+ * seawater-ph) collapse to the last non-null value of each year.
  */
-export function parseOwidCsv(text: string): SeriesPoint[] {
+export function parseOwidCsv(text: string, opts: { entity?: string; column?: string } = {}): SeriesPoint[] {
+  const entity = opts.entity ?? "OWID_WRL";
   const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
   if (lines.length < 2) throw new OverviewError("OWID CSV: no data rows");
-  const header = splitCsv(lines[0]!);
-  const yearIdx = header.findIndex((h) => h.toLowerCase() === "year");
+  const header = splitCsv(lines[0]!).map((h) => h.trim());
+  const lower = header.map((h) => h.toLowerCase());
+  const daily = !lower.includes("year") && lower.includes("day");
+  const yearIdx = lower.indexOf(daily ? "day" : "year");
+  const codeIdx = lower.indexOf("code");
+  const matchIdx = codeIdx >= 0 ? codeIdx : lower.indexOf("entity");
   if (yearIdx < 0 || header.length <= yearIdx + 1) throw new OverviewError("OWID CSV: unexpected header — format changed?");
-  const valIdx = yearIdx + 1;
+  const valIdx = opts.column ? header.indexOf(opts.column) : yearIdx + 1;
+  if (valIdx < 0) throw new OverviewError(`OWID CSV: column ${opts.column} not found — format changed?`);
   const out: SeriesPoint[] = [];
+  const dayIdx = new Map<string, number>(); // daily charts: year → index in `out`
+  let sawEntity = false;
   for (const line of lines.slice(1)) {
     const cols = splitCsv(line);
-    const y = cols[yearIdx];
+    if (matchIdx >= 0 && cols[matchIdx] !== entity) continue;
+    sawEntity = true;
+    const raw = cols[yearIdx];
+    const y = daily ? /^(\d{4})-\d{2}-\d{2}$/.exec(raw ?? "")?.[1] : raw;
     const v = cols[valIdx];
     if (!y || !/^-?\d{1,4}$/.test(y)) continue;
     const num = v === undefined || v === "" ? null : Number(v);
-    out.push({ t: y.padStart(4, "0"), v: num !== null && Number.isFinite(num) ? num : null });
+    const p = { t: y.padStart(4, "0"), v: num !== null && Number.isFinite(num) ? num : null };
+    if (!daily) {
+      out.push(p);
+      continue;
+    }
+    const at = dayIdx.get(p.t);
+    if (at === undefined) dayIdx.set(p.t, out.push(p) - 1);
+    else if (p.v !== null) out[at] = p; // rows are date-ordered: keep the year's last value
   }
+  if (!sawEntity) throw new OwidEntityMissing(entity);
   if (out.length === 0) throw new OverviewError("OWID CSV: no year rows parsed");
   return out.sort((a, b) => (a.t < b.t ? -1 : 1));
 }
@@ -109,9 +170,9 @@ export interface Assessment {
 
 /**
  * Direction of the last ~10 years vs `betterWhen`; pace compares the last 5 years'
- * slope against the prior 10. "flat" = under ±1 % of the mean per decade.
+ * slope against the prior 10. "flat" = under ±`flatPct` % of the mean per decade (default 1).
  */
-export function assess(points: SeriesPoint[], betterWhen: "up" | "down"): Assessment {
+export function assess(points: SeriesPoint[], betterWhen: "up" | "down", flatPct = 1): Assessment {
   const valid = points.filter((p) => p.v !== null);
   const latest = valid[valid.length - 1] ?? null;
   if (!latest) return { latest: null, trend10y: null, direction: "flat", pace: null, pctPerDecade: null };
@@ -122,7 +183,7 @@ export function assess(points: SeriesPoint[], betterWhen: "up" | "down"): Assess
   const mean = summarize(recent10).mean;
   const pctPerDecade = trend10y && mean ? round((trend10y.perDecade / Math.abs(mean)) * 100, 1) : null;
   let direction: Direction = "flat";
-  if (pctPerDecade !== null && Math.abs(pctPerDecade) >= 1) {
+  if (pctPerDecade !== null && Math.abs(pctPerDecade) >= flatPct) {
     const good = betterWhen === "up" ? pctPerDecade > 0 : pctPerDecade < 0;
     direction = good ? "improving" : "worsening";
   }
@@ -137,10 +198,20 @@ export function assess(points: SeriesPoint[], betterWhen: "up" | "down"): Assess
 }
 
 export async function fetchIndicator(ind: Indicator): Promise<SeriesPoint[]> {
-  const res = await fetch(owidUrl(ind), { headers: { "user-agent": USER_AGENT, accept: "text/csv" } });
+  const opts = { entity: ind.entity, column: ind.column };
+  try {
+    return parseOwidCsv(await getCsv(ind, "filtered"), opts);
+  } catch (err) {
+    if (!(err instanceof OwidEntityMissing)) throw err;
+    return parseOwidCsv(await getCsv(ind, "full"), opts); // the entity filter was ignored or unsupported
+  }
+}
+
+async function getCsv(ind: Indicator, csvType: "filtered" | "full"): Promise<string> {
+  const res = await fetch(owidUrl(ind, csvType), { headers: { "user-agent": USER_AGENT, accept: "text/csv" }, redirect: "follow" });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new OverviewError(`OWID ${ind.slug} request failed (${res.status})`, res.status, body.slice(0, 300));
   }
-  return parseOwidCsv(await res.text());
+  return res.text();
 }

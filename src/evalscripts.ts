@@ -244,3 +244,19 @@ function evaluatePixel(samples){
   return {data:[median(vals)],dataMask:[1]};
 }`;
 }
+
+/**
+ * Sentinel-5P TROPOMI CH4 stat evalscript (`methane_plumes`). CH4 is the bias-corrected
+ * column-averaged dry-air mixing ratio in ppb. S5P is sparse (cloud, albedo and QA filtering
+ * leave gaps), so we use ORBIT mosaicking and take the per-pixel MEAN of every valid retrieval
+ * in the bucket (dataMask=1 and CH4>0; QA filtering happens upstream via `processing.minQa`).
+ * dataMask=0 where a pixel had no retrieval, so validPct = "% of pixels with ≥1 retrieval".
+ */
+export const S5P_CH4_EVALSCRIPT = `//VERSION=3
+function setup(){return {input:[{bands:["CH4","dataMask"]}],output:[{id:"data",bands:1,sampleType:"FLOAT32"},{id:"dataMask",bands:1}],mosaicking:"ORBIT"}}
+function evaluatePixel(samples){
+  var sum=0,n=0;
+  for(var i=0;i<samples.length;i++){var s=samples[i];if(s.dataMask===1&&s.CH4>0){sum+=s.CH4;n++;}}
+  if(n===0) return {data:[0],dataMask:[0]};
+  return {data:[sum/n],dataMask:[1]};
+}`;

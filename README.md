@@ -44,12 +44,16 @@ Then just ask: *"What's the state of the planet right now?"* · *"Is El Niño co
 | `stac_search` | Search open satellite archives (Sentinel-2/-1, Landsat) for scenes + COG asset URLs (Earth Search STAC) | — |
 | `narrate` | Stream rich text notes/interpretations to the dashboard alongside the data — update one note in place as the story develops | — |
 | `eo_similar` | "Find everywhere that looks like this": AlphaEarth 64-d embedding similarity over a search area (2017–2025, 10 m source) | — |
+| `protected_areas` | Protected areas + Indigenous/community lands intersecting a bbox (or point + radius): name, designation, licence, id, approx. area, coarse (0.1°) centroid, and whether each contains the AOI centre. OSM Overpass (ODbL) + LandMark (CC BY-SA 4.0) and WDPA (IDs + stats only) when `GFW_API_KEY` is set. No geometry | — (LandMark/WDPA: `GFW_API_KEY`) |
+| `emitters` | Emitting assets in a bbox (or point + radius) from Climate TRACE v7 (CC BY 4.0): name, sector, country, lat/lon, latest annual t CO2e + CH4, source id; plus area-wide aggregates for the municipalities touched. Optional sector filter | — |
 | `fires_in` | Active fire / thermal-anomaly detections (NASA FIRMS), near-real-time | `FIRMS_MAP_KEY` |
+| `flaring` | Gas flaring: night-time VIIRS heat clusters (~1 km) persisting across nights (NOAA-20/21 via FIRMS), matched to the EOG VIIRS Nightfire annual flare summary (per-site BCM, zero-key) | `FIRMS_MAP_KEY` |
 | `forest_alerts` | Integrated deforestation alerts (GLAD-L + GLAD-S2 + RADD via Global Forest Watch) — daily, 10 m, tropics | `GFW_API_KEY` |
 | `eo_render` | High-res (10 m) Sentinel-2 imagery — trueColor / falseColor / NDVI ramp; `composite: median` for a cloud-free temporal-median composite | CDSE |
 | `sar_render` | All-weather Sentinel-1 SAR backscatter (sees through cloud/smoke/night) — VV / VH / false-color | CDSE |
 | `sar_water` | All-weather water / flood extent from Sentinel-1 (water % of the AOI via low VV backscatter) | CDSE |
 | `sar_flood` | Flood onset: SAR water extent before vs after an event, and the change (Δ water %) | CDSE |
+| `methane_plumes` | Methane: Sentinel-5P CH₄ column anomaly (recent window vs ~90-day baseline, ppb + z + % valid) and NASA JPL EMIT plume complexes in the bbox (rate, location, link; public domain). UNEP MARS reported unavailable (no public API); Carbon Mapper link-only | CDSE (S5P part) |
 | `eo_index` | NDVI / NDWI / NBR statistics over a least-cloudy or temporal-median Sentinel-2 composite | CDSE |
 | `eo_search` | Search the Sentinel-2 archive for scenes + cloud cover | CDSE |
 | `eo_compare` | Change detection: render two dates + the index delta (deforestation/flood/burn); `composite: median` suppresses residual-cloud noise | CDSE |
@@ -69,6 +73,26 @@ Then just ask: *"What's the state of the planet right now?"* · *"Is El Niño co
 | `air_quality` | PM2.5 / PM10 / O₃ / NO₂ / US AQI for any point (Copernicus CAMS), WHO-guideline flags | 48 h |
 | `river_discharge` | Daily river flow at any point (GloFAS) — flood/drought signal vs the period mean | 1984→ |
 | `earthdata_search` | Discover datasets across NASA's full Earth-science archive (~50k collections, CMR) by topic/bbox/time | catalog |
+| `world_pulse` | Vital signs in three groups — civilization, life (Living Planet Index, Red List Index, fish stocks, protected areas, tree cover loss), planet (ocean pH, nitrogen, pesticides, water, plastic, ozone) — each improving/worsening/flat | per indicator |
+
+### Life — biodiversity, species, reefs (all zero-key)
+
+Everything that lives here matters on a global scale — animals, plants, and **fungi as a
+first-class kingdom**, not an afterthought.
+
+| Tool | What it does | Source |
+| --- | --- | --- |
+| `biodiversity` | What lives in a bbox/place: records by kingdom (Animalia, Plantae, **Fungi**, …), distinct and top species, IUCN-threatened species present, licence mix, recent records as map markers, and a 0–100 **score** with components + method | GBIF |
+| `species` | Any animal, plant or fungus by scientific name: taxonomy breadcrumb (kingdom → species), common name, IUCN category, GBIF records worldwide / in a bbox, Open Tree of Life OTT id | GBIF + OpenTree |
+| `coral_bleaching` | Reef heat stress at a point: Degree Heating Weeks, SST + anomaly, Bleaching Alert level, peak in the window, optional box stats | NOAA Coral Reef Watch |
+
+The `biodiversity` score is deliberately small and explainable — 0.4·richness (log species)
++ 0.2·record density (log records/km²) + 0.2·share of IUCN CR/EN/VU records + 0.2·kingdom
+evenness (Animalia/Plantae/Fungi/other). It is **sampling-effort dependent**: GBIF records
+cluster near roads, cities and birders, and fungi/insects are under-recorded — so it tells
+you how well-documented and conservation-relevant a place is, not how healthy it is. Every
+result carries the full `method` block with its blind spots. For global *trends*, use
+`world_pulse` (Living Planet Index −73 % since 1970; Red List Index falling).
 
 The Earth is one interconnected system — and these tools are built to be cross-referenced:
 ENSO ↔ fires, floods and SST anomalies; river discharge ↔ SAR flood mapping; climate trends
@@ -79,8 +103,8 @@ Every Copernicus result (`eo_render`/`eo_index`/`eo_compare`) carries a **proven
 contributing scene IDs — so the output is decision-support you can audit, not a bare number.
 Every indicator result names its source and carries the series, so claims are checkable.
 
-The zero-key tools (`eo_snapshot`, `events`, `geo_resolve`, `stac_search`, and all ten
-planetary-indicator tools) work with no setup at all.
+The zero-key tools (`eo_snapshot`, `events`, `geo_resolve`, `stac_search`, all the
+planetary-indicator tools and the life tools) work with no setup at all.
 
 ## Earth Watch — the public accountability ledger (new, M1)
 
@@ -120,13 +144,28 @@ earthdeck dashboard        # → open the Watch tab
 AOI × rule in `watchlists/*.json`, journals every tool call, opens a *candidate* with the
 primary signal, and marks it *confirmed* only when the rule's **independent second signal**
 agrees (`forest_loss`: GFW alerts → NDVI drop in a Sentinel-2 median composite;
-`fires_in_protected`: VIIRS cluster → EONET event or re-detection on a later pass).
+`fires_in_protected`: VIIRS cluster → EONET event or re-detection on a later pass;
+`flaring`: night-time heat persisting ≥ N nights → a VNF annual flare site or a later pass).
+`methane_anomaly` (tier 2): Sentinel-5P CH₄ anomaly vs 90 days → EMIT plume in the AOI).
 Every rule must declare its **blind spots** and keeps a **regional baseline** (the AOI vs
 its neighbourhood ring — "did it stop, or did it move?"); every finding carries **context**
 (ENSO phase, nearby EONET events). Watermarks make late or missed runs self-heal; failures
 are recorded as coverage gaps, never silence. **Control AOIs** (expected quiet) measure our
 own false-positive rate. Needs `GFW_API_KEY` + CDSE creds (forest) and `FIRMS_MAP_KEY`
 (fires); pairs whose keys are missing are skipped, not failed.
+
+**Triage from Claude** — `ledger_list`, `ledger_get`, `ledger_verify` (read) and
+`ledger_advance`, `ledger_narrate`, `ledger_review`, `ledger_propose_attribution` (append)
+expose the ledger over MCP. Every write goes through the trust contract; these tools
+**never publish** — any move into a public status is refused (publishing is a human act),
+and naming a party still needs tier ≥ 2 and two distinct human reviewers.
+`earthdeck doctor` has a **Watch** section (ledger verify, each rule's keys, watchlists,
+last sweep heartbeat).
+
+**The contract as JSON Schema** — [`schema/finding-event.v1.json`](schema/finding-event.v1.json)
+(JSON Schema 2020-12: the event, the in-toto Statement and the DSSE Envelope), generated
+from the zod schemas with `pnpm schema`; a test fails if it drifts. It covers each event's
+shape; the state rules (transitions, reviewers, publishability) live in `checkAppend`.
 
 Env: `EARTHDECK_LEDGER_DIR` (default `data/ledger`), `EARTHDECK_LEDGER_KEY` (base64
 Ed25519 seed; otherwise `ledger.key` is generated — **never commit it**; `ledger.pub` is
@@ -161,8 +200,8 @@ behave identically without it).
 
 | Key | Unlocks | How to get it |
 | --- | --- | --- |
-| `FIRMS_MAP_KEY` | `fires_in` (live wildfire detections) | Enter your email at [firms.modaps.eosdis.nasa.gov/api/map_key](https://firms.modaps.eosdis.nasa.gov/api/map_key/) — emailed instantly |
-| `CDSE_CLIENT_ID` + `CDSE_CLIENT_SECRET` | `eo_render`, `eo_index`, `eo_search`, `eo_compare`, `sar_render`, `sar_water`, `sar_flood` (10 m Sentinel imagery + radar) | Free account at [dataspace.copernicus.eu](https://dataspace.copernicus.eu/) → User Settings → **OAuth clients** → Create (copy the secret immediately — it's shown once) |
+| `FIRMS_MAP_KEY` | `fires_in` (live wildfire detections), `flaring` | Enter your email at [firms.modaps.eosdis.nasa.gov/api/map_key](https://firms.modaps.eosdis.nasa.gov/api/map_key/) — emailed instantly |
+| `CDSE_CLIENT_ID` + `CDSE_CLIENT_SECRET` | `eo_render`, `eo_index`, `eo_search`, `eo_compare`, `sar_render`, `sar_water`, `sar_flood`, `methane_plumes` (10 m Sentinel imagery + radar, Sentinel-5P CH₄) | Free account at [dataspace.copernicus.eu](https://dataspace.copernicus.eu/) → User Settings → **OAuth clients** → Create (copy the secret immediately — it's shown once) |
 | `GFW_API_KEY` | `forest_alerts` (integrated deforestation alerts) | Free [GFW account](https://www.globalforestwatch.org/), then mint a key per the [API-key guide](https://www.globalforestwatch.org/help/developers/guides/create-and-use-an-api-key/) |
 
 Pass them where your MCP client expects env vars, e.g.:
@@ -251,7 +290,18 @@ Tests mock the network, so the whole suite runs with zero credentials — CI
   Copernicus CAMS air quality and ERA5 / GloFAS via [Open-Meteo](https://open-meteo.com/) (CC-BY 4.0).
 - NOAA: CPC Oceanic Niño Index, GML Mauna Loa CO₂, OISST via CoastWatch ERDDAP.
 - NSIDC Sea Ice Index (G02135) · USGS Earthquake Hazards Program.
+- [GBIF.org](https://www.gbif.org/) occurrence data (per-dataset CC0 1.0 / CC BY 4.0 / CC BY-NC 4.0 —
+  the `biodiversity` result reports the licence mix) · IUCN Red List categories as mirrored by GBIF ·
+  [Open Tree of Life](https://tree.opentreeoflife.org/) taxonomy (CC0).
+- NOAA Coral Reef Watch CoralTemp v3.1 5 km products via CoastWatch / PacIOOS ERDDAP (free; credit NOAA CRW).
+- Our World in Data (CC BY 4.0) for `world_pulse`; upstream producers and licences are listed per indicator.
 - Basemap & geocoding: NASA Blue Marble; OpenStreetMap Nominatim.
+- Attribution: protected areas © OpenStreetMap contributors (ODbL) via Overpass; LandMark
+  Indigenous & community lands (CC BY-SA 4.0) via the GFW Data API; emissions from
+  [Climate TRACE](https://climatetrace.org/) (CC BY 4.0), API pinned to `/v7`
+  (`EARTHDECK_CLIMATETRACE_BASE`; Overpass mirror: `EARTHDECK_OVERPASS_URL`). WDPA /
+  Protected Planet (UNEP-WCMC & IUCN) via the GFW Data API: IDs + intersection stats only,
+  never geometry.
 
 ## Notes
 

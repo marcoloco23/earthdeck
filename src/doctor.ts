@@ -1,8 +1,15 @@
 // `earthdeck doctor` — setup checker. Verifies Node, env keys, and live reachability of
 // every upstream data source, then says exactly which tool families are ready and how to
-// unlock the rest. Friendly output, no jargon, exits 0 unless a zero-key source is down.
+// unlock the rest. Friendly output, no jargon, exits 0 unless a zero-key source is down
+// (or the Watch section finds a ledger that fails verification / an invalid watchlist).
 
-import { cdseCreds, firmsMapKey, gfwApiKey, SERVER_VERSION, USER_AGENT } from "./config.js";
+import { existsSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { cdseCreds, climateTraceBase, firmsMapKey, gfwApiKey, ledgerDir, overpassUrl, SERVER_VERSION, USER_AGENT } from "./config.js";
+import { Ledger } from "./ledger/store.js";
+import { readHeartbeat } from "./watch/journal.js";
+import { RULES } from "./watch/rules/index.js";
+import { loadWatchlists } from "./watch/watchlist.js";
 
 const out = (s: string) => process.stdout.write(s + "\n");
 
@@ -24,6 +31,8 @@ const ZERO_KEY_CHECKS: Check[] = [
   { name: "USGS (quakes)", url: "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&limit=1" },
   { name: "NASA CMR (earthdata_search)", url: "https://cmr.earthdata.nasa.gov/search/collections.json?keyword=test&page_size=1" },
   { name: "Open-Meteo (climate/air/river)", url: "https://archive-api.open-meteo.com/v1/archive?latitude=0&longitude=0&start_date=2024-01-01&end_date=2024-01-01&daily=temperature_2m_mean" },
+  { name: "OSM Overpass (protected_areas)", url: `${overpassUrl()}?data=${encodeURIComponent("[out:json];out;")}`, anyResponse: true }, // shared instance often 504s when busy — an answer means reachable
+  { name: "Climate TRACE v7 (emitters)", url: `${climateTraceBase()}/definitions/sectors` },
 ];
 
 async function probe(check: Check, timeoutMs = 10_000): Promise<{ ok: boolean; detail: string }> {
@@ -129,6 +138,95 @@ async function probeGfw(): Promise<{ ok: boolean; detail: string }> {
   }
 }
 
+function dirBytes(dir: string): number {
+  let n = 0;
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, e.name);
+    n += e.isDirectory() ? dirBytes(p) : statSync(p).size;
+  }
+  return n;
+}
+
+function kb(bytes: number): string {
+  return bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function ago(iso: string, now: number): string {
+  const h = (now - Date.parse(iso)) / 3_600_000;
+  return h < 1 ? `${Math.max(0, Math.round(h * 60))} min ago` : h < 48 ? `${h.toFixed(1)} h ago` : `${(h / 24).toFixed(1)} days ago`;
+}
+
+export interface WatchCheckOptions {
+  ledgerDir?: string;
+  watchlistsPath?: string;
+  env?: NodeJS.ProcessEnv;
+  now?: number;
+}
+
+/**
+ * The Watch section (offline, no network): ledger presence/size/verify, each rule's keys,
+ * watchlist validity, and the last sweep's heartbeat. `failed` = ledger verify or a
+ * watchlist is broken (either makes `earthdeck watch` untrustworthy or unusable).
+ */
+export function watchChecks(o: WatchCheckOptions = {}): { lines: string[]; failed: boolean } {
+  const dir = o.ledgerDir ?? ledgerDir();
+  const wlPath = o.watchlistsPath ?? "watchlists";
+  const env = o.env ?? process.env;
+  const now = o.now ?? Date.now();
+  const lines: string[] = [];
+  const line = (mark: string, name: string, detail: string) => lines.push(`    ${mark} ${name.padEnd(34)} ${detail}`);
+  let failed = false;
+
+  if (!existsSync(join(dir, "entries.jsonl"))) {
+    line("·", "Ledger", `not created yet (${dir}) — \`earthdeck watch --once\` or \`earthdeck ledger seed\``);
+  } else {
+    const l = Ledger.open(dir, { createKey: false });
+    const r = l.verify();
+    const base = `${dir} — ${r.size} entries, ${r.findings} findings, ${kb(dirBytes(dir))}`;
+    if (r.ok) line("✓", "Ledger", `${base}, verify OK`);
+    else {
+      failed = true;
+      line("✗", "Ledger", `${base}, verify FAILED: ${r.problems[0]!.message}${r.problems.length > 1 ? ` (+${r.problems.length - 1} more)` : ""}`);
+    }
+  }
+
+  for (const rule of RULES.values()) {
+    const missing = rule.requires.filter((k) => !env[k]);
+    line(
+      missing.length ? "·" : "✓",
+      `Rule ${rule.name}`,
+      missing.length ? `missing ${missing.join(", ")} — sweeps skip it` : `keys present (${rule.requires.join(", ") || "none needed"})`,
+    );
+  }
+
+  if (!existsSync(wlPath)) {
+    line("·", "Watchlists", `none at ./${wlPath} — \`earthdeck watch\` needs --watchlist`);
+  } else {
+    try {
+      const wls = loadWatchlists(wlPath);
+      const aois = wls.flatMap((w) => w.aois);
+      const unknown = [...new Set(aois.flatMap((a) => a.rules.map((r) => r.name)).filter((n) => !RULES.has(n)))];
+      const detail = `${wls.length} watchlist(s), ${aois.length} AOIs (${aois.filter((a) => a.control).length} control) in ./${wlPath}`;
+      line(unknown.length ? "·" : "✓", "Watchlists", unknown.length ? `${detail} — unknown rule(s): ${unknown.join(", ")}` : detail);
+    } catch (err) {
+      failed = true;
+      line("✗", "Watchlists", `invalid: ${(err instanceof Error ? err.message : String(err)).split("\n")[0]}`);
+    }
+  }
+
+  const hb = readHeartbeat(join(dir, "watch"));
+  if (!hb) line("·", "Last sweep", "none yet");
+  else {
+    const n = (k: string) => (typeof hb[k] === "number" ? (hb[k] as number) : 0);
+    line(
+      "✓",
+      "Last sweep",
+      `${hb.at} (${ago(hb.at, now)})${hb.dryRun ? " [dry run]" : ""} — ${n("pairs")} pairs, ${n("created")} opened, ${n("confirmed")} confirmed, ${n("gaps")} gaps, ${n("skipped")} skipped`,
+    );
+  }
+  return { lines, failed };
+}
+
 export async function runDoctor(): Promise<void> {
   out("");
   out(`  earthdeck doctor — v${SERVER_VERSION}, node ${process.version}`);
@@ -172,13 +270,18 @@ export async function runDoctor(): Promise<void> {
   }
 
   out("");
-  const readyTools = 17 + (cdse.ok ? 7 : 0) + (firms.ok ? 1 : 0) + (gfw.ok ? 1 : 0);
+  out("  Watch (earthdeck watch --once → findings ledger):");
+  const watch = watchChecks();
+  for (const l of watch.lines) out(l);
+
+  out("");
+  const keysOff = [cdse.ok ? null : "Copernicus", firms.ok ? null : "FIRMS", gfw.ok ? null : "GFW"].filter(Boolean);
   out(
     zeroKeyDown === 0
-      ? `  All zero-key sources reachable — ${readyTools}/26 tools ready to use.`
+      ? `  All zero-key sources reachable — ${keysOff.length === 0 ? "every tool ready to use." : `tools needing ${keysOff.join(", ")} keys are off.`}`
       : `  ⚠️ ${zeroKeyDown} zero-key source(s) unreachable (network/proxy?) — some tools will fail.`,
   );
   out("  Try it now:  npx -y earthdeck demo");
   out("");
-  if (zeroKeyDown > 0) process.exitCode = 1;
+  if (zeroKeyDown > 0 || watch.failed) process.exitCode = 1;
 }

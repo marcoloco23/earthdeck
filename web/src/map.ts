@@ -107,6 +107,10 @@ const CATEGORY_COLOR: Record<string, string> = {
   "Dust and Haze": "#d6b370",
   Earthquakes: "#a78bfa",
   Landslides: "#b45309",
+  // GBIF records (biodiversity tool) are categorized by kingdom.
+  Animalia: "#f59e0b",
+  Plantae: "#22c55e",
+  Fungi: "#e879f9",
 };
 
 /** Plot event points as colored markers, replacing the previous event layer. */
@@ -245,8 +249,9 @@ export function showQuakes(card: Card): void {
 
   if (card.bbox) {
     fitBBox(card.bbox);
-  } else if (quakes.length > 0) {
-    const b = new maplibregl.LngLatBounds([quakes[0].lon, quakes[0].lat], [quakes[0].lon, quakes[0].lat]);
+  } else if (quakes[0]) {
+    const q0 = quakes[0];
+    const b = new maplibregl.LngLatBounds([q0.lon, q0.lat], [q0.lon, q0.lat]);
     for (const q of quakes) b.extend([q.lon, q.lat]);
     map?.fitBounds(b, { padding: 80, duration: 900, maxZoom: 5 });
   }

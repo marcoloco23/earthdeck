@@ -4,8 +4,8 @@
 // stale candidates, and (5) advances the watermark only on success — so a failed or late
 // sweep self-heals next time instead of leaving a silent hole.
 
-import { pushCard } from "../dashboard/push.js";
-import { CANDIDATE_TTL_DAYS, TERMINAL_STATUSES, type Context, type Finding } from "../ledger/schema.js";
+import { pushFindingCard } from "../dashboard/push.js";
+import { CANDIDATE_TTL_DAYS, TERMINAL_STATUSES, eventPayload, type Context, type Finding } from "../ledger/schema.js";
 import type { Ledger } from "../ledger/store.js";
 import { uuidv7 } from "../util.js";
 import { Journal } from "./journal.js";
@@ -161,24 +161,29 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
       if (context.notes!.length === 0) delete context.notes;
 
       const findingId = uuidv7();
-      if (!report.dryRun) {
-        o.ledger.append({
-          kind: "created",
-          findingId,
-          actor,
-          rule: { name: rule.name, version: rule.version, params: { ...rule.defaults, ...params } },
-          title: candidate.title,
-          summary: candidate.summary,
-          tier: rule.tier,
-          geometry: candidate.geometry ?? bboxPolygon(aoi.bbox),
-          bbox: aoi.bbox,
-          aoi: { id: aoi.id, name: aoi.name, tags: aoi.control ? [...aoi.tags, "control"] : aoi.tags },
-          observedAt: candidate.observedAt,
-          evidence: candidate.evidence,
-          context,
-          blindSpots: rule.blindSpots,
-          at: now,
-        });
+      const created = {
+        kind: "created" as const,
+        findingId,
+        actor,
+        rule: { name: rule.name, version: rule.version, params: { ...rule.defaults, ...params } },
+        title: candidate.title,
+        summary: candidate.summary,
+        tier: rule.tier,
+        geometry: candidate.geometry ?? bboxPolygon(aoi.bbox),
+        bbox: aoi.bbox,
+        aoi: { id: aoi.id, name: aoi.name, tags: aoi.control ? [...aoi.tags, "control"] : aoi.tags },
+        observedAt: candidate.observedAt,
+        evidence: candidate.evidence,
+        context,
+        blindSpots: rule.blindSpots,
+        at: now,
+      };
+      if (report.dryRun) {
+        // A dry run must still fail where the real run would: validate against the contract
+        // (with the envelope fields Ledger.append would add).
+        eventPayload.parse({ ...created, v: 1, eventId: uuidv7(), prev: null });
+      } else {
+        o.ledger.append(created);
         o.journal.setFinding(key, findingId);
       }
       report.created.push(findingId);
@@ -222,12 +227,5 @@ async function card(findingId: string, ledger: Ledger, dryRun: boolean): Promise
   if (dryRun) return;
   const f = ledger.get(findingId);
   if (!f) return;
-  await pushCard({
-    id: `finding-${findingId}`,
-    type: "finding",
-    ts: new Date().toISOString(),
-    title: f.title,
-    bbox: f.bbox,
-    payload: { findingId, status: f.status, tier: f.tier, rule: f.rule, summary: f.summary, evidence: f.evidence.length + (f.confirmed ? 1 : 0), geometry: f.geometry },
-  });
+  await pushFindingCard(f);
 }

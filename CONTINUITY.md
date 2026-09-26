@@ -10,54 +10,57 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
 
 - Agent read full file: YES
 - Current task understood: YES
-- Current task: **Session 7 complete (2026-06-12/13).** Shipped + live-verified, in order:
-  (1) temporal-median compositing (H1 #4, `composite:"median"`); (2) GFW `forest_alerts`
-  (H1 #5, tool #24, key in .env); (3) `narrate` (tool #25) — streamed text notes on the
-  dashboard via upsert-by-card-id; (4) dashboard card-click navigation fixes; (5)
-  **`eo_similar` (tool #26, Horizon 2 #1)** — AlphaEarth 64-d embedding similarity, fully
-  zero-key via the Source Cooperative COG mirror (ranged binary search of the 798 MB index
-  CSV + purpose-built bottom-up BigTIFF/zstd reader, `src/utm.ts` Krüger projection). Live:
-  urban ref → Manaus city grid (ref cell 1.0), river ref → Rio Negro. **26 tools, 130
-  offline tests, build + typecheck green.**
-- **Session 8 (2026-09-26): Earth Watch — strategy, research, M1 shipped.** Plan
-  `.plans/2026-09-26_earth-watch.md` (rev. 2), research `docs/research/…architecture.md`,
-  VISION.md §14. **M1 done**: verifiable ledger (`src/ledger/`, RFC 8785 + RFC 6962 +
-  C2SP checkpoints + DSSE/in-toto, trust contract as code), dashboard Watch tab + feeds
-  + `/ledger/*`, `earthdeck ledger verify|show|seed`, `world_pulse` (tool #27). **27
-  tools, 151 offline tests, build + all typechecks green, committed + pushed** on
-  `claude/ai-planetary-health-i94onh`, **PR #2 open**. **M2 built** (offline-verified):
-  `src/watch/` kernel + rules + watchlists + `earthdeck watch --once`; 156 tests. **Next:
-  first LIVE sweep with keys** (`earthdeck watch --once --max 2 --rules forest_loss`) to
-  open a real case, then M3. ⚠️ verify live: OWID CSV shape; GFW ring-baseline cost (2
-  alert queries per AOI); eo_compare `width: 256` acceptable for confirmation.
-- Session started: 2026-09-26 (Session 8)
+- Current task: **Session 8b complete (2026-09-26, local Mac, Fable orchestrator + 6 Opus
+  workers in worktrees).** MVP = M2 live-verified + M3 shipped + UI overhaul + life layer.
+  **M2 exit criterion met**: first real `watch --once` sweep opened 8 findings, confirmed 2
+  by NDVI (São Félix 232 ha, Novo Progresso 727 ha); ledger verified. Controls (Jaú,
+  Salonga) fired at detect stage on ~15–19 ha/90 d of radar floodplain noise → tuned to
+  minHa 25 / minAlerts 300 (re-verified quiet), both recorded as `false_positive` via
+  `ledger_advance`. **Live bugs fixed**: GFW `byConfidence` is nested (every `created` was
+  rejected; dry-run now validates too); OWID ignores `country=` on several charts (filter by
+  code + `csvType=full` fallback + per-indicator `column`); FIRMS caps `dayRange` at 5.
+  **M3 shipped + live-verified**: `protected_areas` (Overpass + LandMark + WDPA ids/stats via
+  GFW — São Félix → APA Triunfo do Xingu), `emitters` (Climate TRACE v7: 59 cattle assets in
+  São Félix), `methane_plumes` (S5P CH₄ Permian +6 ppb vs baseline; EMIT feed stale since
+  2025-09-22; MARS gated), `flaring` (Rumaila 25 persistent clusters, 22 matched to EOG VNF
+  2024 sites — zero-key), rules `methane_anomaly@1.0` + `flaring@1.0` (Rumaila confirmed
+  live via VNF), `ledger_*` ×7 (never publish), doctor Watch section, JSON Schema export.
+  **UI**: design system + feed/Watch/case/verify pages + charts + mobile
+  (`docs/screenshots/ui-after-*.jpg`), Emil Kowalski skills in `.agents/skills`.
+  **Life layer**: see PROGRESS (biodiversity, species, coral_bleaching, world_pulse life
+  indicators). Tool count via `node scripts/list-tools.mjs`.
+- Session started: 2026-09-26 (Session 8b)
 
 ---
 
-## HANDOFF → local Mac session (written 2026-09-26, cloud session)
+## HANDOFF → next session (written 2026-09-26, local)
 
-The cloud sandbox had no keys and no outbound network; everything below is what only a
-local session can do. In order:
+Everything is merged on one branch and pushed; PR is a draft until Marc reviews. In order:
 
-1. `git fetch origin && git checkout claude/ai-planetary-health-i94onh` (or `main` after
-   PR #2 merges) → `pnpm install && pnpm build && pnpm test` (expect 156 green).
-2. `.env`: `GFW_API_KEY`, `CDSE_CLIENT_ID/SECRET`, `FIRMS_MAP_KEY` (all already used by
-   existing tools). `earthdeck doctor` should be green.
-3. **Verify live** (the two things fixture-tested only): `node dist/cli.js dashboard` in one
-   terminal, then via Claude/MCP call `world_pulse` — if OWID's CSV shape differs, fix
-   `src/clients/owid.ts` (`owidUrl`, `parseOwidCsv`). Also `eo_compare` at `width: 256`.
-4. **First real sweep** (this is the M2 exit criterion):
-   `node dist/cli.js watch --once --dry-run --max 2 --rules forest_loss` → then without
-   `--dry-run` → `node dist/cli.js ledger show` → `ledger verify` → open the Watch tab.
-   Watch the GFW quota: each forest_loss AOI = 2 alert queries (AOI + baseline ring).
-5. Tune thresholds in `watchlists/*.json` against what the real data says (São Félix will
-   be loud; the controls must stay quiet — if a control fires, that's a rule bug, not news).
-6. Then M3 (see plan): `protected_areas`, `emitters` (Climate TRACE v7), `methane_plumes`
-   (S5P via the existing CDSE client + EMIT + MARS), `flaring`; `ledger_*` MCP tools.
-   Small chores first: `doctor` awareness of watch keys/ledger; JSON Schema export.
+1. `git checkout main && git pull` after the PR merges; `pnpm install && pnpm build && pnpm
+   test`. pnpm 11 needs `pnpm-workspace.yaml` `allowBuilds: esbuild` (committed).
+   `.env` holds GFW/CDSE/FIRMS keys; the CLI does not load it — use `node --env-file=.env
+   dist/cli.js …`. `node scripts/probe-tool.mjs <tool> '<json>'` calls any tool in-process.
+2. **Look at the dashboard** with the real ledger: `node --env-file=.env dist/cli.js
+   dashboard` → Watch tab shows the 8 real cases (2 confirmed, 2 false positives).
+3. **Next build steps (M3 tail → M4)**: (a) wire attribution *onto cases* — the kernel's
+   `created.context` should carry `protected_areas` + `emitters` hits for the AOI (tools
+   exist; ~1 h); (b) `methane_anomaly` needs a live confirmer while EMIT is stale → use
+   `emitters` proximity as the second signal (the `TODO(emitters)` hook in
+   `src/watch/rules/methaneAnomaly.ts`); (c) expose the sweep heartbeat on a dashboard
+   endpoint so the header shows it (UI worker note); (d) M4: `watch export` static site +
+   `.github/workflows/watch.yml` schedule.
+4. **Tuning with data**: Kayapó/Apyterewa (60 d, minHa 5) open at 16–34 ha — intended
+   sensitivity, confirmation gates them; methane 20 ppb threshold untuned; flaring Bakken
+   had one transient FIRMS fetch failure (kernel recorded a gap, correct).
+5. Known gaps: reviewer identity in `ledger_review` is unauthenticated (caller's honesty);
+   UNEP MARS needs email authorization; EMIT plume feed may have paused; Overpass public
+   server returns 504 under load (tool degrades, reports source unavailable).
 
-Sub-agents work well for M3: one per client (each has fixtures to write), one for the
-`ledger_*` tools, one for doctor/schema chores — they touch disjoint files.
+Sub-agents (Opus, isolated worktrees, one per disjoint file set, orchestrator merges) worked
+well today: six workers, ~4 h wall clock, every branch merged with only append-style
+conflicts in `src/index.ts`, `rules/index.ts`, `README.md`, `doctor.ts`.
+
 
 ## WORKFLOW (every session)
 
@@ -252,6 +255,11 @@ returns Tropical Storm Amanda. Run the dashboard on a non-default port to avoid 
 ---
 
 ## SESSION LOG
+
+### 2026-09-26 — Session 8b (local: M2 live sweep, M3, UI, life layer — the MVP)
+- See PROGRESS.md for the full entry. One orchestrator + six Opus workers in worktrees;
+  first real cases in the ledger; controls tuned from data; three live-API bugs fixed;
+  M3 tools + rules + `ledger_*` shipped and live-verified; dashboard redesigned.
 
 ### 2026-06-12 — Session 6c (rename → earthdeck; npm; cloud masking; NASA CMR)
 - **Renamed the project to `earthdeck`** (user choice; npm/GitHub searchability). GitHub repo

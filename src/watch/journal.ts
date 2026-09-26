@@ -67,6 +67,18 @@ export class Journal {
   }
 }
 
+export interface Heartbeat {
+  sweepId: string;
+  at: string;
+  [k: string]: unknown;
+}
+
+/** The last sweep's heartbeat in a journal dir, or null — read-only (never creates the dir). */
+export function readHeartbeat(dir: string): Heartbeat | null {
+  const hb = readJson<Partial<Heartbeat> | null>(join(dir, "heartbeat.json"), null);
+  return hb && typeof hb.at === "string" && typeof hb.sweepId === "string" ? (hb as Heartbeat) : null;
+}
+
 function readJson<T>(path: string, fallback: T): T {
   if (!existsSync(path)) return fallback;
   try {

@@ -5,6 +5,70 @@ status, next priorities. The live task pointer is in [CONTINUITY.md](CONTINUITY.
 
 ---
 
+## Session: 2026-09-26 (local, 8b) — Earth Watch MVP: M2 live-verified, M3 shipped, UI overhaul, life layer ✅
+
+**Focus**: Marc's brief — "build the MVP today": one Fable orchestrator planning and
+merging, six Opus workers in isolated worktrees (attribution, methane, flaring, ledger
+tools + doctor + schema, UI, biodiversity). Everything below was verified against the real
+APIs with the local `.env` keys.
+
+**Done**:
+- [x] **First real sweep (M2 exit criterion)**: `watch --once` over 8 AOIs → 8 candidates,
+      2 confirmed by median-composite NDVI (São Félix 232 ha, Novo Progresso 727 ha);
+      ledger verified (signed, canonical, checkpoint OK). Controls fired at detect stage on
+      ~15–19 ha / 90 d (1571 high-confidence radar alerts in Jaú — floodplain water, not
+      clearing) → thresholds raised to minHa 25 / minAlerts 300, re-verified quiet, both
+      cases advanced to `false_positive` through `ledger_advance` with the reason on record.
+- [x] **Three live bugs**: GFW `byConfidence` is nested `{high:{alertCount,areaHa}}` and
+      broke the evidence schema (every `created` rejected; dry-run now validates the event
+      too); OWID silently ignores `country=` on 5 of 11 charts (filter by `code`, fall back
+      to `csvType=full`, per-indicator `column` — disaster deaths was reporting drought
+      deaths); FIRMS area API caps `dayRange` at 5.
+- [x] **M3 attribution**: `protected_areas` (OSM Overpass incl. `is_in` for containing
+      territories, LandMark via GFW, WDPA ids/stats via GFW — no geometry; São Félix → APA
+      Triunfo do Xingu) · `emitters` (Climate TRACE v7 has no bbox filter → admins → sources
+      → point filter; São Félix: 59 assets, 86 kt CO₂e, 3.2 kt CH₄, nearly all cattle).
+- [x] **M3 methane + flaring**: `methane_plumes` (S5P CH₄ via CDSE Statistics, recent vs
+      90-day baseline — Permian 1933 vs 1927 ppb; EMIT public plume GeoJSON; MARS gated;
+      Carbon Mapper link-only) + `methane_anomaly@1.0` · `flaring` (FIRMS night-time
+      persistence in 1 km clusters + EOG VNF annual flare sites, zero-key — Rumaila 25
+      persistent clusters, 22 on VNF sites, 3.2 BCM) + `flaring@1.0`, confirmed live.
+- [x] **`ledger_*` tools ×7** (list/get/verify/advance/narrate/review/propose_attribution;
+      any move into a public status is refused — publishing is a human act), **doctor
+      Watch section** (ledger verify, rule keys, watchlists, last-sweep heartbeat), **JSON
+      Schema** `schema/finding-event.v1.json` (zod 4 `toJSONSchema`, Ajv-checked).
+- [x] **Dashboard UI**: tokenized design system (surfaces, status/tier colours, type +
+      spacing scales, motion tokens, reduced-motion), feed with type filters + entrance
+      motion + "N new" pill, charts with gridlines/legend/threshold/hover, Watch list with
+      filters/skeletons/empty states, case page with lifecycle stepper, evidence, baseline
+      ring, blind spots, right of reply, Verify panel (checkpoint + inclusion proof), mobile
+      at 390 px. `docs/screenshots/ui-{before,after}-*.jpg`. Emil Kowalski design skills
+      vendored in `.agents/skills`.
+- [x] **Life layer** (Marc: "biodiversity, animals… fungi… anything that makes a difference
+      on a global scale" + "biodiversity metric"): `biodiversity` (GBIF occurrences by bbox/
+      place, kingdom filter incl. Fungi, taxon, years → records by kingdom, species, IUCN-
+      threatened species, licence mix, sample markers, and a **0–100 score** = 0.4 richness
+      + 0.2 record density + 0.2 threatened share + 0.2 kingdom evenness, with a `method`
+      block and six blind spots, labelled sampling-effort dependent; Manaus 343k records,
+      169 threatened species, score 66; Fungi-only 588 species, score 40) · `species`
+      (GBIF match + breadcrumb + IUCN + OpenTree OTT id; jaguar NT, fly agaric, redwood EN)
+      · `coral_bleaching` (NOAA Coral Reef Watch 5 km DHW/SST/alert via ERDDAP; GBR peak
+      DHW 9.14 on 2024-03-07 = the 2024 mass bleaching) · `world_pulse` → **23 indicators**
+      in three groups (civilization / life / planet: Living Planet Index 27 (1970=100),
+      Red List Index 0.74, fish stocks 64.5 % sustainable, tree cover loss 29.6 Mha, ocean
+      pH 8.04 at ALOHA with a log-aware flat threshold, fertilizer, pesticides, plastics,
+      ODS…), all 23 `status: ok` live; grouped pulse card.
+- [x] Chores: `pnpm-workspace.yaml` `allowBuilds: esbuild` (pnpm 11), `schema/` shipped in
+      the package, doctor summary no longer hardcodes a tool ratio, `scripts/probe-tool.mjs`
+      + `scripts/list-tools.mjs`, VISION §14 life-layer paragraph, ROADMAP M2/M3 ticked.
+
+**Verified**: build + all typechecks green; offline tests 156 → 212+ ; doctor fully green
+with keys; tier-2 dry-run sweep across 5 watchlists (Rumaila opened + confirmed, others
+quiet, one transient FIRMS gap); dashboard serves the real ledger.
+
+**Next**: attribution wired onto cases (`created.context`), `emitters` as the methane
+confirmer while EMIT is stale, sweep heartbeat endpoint, then M4 (export + schedule).
+
 ## Session: 2026-09-26 — Earth Watch: strategy → research → M1 (verifiable ledger + world_pulse) ✅
 
 **Focus**: the user's brainstorm — "use AI to make the planet healthier, keep everyone

@@ -1,4 +1,5 @@
 import { dashboardUrl } from "../config.js";
+import type { Finding } from "../ledger/schema.js";
 import type { IngestPayload } from "../types.js";
 
 const PUSH_TIMEOUT_MS = 1500;
@@ -26,4 +27,16 @@ export async function pushCard(card: IngestPayload): Promise<boolean> {
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Best-effort `finding` card for a ledger finding (upserts by id on the dashboard). */
+export async function pushFindingCard(f: Finding): Promise<boolean> {
+  return pushCard({
+    id: `finding-${f.findingId}`,
+    type: "finding",
+    ts: new Date().toISOString(),
+    title: f.title,
+    bbox: f.bbox,
+    payload: { findingId: f.findingId, status: f.status, tier: f.tier, rule: f.rule, summary: f.summary, evidence: f.evidence.length + (f.confirmed ? 1 : 0), geometry: f.geometry },
+  });
 }

@@ -24,7 +24,7 @@ export function registerFireTools(server: McpServer): void {
         bbox: z
           .tuple([z.number(), z.number(), z.number(), z.number()])
           .describe("Bounding box [west, south, east, north] in degrees"),
-        dayRange: z.number().int().min(1).max(10).optional().describe("Look back N days (default 1)."),
+        dayRange: z.number().int().min(1).max(5).optional().describe("Look back N days (default 1; FIRMS allows at most 5 — use `flaring` for longer windows)."),
         source: z
           .enum(FIRMS_SOURCES)
           .optional()

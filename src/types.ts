@@ -63,4 +63,5 @@ export interface FireDetection {
   acqTime: string | null;
   frp: number | null; // fire radiative power
   satellite: string | null;
+  daynight: string | null; // "D" | "N" (FIRMS day/night flag)
 }

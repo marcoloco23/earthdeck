@@ -165,7 +165,8 @@ export async function fires(
   assertBBox(bbox);
   const [west, south, east, north] = bbox;
   const source = query.source ?? "VIIRS_SNPP_NRT";
-  const dayRange = Math.max(1, Math.min(10, Math.round(query.dayRange ?? 1)));
+  // FIRMS area API rejects day ranges above 5 ("Invalid day range. Expects [1..5]") — observed 2026-09-26.
+  const dayRange = Math.max(1, Math.min(5, Math.round(query.dayRange ?? 1)));
   const area = `${west},${south},${east},${north}`;
   let url = `${FIRMS_AREA}/${mapKey}/${source}/${area}/${dayRange}`;
   if (query.date) url += `/${query.date}`;
@@ -213,6 +214,7 @@ export function parseFiresCsv(csv: string): FireDetection[] {
   const iTime = at("acq_time");
   const iFrp = at("frp");
   const iSat = at("satellite");
+  const iDn = at("daynight");
 
   const out: FireDetection[] = [];
   for (let i = 1; i < lines.length; i++) {
@@ -232,6 +234,7 @@ export function parseFiresCsv(csv: string): FireDetection[] {
       acqTime: iTime >= 0 ? (c[iTime]?.trim() ?? null) : null,
       frp: iFrp >= 0 ? toNum(c[iFrp]) : null,
       satellite: iSat >= 0 ? (c[iSat]?.trim() ?? null) : null,
+      daynight: iDn >= 0 ? (c[iDn]?.trim() || null) : null,
     });
   }
   return out;

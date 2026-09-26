@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "name": "Gas flaring — known hotspots",
+  "description": "Oil & gas basins where routine flaring is well documented (EOG VNF / World Bank GGFR). These are expected to fire: the point is to measure persistence over time, not to discover them. Findings here name places, never operators — attribution needs asset registries and human review.",
+  "aois": [
+    {
+      "id": "iq-rumaila",
+      "name": "Rumaila field (Basra, Iraq)",
+      "bbox": [47.0, 30.2, 47.6, 30.8],
+      "tags": ["flaring", "oil-gas", "iraq"],
+      "rules": [{ "name": "flaring", "params": { "days": 30, "minFrp": 5, "minNights": 5, "clusterKm": 1 } }]
+    },
+    {
+      "id": "us-bakken",
+      "name": "Bakken core (North Dakota, USA)",
+      "bbox": [-103.6, 47.6, -102.6, 48.4],
+      "tags": ["flaring", "oil-gas", "usa"],
+      "rules": [{ "name": "flaring", "params": { "days": 30, "minFrp": 5, "minNights": 5, "clusterKm": 1 } }]
+    },
+    {
+      "id": "ng-niger-delta",
+      "name": "Niger Delta (Rivers / Bayelsa, Nigeria)",
+      "bbox": [6.2, 4.5, 7.0, 5.3],
+      "tags": ["flaring", "oil-gas", "nigeria"],
+      "notes": "Tropical cloud cover: expect far fewer clear nights than Basra, so persistence under-counts here.",
+      "rules": [{ "name": "flaring", "params": { "days": 30, "minFrp": 5, "minNights": 3, "clusterKm": 1 } }]
+    }
+  ]
+}

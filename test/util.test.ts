@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addDays, assertBBox, bboxCenter, clampWidth, heightFor, isoDate, newId } from "../src/util.js";
+import { addDays, assertBBox, bboxCenter, bboxContains, clampWidth, heightFor, isoDate, newId, pointRadiusToBBox } from "../src/util.js";
 import type { BBox } from "../src/types.js";
 
 test("addDays shifts a date in UTC, both directions, across month/year", () => {
@@ -53,4 +53,16 @@ test("newId returns distinct UUID-shaped strings", () => {
   const b = newId();
   assert.notEqual(a, b);
   assert.match(a, /^[0-9a-f-]{36}$/);
+});
+
+test("bboxContains is edge-inclusive; pointRadiusToBBox widens longitude with latitude", () => {
+  const b: BBox = [-52.4, -6.9, -51.9, -6.4];
+  assert.ok(bboxContains(b, -52.15, -6.65));
+  assert.ok(bboxContains(b, -52.4, -6.4), "edges count");
+  assert.ok(!bboxContains(b, -51.4, -5.9));
+  const eq = pointRadiusToBBox(0, 0, 111.32);
+  assert.deepEqual(eq.map((v) => Math.round(v * 1000) / 1000), [-1, -1, 1, 1]);
+  const hi = pointRadiusToBBox(10, 60, 111.32);
+  assert.ok(Math.abs(hi[2] - hi[0] - 4) < 1e-9, "at 60° a km spans 2× the longitude");
+  assert.equal(pointRadiusToBBox(179.9, 89.9, 50)[2], 180, "clamped");
 });

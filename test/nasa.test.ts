@@ -28,6 +28,7 @@ test("parseFiresCsv handles VIIRS (bright_ti4 + letter confidence)", () => {
   assert.equal(fires[1]!.confidence, "high"); // h → high
   assert.equal(fires[0]!.frp, 15.3);
   assert.equal(fires[0]!.satellite, "N");
+  assert.equal(fires[0]!.daynight, "D");
 });
 
 test("parseFiresCsv handles MODIS (brightness + numeric confidence)", () => {
@@ -101,7 +102,7 @@ test("fires builds the FIRMS area URL (west,south,east,north) and clamps dayRang
 
   const out = await fires("MAPKEY", BBOX, { source: "VIIRS_SNPP_NRT", dayRange: 99 });
   const url = fetchMock.calls[0]!.url;
-  assert.ok(url.includes("/MAPKEY/VIIRS_SNPP_NRT/-10,-20,10,20/10"), `dayRange clamped to 10: ${url}`);
+  assert.ok(url.includes("/MAPKEY/VIIRS_SNPP_NRT/-10,-20,10,20/5"), `dayRange clamped to 5: ${url}`);
   assert.equal(out.length, 2);
 });
 

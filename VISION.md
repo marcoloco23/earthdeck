@@ -403,6 +403,15 @@ re-runnable recipe. **Trust rests on checkable evidence, not on the AI's authori
 direction and rate for civilization's vital signs — improving *and* worsening — because an
 honest dashboard beats a negative news feed for both trust and motivation.
 
+**View the world whole — including life (added 2026-09-26, local session).** Climate,
+forests and methane are the wedges, but the mandate is *anything that makes a difference
+on a global scale*: biodiversity and the animals, plants and **fungi** that carry it
+(GBIF occurrences, IUCN Red List status, tree-of-life placement), coral bleaching, ocean
+chemistry, fish stocks, land use — the life layer sits beside the pressure layers in
+`world_pulse` and as per-place tools, each with a stated, sampling-effort-aware method.
+A biodiversity *metric* only earns its place if it says how it was computed and what it
+cannot see.
+
 **Around the clock, for free:** `earthdeck watch --once` on a GitHub Actions schedule, the
 ledger committed to a data branch, a static Watch site on Pages. The AI analyst step
 cross-checks and explains; the deterministic layer decides what counts as a finding.

@@ -194,35 +194,51 @@ export class CopernicusClient {
     if (!res.ok) {
       throw new OverviewError(`Copernicus Statistics failed (${res.status})`, res.status, text.slice(0, 300));
     }
-    const j = JSON.parse(text) as {
-      data?: Array<{
-        interval?: { from: string; to: string };
-        outputs?: { data?: { bands?: { B0?: { stats?: RawStats } } } };
-      }>;
-    };
+    const j = JSON.parse(text) as StatsResponse;
     const entry = j.data?.[0];
-    const st = entry?.outputs?.data?.bands?.B0?.stats;
-    if (!st || st.sampleCount - (st.noDataCount ?? 0) <= 0) {
+    const stats = toIndexStats(entry?.outputs?.data?.bands?.B0?.stats, entry?.interval, opts.dateFrom, opts.dateTo);
+    if (!stats) {
       throw new OverviewError(
         "No valid Sentinel-2 data for this area/time window (too cloudy or no acquisition). Try a wider window or smaller area.",
       );
     }
-    const pct = st.percentiles ?? {};
-    const noData = st.noDataCount ?? 0;
-    return {
-      mean: st.mean,
-      min: st.min,
-      max: st.max,
-      stDev: st.stDev,
-      sampleCount: st.sampleCount,
-      noDataCount: noData,
-      validPct: st.sampleCount > 0 ? Math.round((100 * (st.sampleCount - noData)) / st.sampleCount) : 0,
-      p25: pct["25.0"] ?? null,
-      p50: pct["50.0"] ?? null,
-      p75: pct["75.0"] ?? null,
-      intervalFrom: entry?.interval?.from ?? opts.dateFrom,
-      intervalTo: entry?.interval?.to ?? opts.dateTo,
+    return stats;
+  }
+
+  /**
+   * Statistics in consecutive `intervalDays` buckets over [dateFrom, dateTo) in ONE request —
+   * one entry per bucket, `stats: null` where a bucket had no valid pixel (never throws for
+   * empty buckets). The span should be a multiple of `intervalDays`; Sentinel Hub drops a
+   * trailing partial bucket.
+   */
+  async statisticsSeries(bbox: BBox, opts: StatsOpts & { intervalDays: number }): Promise<StatsBucket[]> {
+    assertBBox(bbox);
+    const from = startIso(opts.dateFrom);
+    const to = startIso(opts.dateTo); // exclusive: buckets tile [dateFrom, dateTo)
+    const input = this.buildInput(bbox, opts.dateFrom, opts.dateTo, opts.source ?? this.s2Source());
+    (input.data[0]!.dataFilter as Record<string, unknown>).timeRange = { from, to };
+    const body = {
+      input,
+      aggregation: {
+        timeRange: { from, to },
+        aggregationInterval: { of: `P${opts.intervalDays}D` },
+        width: opts.width ?? 256,
+        height: opts.height ?? 256,
+        evalscript: opts.evalscript,
+      },
+      calculations: { default: { statistics: { default: {} } } },
     };
+    const res = await this.authed(`${SH}/statistics`, body, "application/json");
+    const text = await res.text();
+    if (!res.ok) {
+      throw new OverviewError(`Copernicus Statistics failed (${res.status})`, res.status, text.slice(0, 300));
+    }
+    const j = JSON.parse(text) as StatsResponse;
+    return (j.data ?? []).map((e) => {
+      const f = e.interval?.from ?? from;
+      const t = e.interval?.to ?? to;
+      return { from: f, to: t, stats: toIndexStats(e.outputs?.data?.bands?.B0?.stats, e.interval, f, t) };
+    });
   }
 
   /** Search the Sentinel-2 archive (STAC). Cloud filtering is applied client-side. */
@@ -264,6 +280,46 @@ interface RawStats {
   sampleCount: number;
   noDataCount?: number;
   percentiles?: Record<string, number>;
+}
+
+interface StatsResponse {
+  data?: Array<{
+    interval?: { from: string; to: string };
+    outputs?: { data?: { bands?: { B0?: { stats?: RawStats } } } };
+  }>;
+}
+
+/** One aggregation bucket of `statisticsSeries`; `stats` null = no valid pixel in it. */
+export interface StatsBucket {
+  from: string;
+  to: string;
+  stats: IndexStats | null;
+}
+
+/** Normalize a raw Sentinel Hub stats block; null when absent or entirely no-data. */
+function toIndexStats(
+  st: RawStats | undefined,
+  interval: { from: string; to: string } | undefined,
+  fallbackFrom: string,
+  fallbackTo: string,
+): IndexStats | null {
+  if (!st || st.sampleCount - (st.noDataCount ?? 0) <= 0) return null;
+  const pct = st.percentiles ?? {};
+  const noData = st.noDataCount ?? 0;
+  return {
+    mean: st.mean,
+    min: st.min,
+    max: st.max,
+    stDev: st.stDev,
+    sampleCount: st.sampleCount,
+    noDataCount: noData,
+    validPct: st.sampleCount > 0 ? Math.round((100 * (st.sampleCount - noData)) / st.sampleCount) : 0,
+    p25: pct["25.0"] ?? null,
+    p50: pct["50.0"] ?? null,
+    p75: pct["75.0"] ?? null,
+    intervalFrom: interval?.from ?? fallbackFrom,
+    intervalTo: interval?.to ?? fallbackTo,
+  };
 }
 
 let singleton: CopernicusClient | null = null;

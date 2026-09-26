@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "name": "Methane — oil & gas basins",
+  "description": "Known oil & gas production basins with documented satellite methane super-emitter activity. Sentinel-5P pixels are ~7 km, so AOIs are ~1° boxes; a finding is a regional column anomaly, never attribution to a facility. Thresholds are starting points to tune against real sweeps.",
+  "aois": [
+    {
+      "id": "us-permian-delaware",
+      "name": "Permian Basin — Delaware sub-basin (TX/NM, USA)",
+      "bbox": [-104.2, 31.4, -103.2, 32.4],
+      "tags": ["methane", "oil-gas", "permian"],
+      "rules": [{ "name": "methane_anomaly", "params": { "windowDays": 14, "baselineDays": 90, "minAnomalyPpb": 20, "minValidPct": 40 } }]
+    },
+    {
+      "id": "tm-galkynysh",
+      "name": "Galkynysh gas field (Mary, Turkmenistan)",
+      "bbox": [61.8, 36.9, 62.8, 37.8],
+      "tags": ["methane", "oil-gas", "turkmenistan"],
+      "rules": [{ "name": "methane_anomaly", "params": { "windowDays": 14, "baselineDays": 90, "minAnomalyPpb": 20, "minValidPct": 40 } }]
+    },
+    {
+      "id": "dz-hassi-rmel",
+      "name": "Hassi R'Mel gas field (Laghouat, Algeria)",
+      "bbox": [2.8, 32.5, 3.8, 33.4],
+      "tags": ["methane", "oil-gas", "algeria"],
+      "rules": [{ "name": "methane_anomaly", "params": { "windowDays": 14, "baselineDays": 90, "minAnomalyPpb": 20, "minValidPct": 40 } }]
+    }
+  ]
+}
