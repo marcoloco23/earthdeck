@@ -128,6 +128,19 @@ are recorded as coverage gaps, never silence. **Control AOIs** (expected quiet) 
 own false-positive rate. Needs `GFW_API_KEY` + CDSE creds (forest) and `FIRMS_MAP_KEY`
 (fires); pairs whose keys are missing are skipped, not failed.
 
+**Triage from Claude** — `ledger_list`, `ledger_get`, `ledger_verify` (read) and
+`ledger_advance`, `ledger_narrate`, `ledger_review`, `ledger_propose_attribution` (append)
+expose the ledger over MCP. Every write goes through the trust contract; these tools
+**never publish** — any move into a public status is refused (publishing is a human act),
+and naming a party still needs tier ≥ 2 and two distinct human reviewers.
+`earthdeck doctor` has a **Watch** section (ledger verify, each rule's keys, watchlists,
+last sweep heartbeat).
+
+**The contract as JSON Schema** — [`schema/finding-event.v1.json`](schema/finding-event.v1.json)
+(JSON Schema 2020-12: the event, the in-toto Statement and the DSSE Envelope), generated
+from the zod schemas with `pnpm schema`; a test fails if it drifts. It covers each event's
+shape; the state rules (transitions, reviewers, publishability) live in `checkAppend`.
+
 Env: `EARTHDECK_LEDGER_DIR` (default `data/ledger`), `EARTHDECK_LEDGER_KEY` (base64
 Ed25519 seed; otherwise `ledger.key` is generated — **never commit it**; `ledger.pub` is
 what you publish). Next: attribution + methane tools (M3), a scheduled public site with
