@@ -154,7 +154,10 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
       o.journal.append({ t: now, sweepId, kind: "skip", aoi: aoi.id, rule: ruleName, message: `missing ${missing.join(", ")}` });
       return;
     }
-    const quotaBlock = o.quota ? providersForRequires(rule.requires).map((p) => o.quota!.blocked(p)).find(Boolean) : null;
+    // Only detect-time providers gate the pair; confirm-only providers defer confirmation instead.
+    const detectRequires = rule.requires.filter((k) => !(rule.confirmRequires ?? []).includes(k));
+    const quotaBlock = o.quota ? providersForRequires(detectRequires).map((p) => o.quota!.blocked(p)).find(Boolean) : null;
+    const confirmBlocked = (): string | null => (o.quota ? providersForRequires(rule.confirmRequires ?? []).map((p) => o.quota!.blocked(p)).find(Boolean) ?? null : null);
     if (quotaBlock) {
       report.skipped.push({ aoi: aoi.id, rule: ruleName, reason: quotaBlock });
       o.journal.append({ t: now, sweepId, kind: "skip", aoi: aoi.id, rule: ruleName, message: quotaBlock });
@@ -170,7 +173,9 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
     try {
       if (open?.status === "candidate") {
         // An unconfirmed candidate: try the independent signal again.
-        const conf = await rule.confirm(ctx, { observedAt: open.observedAt, evidence: open.evidence, values: valuesOf(open), geometry: open.geometry });
+        const deferred = confirmBlocked();
+        if (deferred) log(`· ${rule.name} @ ${aoi.id}: confirmation deferred (${deferred})`);
+        const conf = deferred ? null : await rule.confirm(ctx, { observedAt: open.observedAt, evidence: open.evidence, values: valuesOf(open), geometry: open.geometry });
         if (conf) {
           if (!report.dryRun) o.ledger.append({ kind: "confirmed", findingId: open.findingId, actor, signal: conf.signal, independence: conf.independence, at: now });
           report.confirmed.push(open.findingId);
@@ -256,7 +261,9 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
       o.journal.append({ t: now, sweepId, kind: "created", aoi: aoi.id, rule: rule.name, findingId, control: aoi.control });
       log(`● ${rule.name} @ ${aoi.id}: candidate opened${aoi.control ? " (CONTROL — counts as a false positive)" : ""}`);
 
-      const conf = await rule.confirm(ctx, candidate);
+      const deferredNew = confirmBlocked();
+      if (deferredNew) log(`· ${rule.name} @ ${aoi.id}: confirmation deferred (${deferredNew})`);
+      const conf = deferredNew ? null : await rule.confirm(ctx, candidate);
       if (conf) {
         if (!report.dryRun) o.ledger.append({ kind: "confirmed", findingId, actor, signal: conf.signal, independence: conf.independence, at: now });
         report.confirmed.push(findingId);

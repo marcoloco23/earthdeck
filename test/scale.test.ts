@@ -215,3 +215,26 @@ test("quota governor: a 429 marks the provider exhausted for the rest of the run
   await wrapped("events", {}); // ungoverned
   assert.equal(q2.used("firms"), 0);
 });
+
+test("quota governor: a confirm-only provider defers confirmation, never the detection", async (t) => {
+  const s = setup();
+  t.after(s.restore);
+  const forest = parseWatchlist({
+    version: 1,
+    name: "t",
+    aois: [{ id: "f-0", name: "Forest 0", bbox: [-52.4, -6.9, -51.9, -6.4], rules: [{ name: "forest_loss", params: { minAlerts: 10, minHa: 1 } }] }],
+  });
+  const q = new QuotaGovernor(s.journal.dir, { ...CAPS, cdse: 0 }, DAY);
+  const { call: raw, calls } = recorder((tool) => {
+    if (tool === "forest_alerts") return { window: { from: "2026-06-28", to: "2026-09-26" }, alertCount: 900, areaHa: 60, byConfidence: { high: { alertCount: 900, areaHa: 60 } } };
+    if (tool === "enso") return { phase: "Neutral", latest: { oni: 0 } };
+    if (tool === "events") return { events: [] };
+    throw new Error(`unexpected tool ${tool}`);
+  });
+  const r = await sweep({ watchlists: [forest], rules: RULES, ledger: s.ledger, journal: s.journal, call: q.wrap(raw), quota: q, now: NOW, hasKey: () => true });
+  assert.equal(r.skipped.length, 0, "a spent confirm-only provider must not skip the pair");
+  assert.equal(r.created.length, 1, "detection (GFW) still opens the candidate");
+  assert.equal(r.confirmed.length, 0, "confirmation is deferred");
+  assert.ok(!calls.some((c) => c.tool === "eo_compare"), "no Copernicus call was attempted");
+  assert.equal(s.ledger.get(r.created[0]!)!.status, "candidate");
+});
