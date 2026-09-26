@@ -14,7 +14,9 @@ export type CardType =
   | "quakes"
   | "pulse"
   | "note"
-  | "similar";
+  | "similar"
+  | "finding"
+  | "worldpulse";
 
 export interface ImageData {
   mimeType: string;

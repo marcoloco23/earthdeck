@@ -1,4 +1,5 @@
 import { renderChart, type SeriesData } from "./chart";
+import { statusBadge } from "./watch";
 import type { Card, EventItem, FireItem, QuakeItem } from "./types";
 
 const TYPE_LABEL: Record<Card["type"], string> = {
@@ -13,6 +14,8 @@ const TYPE_LABEL: Record<Card["type"], string> = {
   pulse: "PULSE",
   note: "NOTE",
   similar: "SIMILAR",
+  finding: "finding",
+  worldpulse: "world pulse",
 };
 
 const NOTE_KINDS = new Set(["info", "insight", "warning"]);
@@ -375,6 +378,57 @@ export function renderCard(card: Card, onFocus: (card: Card) => void): HTMLEleme
     el.appendChild(grid);
   }
 
+  if (card.type === "finding") {
+    const p = card.payload as { status?: string; tier?: number; rule?: { name: string; version: string }; summary?: string; evidence?: number; findingId?: string };
+    const row = document.createElement("div");
+    row.className = "finding-row";
+    row.appendChild(statusBadge(String(p.status ?? "candidate")));
+    const meta = document.createElement("span");
+    meta.className = "finding-meta";
+    meta.textContent = `tier ${p.tier ?? "?"} · ${p.rule ? `${p.rule.name}@${p.rule.version}` : ""} · ${p.evidence ?? 0} evidence`;
+    row.appendChild(meta);
+    el.appendChild(row);
+    if (p.summary) {
+      const sm = document.createElement("p");
+      sm.className = "finding-summary";
+      sm.textContent = String(p.summary);
+      el.appendChild(sm);
+    }
+  }
+
+  if (card.type === "worldpulse") {
+    const rows =
+      (card.payload.rows as Array<{ label: string; unit: string; status: string; latest?: { t: string; v: number | null } | null; direction?: string; pace?: string | null; pctPerDecade?: number | null }> | undefined) ?? [];
+    const grid = document.createElement("div");
+    grid.className = "wp-grid";
+    for (const r of rows.slice(0, 16)) {
+      const cell = document.createElement("div");
+      const dir = r.status !== "ok" ? "na" : r.direction ?? "flat";
+      cell.className = `wp-cell wp--${/^[a-z]+$/.test(dir) ? dir : "na"}`;
+      const l = document.createElement("div");
+      l.className = "pulse-label";
+      l.textContent = r.label;
+      const v = document.createElement("div");
+      v.className = "pulse-value";
+      v.textContent = r.status !== "ok" || !r.latest || r.latest.v === null ? "n/a" : `${fmtNum(r.latest.v)} ${r.unit}`;
+      const sub = document.createElement("div");
+      sub.className = "pulse-sub";
+      sub.textContent =
+        r.status !== "ok"
+          ? "unavailable"
+          : `${dir === "improving" ? "▲ improving" : dir === "worsening" ? "▼ worsening" : "— flat"}${r.pctPerDecade != null ? ` · ${r.pctPerDecade > 0 ? "+" : ""}${r.pctPerDecade}%/decade` : ""}${r.pace ? ` · ${r.pace}` : ""} · ${r.latest?.t ?? ""}`;
+      cell.append(l, v, sub);
+      grid.appendChild(cell);
+    }
+    el.appendChild(grid);
+    if (typeof card.payload.summary === "string") {
+      const s2 = document.createElement("div");
+      s2.className = "series-source";
+      s2.textContent = card.payload.summary;
+      el.appendChild(s2);
+    }
+  }
+
   // Provenance footer(s): single block for imagery/index, before/after pair for compare.
   const prov = card.payload.provenance as ProvenanceView | undefined;
   if (prov) el.appendChild(renderProvenance(prov));
@@ -392,4 +446,13 @@ export function renderCard(card: Card, onFocus: (card: Card) => void): HTMLEleme
 
   el.addEventListener("click", () => onFocus(card));
   return el;
+}
+
+function fmtNum(v: number): string {
+  const a = Math.abs(v);
+  if (a >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
+  if (a >= 1e4) return Math.round(v).toLocaleString("en-US");
+  if (a >= 100) return v.toFixed(0);
+  if (a >= 1) return v.toFixed(2);
+  return v.toPrecision(3);
 }

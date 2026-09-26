@@ -16,6 +16,7 @@ import { registerEarthdataTools } from "./tools/earthdata.js";
 import { registerForestTools } from "./tools/forest.js";
 import { registerNarrateTools } from "./tools/narrate.js";
 import { registerSimilarTools } from "./tools/similar.js";
+import { registerWorldPulseTools } from "./tools/worldpulse.js";
 
 export function buildServer(): McpServer {
   const server = new McpServer(
@@ -33,7 +34,9 @@ export function buildServer(): McpServer {
         "1958 (co2), the global temperature record since 1880 (global_temp), polar sea ice " +
         "(sea_ice), earthquakes (quakes), air quality (air_quality), per-place climate history " +
         "since 1940 (climate_history), river discharge (river_discharge), planet_pulse — " +
-        "the planet's vital signs in one call — and earthdata_search to discover datasets " +
+        "the planet's vital signs in one call — world_pulse — civilization's vital signs (child " +
+        "mortality, poverty, renewables, forests…) each with an honest improving/worsening " +
+        "direction — and earthdata_search to discover datasets " +
         "across NASA's full ~50k-collection archive. Historic series include trends; the Earth is one " +
         "interconnected system, so cross-reference (ENSO ↔ fires/floods/SST; discharge ↔ SAR " +
         "floods). Bounding boxes are [west, south, east, north] degrees. Results also stream to " +
@@ -58,6 +61,7 @@ export function buildServer(): McpServer {
   registerForestTools(server);
   registerNarrateTools(server);
   registerSimilarTools(server);
+  registerWorldPulseTools(server);
 
   return server;
 }

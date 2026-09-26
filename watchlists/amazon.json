@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "name": "Amazon — deforestation frontier",
+  "description": "High-pressure municipalities and Indigenous lands on the Brazilian arc of deforestation. bboxes are watch windows, not legal polygons (protected_areas lands in M3).",
+  "aois": [
+    {
+      "id": "br-sao-felix-do-xingu",
+      "name": "São Félix do Xingu (PA)",
+      "bbox": [-52.4, -6.9, -51.9, -6.4],
+      "tags": ["amazon", "brazil", "cattle-frontier"],
+      "rules": [{ "name": "forest_loss", "params": { "days": 90, "minConfidence": "high", "minAlerts": 200, "minHa": 20 } }],
+      "notes": "Consistently among the top deforesting municipalities in Brazil."
+    },
+    {
+      "id": "br-novo-progresso-br163",
+      "name": "Novo Progresso / BR-163 corridor (PA)",
+      "bbox": [-55.6, -7.4, -55.1, -6.9],
+      "tags": ["amazon", "brazil", "road-corridor"],
+      "rules": [{ "name": "forest_loss", "params": { "days": 90, "minConfidence": "high", "minAlerts": 200, "minHa": 20 } }]
+    },
+    {
+      "id": "br-ti-kayapo-west",
+      "name": "Terra Indígena Kayapó (western edge)",
+      "bbox": [-53.2, -8.1, -52.7, -7.6],
+      "tags": ["amazon", "brazil", "indigenous-land"],
+      "cooldownDays": 14,
+      "rules": [
+        { "name": "forest_loss", "params": { "days": 60, "minConfidence": "high", "minAlerts": 50, "minHa": 5 } },
+        { "name": "fires_in_protected", "params": { "dayRange": 2, "minFrp": 20, "minDetections": 5 } }
+      ],
+      "notes": "Indigenous land: geometry is published as a coarse centroid; never a precise pin."
+    },
+    {
+      "id": "br-ti-apyterewa",
+      "name": "Terra Indígena Apyterewa",
+      "bbox": [-52.6, -5.6, -52.1, -5.1],
+      "tags": ["amazon", "brazil", "indigenous-land"],
+      "cooldownDays": 14,
+      "rules": [
+        { "name": "forest_loss", "params": { "days": 60, "minConfidence": "high", "minAlerts": 50, "minHa": 5 } },
+        { "name": "fires_in_protected", "params": { "dayRange": 2, "minFrp": 20, "minDetections": 5 } }
+      ]
+    }
+  ]
+}

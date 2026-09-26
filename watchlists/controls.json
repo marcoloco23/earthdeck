@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "name": "Controls — expected quiet",
+  "description": "Intact, remote, protected forest cores where nothing should fire. Every finding here is counted as a false positive for the rule that produced it: this is how the ledger measures its own error rate honestly.",
+  "aois": [
+    {
+      "id": "ctl-br-jau-core",
+      "name": "Jaú National Park core (AM, Brazil)",
+      "bbox": [-62.5, -2.2, -62.0, -1.7],
+      "tags": ["control", "amazon"],
+      "control": true,
+      "rules": [
+        { "name": "forest_loss", "params": { "days": 90, "minConfidence": "high", "minAlerts": 50, "minHa": 5 } },
+        { "name": "fires_in_protected", "params": { "dayRange": 2, "minFrp": 20, "minDetections": 5 } }
+      ]
+    },
+    {
+      "id": "ctl-cd-salonga-core",
+      "name": "Salonga National Park core (DRC)",
+      "bbox": [20.9, -2.4, 21.4, -1.9],
+      "tags": ["control", "congo-basin"],
+      "control": true,
+      "rules": [{ "name": "forest_loss", "params": { "days": 90, "minConfidence": "high", "minAlerts": 50, "minHa": 5 } }]
+    }
+  ]
+}

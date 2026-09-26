@@ -18,11 +18,46 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
   zero-key via the Source Cooperative COG mirror (ranged binary search of the 798 MB index
   CSV + purpose-built bottom-up BigTIFF/zstd reader, `src/utm.ts` Krüger projection). Live:
   urban ref → Manaus city grid (ref cell 1.0), river ref → Rio Negro. **26 tools, 130
-  offline tests, build + typecheck green. NOT committed yet.** Next: Horizon 2 leftovers —
-  embedding-difference change detection, few-shot classify, pgvector index — or CCDC/BFAST.
-- Session started: 2026-06-12 (Session 7)
+  offline tests, build + typecheck green.**
+- **Session 8 (2026-09-26): Earth Watch — strategy, research, M1 shipped.** Plan
+  `.plans/2026-09-26_earth-watch.md` (rev. 2), research `docs/research/…architecture.md`,
+  VISION.md §14. **M1 done**: verifiable ledger (`src/ledger/`, RFC 8785 + RFC 6962 +
+  C2SP checkpoints + DSSE/in-toto, trust contract as code), dashboard Watch tab + feeds
+  + `/ledger/*`, `earthdeck ledger verify|show|seed`, `world_pulse` (tool #27). **27
+  tools, 151 offline tests, build + all typechecks green, committed + pushed** on
+  `claude/ai-planetary-health-i94onh`, **PR #2 open**. **M2 built** (offline-verified):
+  `src/watch/` kernel + rules + watchlists + `earthdeck watch --once`; 156 tests. **Next:
+  first LIVE sweep with keys** (`earthdeck watch --once --max 2 --rules forest_loss`) to
+  open a real case, then M3. ⚠️ verify live: OWID CSV shape; GFW ring-baseline cost (2
+  alert queries per AOI); eo_compare `width: 256` acceptable for confirmation.
+- Session started: 2026-09-26 (Session 8)
 
 ---
+
+## HANDOFF → local Mac session (written 2026-09-26, cloud session)
+
+The cloud sandbox had no keys and no outbound network; everything below is what only a
+local session can do. In order:
+
+1. `git fetch origin && git checkout claude/ai-planetary-health-i94onh` (or `main` after
+   PR #2 merges) → `pnpm install && pnpm build && pnpm test` (expect 156 green).
+2. `.env`: `GFW_API_KEY`, `CDSE_CLIENT_ID/SECRET`, `FIRMS_MAP_KEY` (all already used by
+   existing tools). `earthdeck doctor` should be green.
+3. **Verify live** (the two things fixture-tested only): `node dist/cli.js dashboard` in one
+   terminal, then via Claude/MCP call `world_pulse` — if OWID's CSV shape differs, fix
+   `src/clients/owid.ts` (`owidUrl`, `parseOwidCsv`). Also `eo_compare` at `width: 256`.
+4. **First real sweep** (this is the M2 exit criterion):
+   `node dist/cli.js watch --once --dry-run --max 2 --rules forest_loss` → then without
+   `--dry-run` → `node dist/cli.js ledger show` → `ledger verify` → open the Watch tab.
+   Watch the GFW quota: each forest_loss AOI = 2 alert queries (AOI + baseline ring).
+5. Tune thresholds in `watchlists/*.json` against what the real data says (São Félix will
+   be loud; the controls must stay quiet — if a control fires, that's a rule bug, not news).
+6. Then M3 (see plan): `protected_areas`, `emitters` (Climate TRACE v7), `methane_plumes`
+   (S5P via the existing CDSE client + EMIT + MARS), `flaring`; `ledger_*` MCP tools.
+   Small chores first: `doctor` awareness of watch keys/ledger; JSON Schema export.
+
+Sub-agents work well for M3: one per client (each has fixtures to write), one for the
+`ledger_*` tools, one for doctor/schema chores — they touch disjoint files.
 
 ## WORKFLOW (every session)
 
@@ -168,6 +203,25 @@ Session 7b (2026-06-13) — user asks + Horizon 2:
 - [ ] Horizon 2 next: embedding-difference change detection (two years, same grid — the
       AEF client already supports `year`) · few-shot classification · pgvector index.
 
+Earth Watch — the public accountability loop (Session 8, planned 2026-09-26) — **CURRENT**:
+Plan `.plans/2026-09-26_earth-watch.md` (read it first; it holds the strategy decisions and
+the trust contract). Checkboxes mirror the ROADMAP "Earth Watch" block.
+- [x] M1 ledger: `src/ledger/{jcs,merkle,checkpoint,schema,store}.ts` + 21 tests (RFC
+      vectors, tampering, every trust-contract rule). Witnessed Merkle log, not a hash chain.
+- [x] M1 dashboard: `LedgerView` (`/api/ledger*`, feeds, `/ledger/*`), `finding`/`worldpulse`
+      cards, Watch tab (cases list + case page + map outline). Screenshotted.
+- [x] M1 `world_pulse` (tool #27) + `src/clients/owid.ts` registry + `earthdeck ledger` CLI.
+      ⚠️ verify OWID grapher CSV URL shape on a networked session.
+- [x] M2 kernel (`src/watch/`), rules `forest_loss` + `fires_in_protected` (blind spots
+      required, ring baselines, independent confirmation), watchlists + controls, journal
+      (watermarks, heartbeat), `earthdeck watch --once [--dry-run]`, README. ⚠️ live sweep
+      with keys still to run; doctor not yet aware of the watch keys/ledger.
+- [ ] M3 attribution tools (`protected_areas`, `emitters`, `methane_plumes`, `flaring`) +
+      detectors + `ledger_*` tools
+- [ ] M4 static export + scheduled Actions + Pages · analyst step · response tracking
+- [ ] M5 TRUST.md / CONTRIBUTING.md / docs / accuracy page
+MVP = M1 + M2. Don't start M3 before one real sweep has opened one real case end-to-end.
+
 Earth Pulse — planetary indicators (Session 6): ✅ done + live-verified (see ROADMAP section).
 - [x] 10 zero-key tools: enso · ocean_temp · co2 · global_temp · sea_ice · quakes ·
       climate_history · air_quality · river_discharge · planet_pulse
@@ -183,7 +237,7 @@ Onboarding (Session 6, "make it super simple"): ✅ done + live-verified
 - [x] README restructured: 30-second `npx … demo` quickstart + `claude mcp add` one-liner
       ABOVE the tool tables; keys table with direct links; doctor output sample.
 
-22 tools total. Build + typecheck green. **88 offline tests green** (`pnpm test`).
+27 tools total. Build + typecheck green. **156 offline tests green** (`pnpm test`).
 Live driver: `node scripts/live-drive.mjs [tool …]` (boots dashboard on :5099, reads `.env`).
 
 Engineering quality (cross-cutting):

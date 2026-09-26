@@ -3,8 +3,9 @@ import { readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, normalize, extname } from "node:path";
-import { dashboardPort, SERVER_NAME, SERVER_VERSION } from "../config.js";
+import { dashboardPort, ledgerDir, SERVER_NAME, SERVER_VERSION } from "../config.js";
 import type { Card, IngestPayload } from "../types.js";
+import { LedgerView } from "./ledger-view.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const WEB_ROOT = join(__dirname, "..", "web"); // dist/web after build
@@ -24,6 +25,8 @@ const CARD_TYPES = new Set<string>([
   "pulse",
   "note",
   "similar",
+  "finding",
+  "worldpulse",
 ]);
 
 const MAX_NOTE_CHARS = 20_000;
@@ -229,6 +232,7 @@ async function serveStatic(res: ServerResponse, urlPath: string): Promise<void> 
 
 export function startDashboard(port = dashboardPort()): void {
   const state = new DashboardState();
+  const ledger = new LedgerView(ledgerDir());
 
   const server = createServer((req, res) => {
     const url = req.url ?? "/";
@@ -275,6 +279,18 @@ export function startDashboard(port = dashboardPort()): void {
       state.clients.add(res);
       req.on("close", drop);
       res.on("error", drop);
+      return;
+    }
+
+    // The findings ledger: local review API + the public, cacheable verification surface.
+    if (method === "GET" && (url.startsWith("/api/ledger") || url.startsWith("/ledger/") || url.startsWith("/feed."))) {
+      ledger
+        .handle(url)
+        .then((r) => {
+          if (r.headers) for (const [k, v] of Object.entries(r.headers)) res.setHeader(k, v);
+          send(res, r.status, r.type, r.body);
+        })
+        .catch((err: unknown) => send(res, 500, "application/json", JSON.stringify({ error: String(err) })));
       return;
     }
 

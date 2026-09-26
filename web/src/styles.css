@@ -277,3 +277,72 @@ body {
 /* similarity cards (eo_similar) */
 .badge--similar { background: #f59e0b; }
 .sim-dot { background: #f59e0b; }
+
+/* ---- Tabs + Watch (findings ledger) ---- */
+#tabs { display: flex; gap: 0.25rem; }
+.tab {
+  background: transparent; border: 1px solid transparent; color: var(--muted); border-radius: 6px;
+  padding: 0.15rem 0.55rem; font: inherit; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+}
+.tab:hover { color: var(--text); }
+.tab--on { color: var(--text); border-color: var(--border); background: var(--panel-2); }
+#watch { overflow-y: auto; flex: 1; padding: 0.6rem; font-size: 0.8rem; }
+.watch-head { display: flex; justify-content: space-between; color: var(--muted); font-size: 0.7rem; padding: 0 0.2rem 0.5rem; }
+.watch-verify { font-variant-numeric: tabular-nums; }
+.watch-empty { color: var(--muted); line-height: 1.5; padding: 0.6rem 0.4rem; }
+.watch-row {
+  display: grid; grid-template-columns: auto auto 1fr; gap: 0.35rem 0.5rem; align-items: center; width: 100%; text-align: left;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 0.55rem 0.7rem; margin-bottom: 0.5rem;
+  color: var(--text); font: inherit; cursor: pointer; transition: border-color 0.15s;
+}
+.watch-row:hover { border-color: var(--accent-dim); }
+.watch-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.watch-meta { grid-column: 1 / -1; color: var(--muted); font-size: 0.68rem; }
+.watch-tier { color: var(--muted); font-size: 0.68rem; font-variant-numeric: tabular-nums; }
+.status-badge {
+  display: inline-block; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.1rem 0.4rem;
+  border-radius: 999px; border: 1px solid var(--border); color: var(--muted);
+}
+.status--candidate { color: #94a3b8; }
+.status--confirmed { color: #fbbf24; border-color: #fbbf2466; }
+.status--published, .status--notified { color: #f97316; border-color: #f9731666; }
+.status--replied { color: #38bdf8; border-color: #38bdf866; }
+.status--no_response { color: #f87171; border-color: #f8717166; }
+.status--resolved { color: #34d399; border-color: #34d39966; }
+.status--ignored { color: #f87171; }
+.status--expired, .status--false_positive, .status--retracted { color: #64748b; text-decoration: line-through; }
+.watch-back { background: transparent; border: 0; color: var(--accent); font: inherit; font-size: 0.75rem; cursor: pointer; padding: 0 0 0.5rem; }
+.watch-detail-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.watch-h2 { font-size: 0.95rem; margin: 0.2rem 0 0; flex-basis: 100%; }
+.watch-summary { line-height: 1.5; margin: 0.4rem 0; }
+.watch-retracted { color: #f87171; }
+.watch-facts { display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 0.7rem; font-size: 0.74rem; margin: 0.5rem 0; }
+.watch-facts dt { color: var(--muted); }
+.watch-facts dd { margin: 0; }
+.watch-section { margin-top: 0.7rem; }
+.watch-h3 { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0 0 0.35rem; }
+.watch-evidence { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 0.45rem 0.6rem; margin-bottom: 0.4rem; font-size: 0.72rem; }
+.watch-evidence-id { font-weight: 600; }
+.watch-evidence-meta, .watch-evidence-vals { color: var(--muted); font-size: 0.66rem; word-break: break-all; }
+.watch-evidence-sum { margin: 0.2rem 0; }
+.watch-evidence a, .watch-verifybox a { color: var(--accent); }
+.watch-narration p { margin: 0 0 0.3rem; line-height: 1.5; }
+.watch-disclosure { color: var(--muted); font-size: 0.66rem; font-style: italic; }
+.watch-timeline { list-style: none; padding: 0; margin: 0; font-size: 0.7rem; color: var(--muted); }
+.watch-timeline li { padding: 0.15rem 0; border-left: 2px solid var(--border); padding-left: 0.5rem; }
+.watch-reply { color: var(--text); }
+.watch-noreply { color: #f87171; }
+.watch-verifybox { font-size: 0.7rem; color: var(--muted); }
+
+/* finding + world-pulse cards in the feed */
+.finding-row { display: flex; align-items: center; gap: 0.5rem; margin: 0.35rem 0 0.2rem; }
+.finding-meta { color: var(--muted); font-size: 0.68rem; }
+.finding-summary { margin: 0.2rem 0 0; font-size: 0.76rem; line-height: 1.45; }
+.wp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.4rem; }
+.wp-cell { background: var(--panel-2); border: 1px solid var(--border); border-left-width: 3px; border-radius: 8px; padding: 0.4rem 0.5rem; }
+.wp--improving { border-left-color: #34d399; }
+.wp--worsening { border-left-color: #f87171; }
+.wp--flat { border-left-color: #94a3b8; }
+.wp--na { border-left-color: var(--border); opacity: 0.6; }
+.badge--finding { background: #f59e0b; color: #0b0f17; }
+.badge--worldpulse { background: #34d399; color: #0b0f17; }

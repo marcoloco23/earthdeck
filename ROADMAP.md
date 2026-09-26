@@ -44,6 +44,7 @@ Env: `CDSE_CLIENT_ID`/`CDSE_CLIENT_SECRET` (Copernicus), `FIRMS_MAP_KEY` (fires)
 | `river_discharge(lat, lon, start?, end?)` | Open-Meteo flood (GloFAS, 1984→) | none | series |
 | `planet_pulse()` | all of the above + EONET + USGS, parallel best-effort | none | pulse |
 | `earthdata_search(keyword, bbox?, dateFrom?, dateTo?, limit=10)` | NASA CMR collections.json | none | search |
+| `world_pulse(indicators?)` | Our World in Data grapher CSV | none | worldpulse |
 
 Endpoints:
 - OAuth token: `POST https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token` (`client_credentials`)
@@ -189,6 +190,46 @@ charts, `quakes` magnitude-scaled map layer, `pulse` vital-signs grid).
 
 Horizons 3–5 (the Watchdog monitoring platform, verticalization, marketplace/system-of-record):
 see [VISION.md](VISION.md) §7.
+
+## Earth Watch — the public accountability loop 🚧 (M1 ✅ 2026-09-26)
+
+Horizon 3 pulled forward as a public good. Plan: [`.plans/2026-09-26_earth-watch.md`](.plans/2026-09-26_earth-watch.md);
+strategy: [VISION.md](VISION.md) §14. Loop = detect → verify → attribute → route → track.
+
+**M1 — Memory + pulse** (zero-key, offline-testable)
+- [x] `src/ledger/` — event-sourced findings (in-toto/DSSE, JCS), RFC 6962 Merkle log in
+      tlog-tiles layout, Ed25519 signed checkpoints, trust contract as code, `verify` (2026-09-26)
+- [x] Dashboard: `/api/ledger*`, `/feed.json`, `/feed.geojson`, `/ledger/{checkpoint,pub,
+      entries.jsonl,tile/*}`; `finding` + `worldpulse` cards; **Watch** tab (2026-09-26)
+- [x] `world_pulse` (tool #27) — OWID registry w/ `betterWhen` + direction + pace; `earthdeck
+      ledger verify|show|seed` CLI (2026-09-26) ⚠️ OWID URL shape: verify live
+
+**M2 — The sweep** (`earthdeck watch`)
+- [x] `watchlists/*.json` format + seed lists (Amazon, Congo/Borneo, controls) (2026-09-26)
+- [x] `src/watch/{kernel,journal,run}.ts` — in-process MCP client, delay/cap, cooldown ⇒ evidence,
+      watermarks, gaps, dry run, TTL expiry; `--once` only (schedule it; no `--every`) (2026-09-26)
+- [x] Rules `forest_loss`, `fires_in_protected` — blind spots required, ring baseline, independent
+      confirmation (fixture-tested) (2026-09-26)
+- [x] `earthdeck watch` CLI + README (2026-09-26) · [ ] doctor awareness of watch keys/ledger
+- [ ] **First live sweep with keys → first real case** (needs GFW/FIRMS/CDSE + network)
+
+**M3 — Attribution + methane wedge**
+- [ ] `protected_areas` (Overpass; WDPA opt.) · `emitters` (Climate TRACE) · `methane_plumes`
+      (S5P via CDSE) · `flaring` (VIIRS Nightfire, opt.)
+- [ ] Detectors `methane`, `flaring`; attribution on cases; `ledger_*` tools for Claude triage
+
+**M4 — Public + around the clock**
+- [ ] `earthdeck watch export` → static site; `.github/workflows/watch.yml` (schedule + Pages)
+- [ ] Analyst step (2nd-signal verification + narrative); response tracking (notified → resolved)
+
+**M5 — Open it up**
+- [ ] `TRUST.md`, `CONTRIBUTING.md`, `docs/{detectors,watchlists}.md`, issue templates,
+      published accuracy page (false-positive rate per detector)
+
+New tools (contract): `world_pulse(indicators?)` · `protected_areas(bbox)` · `emitters(bbox, sector?)`
+· `methane_plumes(bbox, days)` · `flaring(bbox, days)` · `ledger_find` / `ledger_add` / `ledger_update`.
+New env: `EARTHDECK_LEDGER_PATH` (default `data/ledger.jsonl`), `PROTECTED_PLANET_TOKEN`,
+`EOG_TOKEN`, `ANTHROPIC_API_KEY` (analyst, optional).
 
 ## Tidy-up backlog (low priority)
 

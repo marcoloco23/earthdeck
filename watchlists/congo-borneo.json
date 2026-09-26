@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "name": "Congo Basin + Borneo — forest frontiers",
+  "aois": [
+    {
+      "id": "cd-tshopo-kisangani-east",
+      "name": "Tshopo, east of Kisangani (DRC)",
+      "bbox": [25.4, 0.3, 25.9, 0.8],
+      "tags": ["congo-basin", "drc", "smallholder-frontier"],
+      "rules": [{ "name": "forest_loss", "params": { "days": 90, "minConfidence": "high", "minAlerts": 150, "minHa": 15 } }],
+      "notes": "Smallholder clearing dominates here — a finding is a regional signal, never an accusation against a family."
+    },
+    {
+      "id": "id-central-kalimantan-sebangau",
+      "name": "Central Kalimantan, Sebangau fringe (Indonesia)",
+      "bbox": [113.6, -2.7, 114.1, -2.2],
+      "tags": ["borneo", "indonesia", "peatland"],
+      "rules": [
+        { "name": "forest_loss", "params": { "days": 90, "minConfidence": "high", "minAlerts": 100, "minHa": 10 } },
+        { "name": "fires_in_protected", "params": { "dayRange": 2, "minFrp": 15, "minDetections": 5 } }
+      ],
+      "notes": "Peat fires: FRP is often low but smouldering persists — revisit confirmation matters here."
+    }
+  ]
+}

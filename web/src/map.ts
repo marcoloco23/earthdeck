@@ -10,6 +10,7 @@ const overlayIds: string[] = [];
 let eventMarkers: maplibregl.Marker[] = [];
 const FIRE_LAYER = "fires-src";
 const QUAKE_LAYER = "quakes-src";
+const FINDING_LAYER = "finding-src";
 
 /**
  * Initialize the MapLibre map. Returns false (without throwing) if the browser can't
@@ -318,6 +319,43 @@ export function showSimilar(card: Card): void {
   if (card.bbox) fitBBox(card.bbox, 11);
 }
 
+/** Outline a finding's geometry (Point/Polygon/MultiPolygon GeoJSON) and fly to it. */
+export function showFinding(geometry: { type: string; coordinates: unknown } | undefined, bbox?: BBox): void {
+  if (!map) return;
+  const m = map;
+  const data = geometry
+    ? ({ type: "FeatureCollection", features: [{ type: "Feature", geometry, properties: {} }] } as GeoJSON.FeatureCollection)
+    : ({ type: "FeatureCollection", features: [] } as GeoJSON.FeatureCollection);
+  const src = m.getSource(FINDING_LAYER) as maplibregl.GeoJSONSource | undefined;
+  if (src) {
+    src.setData(data);
+  } else {
+    m.addSource(FINDING_LAYER, { type: "geojson", data });
+    m.addLayer({
+      id: `${FINDING_LAYER}-fill`,
+      type: "fill",
+      source: FINDING_LAYER,
+      filter: ["!=", ["geometry-type"], "Point"],
+      paint: { "fill-color": "#f59e0b", "fill-opacity": 0.18 },
+    });
+    m.addLayer({
+      id: `${FINDING_LAYER}-line`,
+      type: "line",
+      source: FINDING_LAYER,
+      filter: ["!=", ["geometry-type"], "Point"],
+      paint: { "line-color": "#f59e0b", "line-width": 2 },
+    });
+    m.addLayer({
+      id: `${FINDING_LAYER}-pt`,
+      type: "circle",
+      source: FINDING_LAYER,
+      filter: ["==", ["geometry-type"], "Point"],
+      paint: { "circle-radius": 8, "circle-color": "rgba(245,158,11,0.35)", "circle-stroke-color": "#f59e0b", "circle-stroke-width": 2 },
+    });
+  }
+  if (bbox) fitBBox(bbox, 11);
+}
+
 /** Fly to a card's bbox without adding an overlay (series cards carry a location). */
 export function focusBBox(card: Card): void {
   if (!map || !card.bbox) return;
@@ -344,6 +382,8 @@ export function clearOverlays(): void {
     if (map.getLayer(id)) map.removeLayer(id);
     if (map.getSource(id)) map.removeSource(id);
   }
+  for (const id of [`${FINDING_LAYER}-fill`, `${FINDING_LAYER}-line`, `${FINDING_LAYER}-pt`]) if (map.getLayer(id)) map.removeLayer(id);
+  if (map.getSource(FINDING_LAYER)) map.removeSource(FINDING_LAYER);
 }
 
 function escapeHtml(s: string): string {

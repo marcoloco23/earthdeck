@@ -54,3 +54,8 @@ export function gfwApiKey(): string | null {
 export function stacUrl(): string {
   return env("STAC_URL") ?? "https://earth-search.aws.element84.com/v1";
 }
+
+/** Directory holding the findings ledger (entries.jsonl, checkpoint, tiles, keys). */
+export function ledgerDir(): string {
+  return env("LEDGER_DIR") ?? "data/ledger";
+}

@@ -82,6 +82,57 @@ Every indicator result names its source and carries the series, so claims are ch
 The zero-key tools (`eo_snapshot`, `events`, `geo_resolve`, `stac_search`, and all ten
 planetary-indicator tools) work with no setup at all.
 
+## Earth Watch — the public accountability ledger (new, M1)
+
+earthdeck is growing from a monitoring toolkit into a **standing, public, evidence-first
+watch on the planet** (plan: [`.plans/2026-09-26_earth-watch.md`](.plans/2026-09-26_earth-watch.md),
+research: [`docs/research/`](docs/research/)). The loop is
+**detect → verify → attribute → route → track the response**, and the memory of that loop
+is a ledger anyone can verify:
+
+- **Event-sourced findings** as in-toto Statements in DSSE envelopes (RFC 8785 canonical
+  JSON), in an **RFC 6962 Merkle log** with the C2SP `tlog-tiles` static layout and
+  Ed25519 **signed checkpoints**. `earthdeck ledger verify` re-derives everything and
+  catches edits, deletions, reordering and forged entries. Zero new dependencies.
+- **The trust contract is code** (`src/ledger/schema.ts`): no finding without evidence; a
+  candidate is *confirmed* only by an **independent second signal** (never an LLM judge);
+  tiers of human review; **two distinct reviewers to name a party**; a **72 h private
+  notice / 30-day public** right-of-reply clock; retractions and false positives are kept
+  forever as our published error rate; subjects are assets, places and institutions —
+  never people.
+- **`world_pulse`** (tool #27, zero-key): civilization's vital signs from Our World in
+  Data, each with an honest *improving / worsening / flat* direction and pace — good news
+  and bad, not a news feed.
+- **Dashboard → Watch tab**: case list, case page (evidence, timeline, response, verify
+  links); `GET /feed.json`, `/feed.geojson` (public cases), `/ledger/checkpoint`,
+  `/ledger/pub`, `/ledger/entries.jsonl`, `/ledger/tile/*`.
+
+```bash
+earthdeck watch --once     # sweep watchlists/*.json with the real tools → findings in the ledger
+earthdeck watch --once --dry-run   # what would happen, writes nothing (works with zero keys: skips)
+earthdeck ledger seed      # demo cases into an empty ledger (data/ledger by default)
+earthdeck ledger verify    # ✓ OK — every entry is signed, canonical, rule-abiding…
+earthdeck ledger show      # list cases; `show <id>` prints events
+earthdeck dashboard        # → open the Watch tab
+```
+
+**The sweep (M2)** — `src/watch/`: a deterministic **Watch Kernel** (no LLM) runs every
+AOI × rule in `watchlists/*.json`, journals every tool call, opens a *candidate* with the
+primary signal, and marks it *confirmed* only when the rule's **independent second signal**
+agrees (`forest_loss`: GFW alerts → NDVI drop in a Sentinel-2 median composite;
+`fires_in_protected`: VIIRS cluster → EONET event or re-detection on a later pass).
+Every rule must declare its **blind spots** and keeps a **regional baseline** (the AOI vs
+its neighbourhood ring — "did it stop, or did it move?"); every finding carries **context**
+(ENSO phase, nearby EONET events). Watermarks make late or missed runs self-heal; failures
+are recorded as coverage gaps, never silence. **Control AOIs** (expected quiet) measure our
+own false-positive rate. Needs `GFW_API_KEY` + CDSE creds (forest) and `FIRMS_MAP_KEY`
+(fires); pairs whose keys are missing are skipped, not failed.
+
+Env: `EARTHDECK_LEDGER_DIR` (default `data/ledger`), `EARTHDECK_LEDGER_KEY` (base64
+Ed25519 seed; otherwise `ledger.key` is generated — **never commit it**; `ledger.pub` is
+what you publish). Next: attribution + methane tools (M3), a scheduled public site with
+Rekor/OpenTimestamps witnessing (M4), TRUST.md (M5).
+
 ## Setup details
 
 Want the dashboard alongside Claude? Run `npx -y earthdeck dashboard`
