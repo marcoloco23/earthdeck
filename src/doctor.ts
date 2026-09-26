@@ -2,7 +2,15 @@
 // every upstream data source, then says exactly which tool families are ready and how to
 // unlock the rest. Friendly output, no jargon, exits 0 unless a zero-key source is down.
 
-import { cdseCreds, firmsMapKey, gfwApiKey, SERVER_VERSION, USER_AGENT } from "./config.js";
+import {
+  cdseCreds,
+  climateTraceBase,
+  firmsMapKey,
+  gfwApiKey,
+  overpassUrl,
+  SERVER_VERSION,
+  USER_AGENT,
+} from "./config.js";
 
 const out = (s: string) => process.stdout.write(s + "\n");
 
@@ -24,6 +32,8 @@ const ZERO_KEY_CHECKS: Check[] = [
   { name: "USGS (quakes)", url: "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&limit=1" },
   { name: "NASA CMR (earthdata_search)", url: "https://cmr.earthdata.nasa.gov/search/collections.json?keyword=test&page_size=1" },
   { name: "Open-Meteo (climate/air/river)", url: "https://archive-api.open-meteo.com/v1/archive?latitude=0&longitude=0&start_date=2024-01-01&end_date=2024-01-01&daily=temperature_2m_mean" },
+  { name: "OSM Overpass (protected_areas)", url: `${overpassUrl()}?data=${encodeURIComponent("[out:json];out;")}`, anyResponse: true }, // shared instance often 504s when busy — an answer means reachable
+  { name: "Climate TRACE v7 (emitters)", url: `${climateTraceBase()}/definitions/sectors` },
 ];
 
 async function probe(check: Check, timeoutMs = 10_000): Promise<{ ok: boolean; detail: string }> {
@@ -172,10 +182,10 @@ export async function runDoctor(): Promise<void> {
   }
 
   out("");
-  const readyTools = 17 + (cdse.ok ? 7 : 0) + (firms.ok ? 1 : 0) + (gfw.ok ? 1 : 0);
+  const readyTools = 20 + (cdse.ok ? 7 : 0) + (firms.ok ? 1 : 0) + (gfw.ok ? 1 : 0);
   out(
     zeroKeyDown === 0
-      ? `  All zero-key sources reachable — ${readyTools}/26 tools ready to use.`
+      ? `  All zero-key sources reachable — ${readyTools}/29 tools ready to use.`
       : `  ⚠️ ${zeroKeyDown} zero-key source(s) unreachable (network/proxy?) — some tools will fail.`,
   );
   out("  Try it now:  npx -y earthdeck demo");
