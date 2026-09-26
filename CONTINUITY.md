@@ -34,6 +34,31 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
 
 ---
 
+## HANDOFF → local Mac session (written 2026-09-26, cloud session)
+
+The cloud sandbox had no keys and no outbound network; everything below is what only a
+local session can do. In order:
+
+1. `git fetch origin && git checkout claude/ai-planetary-health-i94onh` (or `main` after
+   PR #2 merges) → `pnpm install && pnpm build && pnpm test` (expect 156 green).
+2. `.env`: `GFW_API_KEY`, `CDSE_CLIENT_ID/SECRET`, `FIRMS_MAP_KEY` (all already used by
+   existing tools). `earthdeck doctor` should be green.
+3. **Verify live** (the two things fixture-tested only): `node dist/cli.js dashboard` in one
+   terminal, then via Claude/MCP call `world_pulse` — if OWID's CSV shape differs, fix
+   `src/clients/owid.ts` (`owidUrl`, `parseOwidCsv`). Also `eo_compare` at `width: 256`.
+4. **First real sweep** (this is the M2 exit criterion):
+   `node dist/cli.js watch --once --dry-run --max 2 --rules forest_loss` → then without
+   `--dry-run` → `node dist/cli.js ledger show` → `ledger verify` → open the Watch tab.
+   Watch the GFW quota: each forest_loss AOI = 2 alert queries (AOI + baseline ring).
+5. Tune thresholds in `watchlists/*.json` against what the real data says (São Félix will
+   be loud; the controls must stay quiet — if a control fires, that's a rule bug, not news).
+6. Then M3 (see plan): `protected_areas`, `emitters` (Climate TRACE v7), `methane_plumes`
+   (S5P via the existing CDSE client + EMIT + MARS), `flaring`; `ledger_*` MCP tools.
+   Small chores first: `doctor` awareness of watch keys/ledger; JSON Schema export.
+
+Sub-agents work well for M3: one per client (each has fixtures to write), one for the
+`ledger_*` tools, one for doctor/schema chores — they touch disjoint files.
+
 ## WORKFLOW (every session)
 
 1. Read this file fully. Update AGENT CHECKIN.
