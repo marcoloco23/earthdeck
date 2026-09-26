@@ -1,0 +1,524 @@
+{
+  "note": "Nominatim reverse (zoom 8) admin levels per rounded centroid — © OpenStreetMap contributors, ODbL. Cache for `earthdeck discover`; delete an entry to re-ask.",
+  "places": {
+    "-0.298,-76.809": {
+      "county": "Joya de los Sachas",
+      "state": "Orellana",
+      "country": "Ecuador",
+      "countryCode": "ec"
+    },
+    "-0.510,-76.664": {
+      "county": "Francisco de Orellana",
+      "state": "Orellana",
+      "country": "Ecuador",
+      "countryCode": "ec"
+    },
+    "-20.294,115.260": {
+      "country": "Australia",
+      "countryCode": "au"
+    },
+    "-26.230,149.467": {
+      "state": "Queensland",
+      "country": "Australia",
+      "countryCode": "au"
+    },
+    "-38.165,-68.878": {
+      "county": "Departamento Añelo",
+      "state": "Neuquén",
+      "country": "Argentina",
+      "countryCode": "ar"
+    },
+    "-38.286,-68.780": {
+      "county": "Departamento Añelo",
+      "state": "Neuquén",
+      "country": "Argentina",
+      "countryCode": "ar"
+    },
+    "-4.836,11.635": {},
+    "-4.892,12.019": {
+      "county": "District de Tchiamba-Nzassi",
+      "state": "Pointe-Noire (département)",
+      "country": "Congo-Brazzaville",
+      "countryCode": "cg"
+    },
+    "-5.142,11.655": {},
+    "-6.856,12.394": {},
+    "10.065,-64.872": {
+      "county": "Municipio Simón Bolívar",
+      "state": "Anzoategui State",
+      "country": "Venezuela",
+      "countryCode": "ve"
+    },
+    "11.684,-70.215": {
+      "county": "Municipio Carirubana",
+      "state": "Falcon State",
+      "country": "Venezuela",
+      "countryCode": "ve"
+    },
+    "17.957,-93.463": {
+      "county": "Huimanguillo",
+      "state": "Tabasco",
+      "country": "Mexico",
+      "countryCode": "mx"
+    },
+    "17.981,-94.526": {
+      "county": "Minatitlán",
+      "state": "Veracruz",
+      "country": "Mexico",
+      "countryCode": "mx"
+    },
+    "18.453,-93.286": {
+      "country": "Mexico",
+      "countryCode": "mx"
+    },
+    "18.511,-93.121": {
+      "country": "Mexico",
+      "countryCode": "mx"
+    },
+    "19.473,-92.124": {},
+    "24.695,53.685": {},
+    "25.138,49.311": {
+      "state": "Eastern Province",
+      "country": "Saudi Arabia",
+      "countryCode": "sa"
+    },
+    "25.525,53.149": {},
+    "25.919,51.730": {
+      "country": "Qatar",
+      "countryCode": "qa"
+    },
+    "26.123,52.187": {},
+    "26.460,49.272": {
+      "state": "Eastern Province",
+      "country": "Saudi Arabia",
+      "countryCode": "sa"
+    },
+    "26.568,52.339": {},
+    "26.680,52.121": {},
+    "26.743,68.855": {
+      "county": "Khairpur District",
+      "state": "Sindh",
+      "country": "Pakistan",
+      "countryCode": "pk"
+    },
+    "27.519,52.616": {
+      "county": "Asaluyeh County",
+      "state": "Bushehr Province",
+      "country": "Iran",
+      "countryCode": "ir"
+    },
+    "27.628,22.464": {
+      "state": "Al Wahat",
+      "country": "Libya",
+      "countryCode": "ly"
+    },
+    "27.730,52.194": {
+      "county": "Kangan County",
+      "state": "Bushehr Province",
+      "country": "Iran",
+      "countryCode": "ir"
+    },
+    "28.502,49.710": {},
+    "28.586,7.564": {
+      "county": "In Amenas District",
+      "state": "Illizi",
+      "country": "Algeria",
+      "countryCode": "dz"
+    },
+    "28.659,-98.679": {
+      "county": "Atascosa County",
+      "state": "Texas",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "28.781,-98.354": {
+      "county": "Atascosa County",
+      "state": "Texas",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "28.904,20.960": {
+      "state": "Al Wahat",
+      "country": "Libya",
+      "countryCode": "ly"
+    },
+    "28.910,19.773": {
+      "state": "Al Wahat",
+      "country": "Libya",
+      "countryCode": "ly"
+    },
+    "29.030,48.025": {
+      "state": "Ahmadi Governorate",
+      "country": "Kuwait",
+      "countryCode": "kw"
+    },
+    "30.131,8.049": {
+      "county": "In Amenas District",
+      "state": "Illizi",
+      "country": "Algeria",
+      "countryCode": "dz"
+    },
+    "30.287,50.629": {
+      "county": "Gachsaran County",
+      "state": "Kohgiluye and Buyer Ahmad Province",
+      "country": "Iran",
+      "countryCode": "ir"
+    },
+    "30.357,49.992": {
+      "county": "Behbahan County",
+      "state": "Khuzestan Province",
+      "country": "Iran",
+      "countryCode": "ir"
+    },
+    "30.653,47.387": {
+      "county": "Al-Basrah District",
+      "state": "Basra Governorate",
+      "country": "Iraq",
+      "countryCode": "iq"
+    },
+    "30.839,47.279": {
+      "state": "Basra Governorate",
+      "country": "Iraq",
+      "countryCode": "iq"
+    },
+    "30.903,47.977": {
+      "county": "Shatt Al-Arab District",
+      "state": "Basra Governorate",
+      "country": "Iraq",
+      "countryCode": "iq"
+    },
+    "31.034,49.398": {
+      "county": "Ramshir County",
+      "state": "Khuzestan Province",
+      "country": "Iran",
+      "countryCode": "ir"
+    },
+    "31.094,47.696": {
+      "county": "Hoveyzeh County",
+      "state": "Khuzestan Province",
+      "country": "Iran",
+      "countryCode": "ir"
+    },
+    "31.234,48.096": {
+      "county": "Hoveyzeh County",
+      "state": "Khuzestan Province",
+      "country": "Iran",
+      "countryCode": "ir"
+    },
+    "31.284,48.934": {
+      "county": "Ahvaz County",
+      "state": "Khuzestan Province",
+      "country": "Iran",
+      "countryCode": "ir"
+    },
+    "31.634,6.011": {
+      "county": "Hassi Messaoud District",
+      "state": "Ouargla",
+      "country": "Algeria",
+      "countryCode": "dz"
+    },
+    "31.676,47.461": {
+      "state": "Maysan Governorate",
+      "country": "Iraq",
+      "countryCode": "iq"
+    },
+    "31.769,46.053": {
+      "state": "Dhi Qar Governorate",
+      "country": "Iraq",
+      "countryCode": "iq"
+    },
+    "31.849,-101.797": {
+      "county": "Midland County",
+      "state": "Texas",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "31.881,-103.625": {
+      "county": "Loving County",
+      "state": "Texas",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "32.057,-101.824": {
+      "county": "Midland County",
+      "state": "Texas",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "32.091,-94.417": {
+      "county": "Panola County",
+      "state": "Texas",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "32.105,-103.729": {
+      "county": "Eddy County",
+      "state": "New Mexico",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "32.118,47.465": {
+      "county": "Amarah District",
+      "state": "Maysan Governorate",
+      "country": "Iraq",
+      "countryCode": "iq"
+    },
+    "32.203,49.067": {
+      "county": "Masjedsoleyman County",
+      "state": "Khuzestan Province",
+      "country": "Iran",
+      "countryCode": "ir"
+    },
+    "32.216,-93.559": {
+      "county": "Red River Parish",
+      "state": "Louisiana",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "32.354,47.707": {
+      "county": "Dehloran County",
+      "state": "Ilam Province",
+      "country": "Iran",
+      "countryCode": "ir"
+    },
+    "32.472,47.249": {
+      "county": "Dehloran County",
+      "state": "Ilam Province",
+      "country": "Iran",
+      "countryCode": "ir"
+    },
+    "32.953,3.248": {
+      "county": "Hassi R'Mel District",
+      "state": "Laghouat",
+      "country": "Algeria",
+      "countryCode": "dz"
+    },
+    "34.708,44.760": {
+      "county": "Kifri District",
+      "state": "Diyala Governorate",
+      "country": "Iraq",
+      "countryCode": "iq"
+    },
+    "35.483,44.274": {
+      "county": "Kirkuk District",
+      "state": "Kirkuk Governorate",
+      "country": "Iraq",
+      "countryCode": "iq"
+    },
+    "35.796,-98.429": {
+      "county": "Blaine County",
+      "state": "Oklahoma",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "35.811,43.875": {
+      "county": "Makhmur District",
+      "state": "Nineveh Governorate",
+      "country": "Iraq",
+      "countryCode": "iq"
+    },
+    "35.812,-0.253": {
+      "county": "Bethioua District",
+      "state": "Oran",
+      "country": "Algeria",
+      "countryCode": "dz"
+    },
+    "36.795,-107.732": {
+      "county": "San Juan County",
+      "state": "New Mexico",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "36.882,43.436": {
+      "county": "Amadiya District",
+      "state": "Duhok Governorate",
+      "country": "Iraq",
+      "countryCode": "iq"
+    },
+    "37.795,61.989": {
+      "county": "Garagum District",
+      "state": "Mary Province",
+      "country": "Turkmenistan",
+      "countryCode": "tm"
+    },
+    "38.849,118.944": {
+      "country": "China",
+      "countryCode": "cn"
+    },
+    "38.997,65.148": {
+      "state": "Qashqadaryo Region",
+      "country": "Uzbekistan",
+      "countryCode": "uz"
+    },
+    "39.016,-80.951": {
+      "county": "Gilmer County",
+      "state": "West Virginia",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "4.292,8.409": {},
+    "4.805,7.092": {
+      "county": "Eleme",
+      "state": "Rivers State",
+      "country": "Nigeria",
+      "countryCode": "ng"
+    },
+    "40.065,-80.978": {
+      "county": "Belmont County",
+      "state": "Ohio",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "40.146,50.084": {},
+    "41.050,-78.056": {
+      "county": "Centre County",
+      "state": "Pennsylvania",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "47.427,54.059": {
+      "county": "Zhylyoi District",
+      "state": "Atyrau Region",
+      "country": "Kazakhstan",
+      "countryCode": "kz"
+    },
+    "47.971,-103.160": {
+      "county": "McKenzie County",
+      "state": "North Dakota",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "47.999,-102.706": {
+      "county": "McKenzie County",
+      "state": "North Dakota",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "5.052,6.532": {
+      "county": "Ahoada West",
+      "state": "Rivers State",
+      "country": "Nigeria",
+      "countryCode": "ng"
+    },
+    "5.535,6.474": {
+      "county": "Ndokwa East",
+      "state": "Delta State",
+      "country": "Nigeria",
+      "countryCode": "ng"
+    },
+    "5.663,5.199": {
+      "county": "Warri South-West",
+      "state": "Delta State",
+      "country": "Nigeria",
+      "countryCode": "ng"
+    },
+    "54.483,52.346": {
+      "county": "Leninogorsky District",
+      "state": "Tatarstan",
+      "country": "Russia",
+      "countryCode": "ru"
+    },
+    "54.917,-118.125": {
+      "county": "Municipal District of Greenview",
+      "state": "Alberta",
+      "country": "Canada",
+      "countryCode": "ca"
+    },
+    "56.125,-111.564": {
+      "county": "Wood Buffalo",
+      "state": "Alberta",
+      "country": "Canada",
+      "countryCode": "ca"
+    },
+    "57.715,105.897": {
+      "county": "Усть-Кутский район",
+      "state": "Irkutsk Oblast",
+      "country": "Russia",
+      "countryCode": "ru"
+    },
+    "58.040,106.956": {
+      "county": "Усть-Кутский район",
+      "state": "Irkutsk Oblast",
+      "country": "Russia",
+      "countryCode": "ru"
+    },
+    "58.436,107.565": {
+      "county": "Киренский муниципальный округ",
+      "state": "Irkutsk Oblast",
+      "country": "Russia",
+      "countryCode": "ru"
+    },
+    "60.431,96.401": {
+      "county": "Evenkiysky Rayon",
+      "state": "Krasnoyarsk Krai",
+      "country": "Russia",
+      "countryCode": "ru"
+    },
+    "60.707,72.578": {
+      "county": "Nefteyugansky District",
+      "state": "Khanty-Mansiysk Autonomous Okrug – Ugra",
+      "country": "Russia",
+      "countryCode": "ru"
+    },
+    "60.830,97.319": {
+      "county": "Evenkiysky Rayon",
+      "state": "Krasnoyarsk Krai",
+      "country": "Russia",
+      "countryCode": "ru"
+    },
+    "61.390,112.882": {
+      "county": "Mirninsky Ulus",
+      "state": "Sakha Republic",
+      "country": "Russia",
+      "countryCode": "ru"
+    },
+    "63.162,75.122": {
+      "county": "Purovsky Rayon",
+      "state": "Yamalo-Nenets Autonomous Okrug",
+      "country": "Russia",
+      "countryCode": "ru"
+    },
+    "64.907,75.538": {
+      "county": "Nadymsky Rayon",
+      "state": "Yamalo-Nenets Autonomous Okrug",
+      "country": "Russia",
+      "countryCode": "ru"
+    },
+    "66.232,77.063": {
+      "county": "Purovsky Rayon",
+      "state": "Yamalo-Nenets Autonomous Okrug",
+      "country": "Russia",
+      "countryCode": "ru"
+    },
+    "70.306,-148.771": {
+      "county": "North Slope Borough",
+      "state": "Alaska",
+      "country": "United States",
+      "countryCode": "us"
+    },
+    "9.096,-63.854": {
+      "county": "Municipio Freites",
+      "state": "Anzoategui State",
+      "country": "Venezuela",
+      "countryCode": "ve"
+    },
+    "9.381,-64.536": {
+      "county": "Municipio Anaco",
+      "state": "Anzoategui State",
+      "country": "Venezuela",
+      "countryCode": "ve"
+    },
+    "9.664,-63.587": {
+      "county": "Municipio Ezequiel Zamora",
+      "state": "Monagas State",
+      "country": "Venezuela",
+      "countryCode": "ve"
+    },
+    "9.970,-71.377": {
+      "county": "Municipio Valmore Rodríguez",
+      "state": "Zulia State",
+      "country": "Venezuela",
+      "countryCode": "ve"
+    }
+  }
+}

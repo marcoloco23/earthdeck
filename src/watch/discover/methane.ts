@@ -14,6 +14,7 @@
 // names or tags; a cluster is named after its largest production/transport basin, or
 // generically. No person is ever named.
 
+import { adminLabel, type AdminPlace } from "../../clients/geo.js";
 import { climateTraceBase } from "../../config.js";
 import type { BBox } from "../../types.js";
 import type { WatchAoi, Watchlist } from "../watchlist.js";
@@ -142,7 +143,19 @@ export function basinBox(b: Basin): BBox {
   return snapOut(tooWide ? boxAround(b.centroid.lon, b.centroid.lat, METHANE_MAX_SIDE) : padded, 0.01);
 }
 
-export function buildMethaneBasins(raw: MethaneRaw, max: number, generatedOn: string): { watchlist: Watchlist; basins: Basin[]; dropped: ReturnType<typeof parseCtRows>["dropped"] } {
+/** "Oil & gas basin: Central Sub-basin - West Siberia, Russia"; refineries: "Oil & gas refining near Ector, Texas (United States)". */
+export function basinTitle(b: Basin, place: AdminPlace | null): string {
+  const country = place?.country ?? b.country;
+  if (b.name !== "Refining cluster") return `Oil & gas basin: ${b.name}, ${country}`.slice(0, 120);
+  return `Oil & gas refining near ${adminLabel(place) ?? `${round(b.centroid.lat, 2)}, ${round(b.centroid.lon, 2)} (${b.country})`}`.slice(0, 120);
+}
+
+export function buildMethaneBasins(
+  raw: MethaneRaw,
+  max: number,
+  generatedOn: string,
+  placeAt: (lat: number, lon: number) => AdminPlace | null = () => null,
+): { watchlist: Watchlist; basins: Basin[]; dropped: ReturnType<typeof parseCtRows>["dropped"] } {
   const { rows, dropped } = parseCtRows(raw);
   const basins = methaneBasins(rows).slice(0, max);
   const years = [...new Set(rows.map((r) => r.year).filter((y): y is number => y != null))].sort();
@@ -151,7 +164,7 @@ export function buildMethaneBasins(raw: MethaneRaw, max: number, generatedOn: st
     const subs = [...new Set(b.rows.map((r) => r.subsector.replace("oil-and-gas-", "")))].sort();
     return {
       id: aoiId("ch4", b.country, "ct", b.lead.id),
-      name: `${b.name}, ${b.country} — oil & gas CH₄`.slice(0, 120),
+      name: basinTitle(b, placeAt(b.centroid.lat, b.centroid.lon)),
       bbox,
       tags: [...new Set(["methane", "oil-gas", "discovered", b.country.toLowerCase(), slug(b.name)].filter(Boolean))],
       control: false,

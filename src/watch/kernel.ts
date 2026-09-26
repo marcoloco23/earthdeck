@@ -10,7 +10,7 @@ import type { Ledger } from "../ledger/store.js";
 import { uuidv7 } from "../util.js";
 import { createHash } from "node:crypto";
 import { Journal } from "./journal.js";
-import { providersForRequires, QuotaExceeded, type QuotaGovernor } from "./quota.js";
+import { costOf, providersForRequires, QuotaExceeded, type QuotaGovernor } from "./quota.js";
 import { bboxPolygon, ringBBox, ToolError, type Rule, type RuleContext, type ToolCall } from "./rules/types.js";
 import type { WatchAoi, Watchlist } from "./watchlist.js";
 
@@ -86,9 +86,17 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
 
   // Memoize per-sweep context that doesn't depend on the AOI (ENSO is global).
   let enso: Context["enso"] | null | undefined;
-  const call: ToolCall = async (tool, args) => {
+  // One wrapper per rule: the rule's per-provider sub-cap (quota.caps.perRule) is enforced
+  // here, since only the kernel knows which rule a tool call is spent for.
+  const callFor = (rule: string): ToolCall => {
+    const wrapped: ToolCall & { base?: ToolCall } = async (tool, args) => {
     const t0 = Date.now();
+    const cost = o.quota ? costOf(tool, args) : null;
     try {
+      if (cost) {
+        if (o.quota!.blocked(cost.provider, cost.units, rule)) throw new QuotaExceeded(tool, cost.provider);
+        o.quota!.chargeRule(rule, cost.provider, cost.units);
+      }
       const res = await o.call(tool, args);
       o.journal.append({ t: new Date().toISOString(), sweepId, kind: "tool_call", tool, args, ms: Date.now() - t0, responseSha256: Journal.hash(res) });
       return res;
@@ -96,6 +104,9 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
       o.journal.append({ t: new Date().toISOString(), sweepId, kind: "tool_call", tool, args, ms: Date.now() - t0, message: String(err) });
       throw err instanceof ToolError ? err : new ToolError(tool, err instanceof Error ? err.message : String(err));
     }
+    };
+    wrapped.base = o.call; // lets rules memoise per sweep across their per-rule wrappers
+    return wrapped;
   };
 
   // Housekeeping first: candidates past their TTL expire (GLAD's rule), regardless of watchlists.
@@ -156,13 +167,14 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
     }
     // Only detect-time providers gate the pair; confirm-only providers defer confirmation instead.
     const detectRequires = rule.requires.filter((k) => !(rule.confirmRequires ?? []).includes(k));
-    const quotaBlock = o.quota ? providersForRequires(detectRequires).map((p) => o.quota!.blocked(p)).find(Boolean) : null;
-    const confirmBlocked = (): string | null => (o.quota ? providersForRequires(rule.confirmRequires ?? []).map((p) => o.quota!.blocked(p)).find(Boolean) ?? null : null);
+    const quotaBlock = o.quota ? providersForRequires(detectRequires).map((p) => o.quota!.blocked(p, 1, rule.name)).find(Boolean) : null;
+    const confirmBlocked = (): string | null => (o.quota ? providersForRequires(rule.confirmRequires ?? []).map((p) => o.quota!.blocked(p, 1, rule.name)).find(Boolean) ?? null : null);
     if (quotaBlock) {
       report.skipped.push({ aoi: aoi.id, rule: ruleName, reason: quotaBlock });
       o.journal.append({ t: now, sweepId, kind: "skip", aoi: aoi.id, rule: ruleName, message: quotaBlock });
       return;
     }
+    const call = callFor(rule.name);
     const ctx: RuleContext = { aoi, params, now, since: o.journal.watermark(aoi.id, rule.name), call };
     const key = Journal.findingKey(rule.name, rule.version, aoi.id);
     const actor = `system:${rule.name}@${rule.version}`;
@@ -242,7 +254,8 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
         tier: rule.tier,
         geometry: candidate.geometry ?? bboxPolygon(aoi.bbox),
         bbox: aoi.bbox,
-        aoi: { id: aoi.id, name: aoi.name, tags: aoi.control ? [...aoi.tags, "control"] : aoi.tags },
+        // Case tags = the AOI tags + what the rule learned about this candidate (e.g. new-flare, improvement).
+        aoi: { id: aoi.id, name: aoi.name, tags: [...(aoi.control ? [...aoi.tags, "control"] : aoi.tags), ...(candidate.tags ?? [])] },
         observedAt: candidate.observedAt,
         evidence: candidate.evidence,
         context,

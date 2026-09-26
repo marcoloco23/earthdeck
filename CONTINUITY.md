@@ -72,6 +72,11 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
       (tool `coral_bleaching` exists); second signal: SST anomaly persistence / neighbour cell.
    3. **Extreme-fire rule** — global VIIRS FRP/extent anomaly vs. the same weeks in prior
       years (not only inside protected areas); confirm with a later pass + burn index.
+   0. **Improvement rule** (queued 2026-09-26, after the flare "stopped" case type lands):
+      cases that open when something *gets better* — loss below the ring baseline for 90 d,
+      flaring down year-on-year (VNF), bleaching alert lifted, fires absent in a formerly
+      burning protected area — same evidence standard, tag `improvement`, shown on the
+      landing as good news. "A watch, not a complaint feed."
    4. **Radiation** — `radiation` tool + `radiation_anomaly` rule from open ground networks:
       BfS ODL (DE, open JSON), EURDEP (EU), EPA RadNet (US), Safecast (global, CC0); dose
       rate vs. station baseline, confirmed by a neighbouring station or second network.

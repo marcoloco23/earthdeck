@@ -11,17 +11,21 @@
 // plus `_summary.json` (counts, sources + versions, API calls). Every AOI passes
 // `parseWatchlist`; ids derive from dataset ids (GADM, VNF site location, Climate TRACE source
 // id, WDPA site id, IFL id) so watermarks and cooldowns survive re-runs. ~15 requests, no CDSE.
+// Flare fields and methane basins are named after the county/state/country around their
+// centroid (Nominatim reverse, ≤ 1 req/s, ≤ 120 per run, cached in `_places.json`; admin
+// levels only, so never an operator or a person).
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { gfwApiKey } from "../config.js";
 import type { BBox } from "../types.js";
 import { isoDate } from "../util.js";
 import { buildControls, fetchControls, IFL_DATASET, IFL_VERSION } from "./discover/controls.js";
-import { buildFlaringFields, fetchFlaring } from "./discover/flaring.js";
+import { buildFlaringFields, fetchFlaring, fieldCentroid, flareFields } from "./discover/flaring.js";
 import { ADM2_ALERTS_DATASET, buildForestHotspots, fetchForest, GADM_DATASET } from "./discover/forest.js";
 import { DiscoverHttp } from "./discover/http.js";
-import { buildMethaneBasins, fetchMethane } from "./discover/methane.js";
+import { buildMethaneBasins, fetchMethane, methaneBasins, parseCtRows } from "./discover/methane.js";
+import { PlaceNamer, placeKey } from "./discover/places.js";
 import { buildProtectedFires, fetchProtected, WDPA_ALERTS_DATASET, WDPA_DATASET } from "./discover/protected.js";
 import { parseWatchlist, type Watchlist } from "./watchlist.js";
 
@@ -43,6 +47,8 @@ export interface DiscoverOptions {
   log?: (s: string) => void;
   gfwKey?: string | null;
   record?: (seq: number, source: string, url: string, body: string) => void;
+  /** Pause between Nominatim reverse lookups (ToS: ≤ 1/s). Default 1100 ms; tests pass 0. */
+  geocodeDelayMs?: number;
 }
 
 export interface ListSummary {
@@ -85,6 +91,8 @@ export async function discover(o: DiscoverOptions): Promise<DiscoverSummary> {
   mkdirSync(o.out, { recursive: true });
   const lists: DiscoverSummary["lists"] = {};
   let hotspotBoxes: BBox[] = [];
+  const places = new PlaceNamer(http, PlaceNamer.load(o.out), { delayMs: o.geocodeDelayMs });
+  const placeAt = (lat: number, lon: number) => places.cache[placeKey(lat, lon)] ?? null;
 
   const run = async (name: ListName, source: string, fn: () => Promise<Omit<ListSummary, "source">>) => {
     if (!want(name)) return;
@@ -115,12 +123,17 @@ export async function discover(o: DiscoverOptions): Promise<DiscoverSummary> {
   });
   await run("flaring-fields", "EOG VIIRS Nightfire annual global flare summary (Colorado School of Mines)", async () => {
     const raw = await fetchFlaring(http);
-    const r = buildFlaringFields(raw, max("flaring-fields"), today);
+    for (const f of flareFields(raw.sites).slice(0, max("flaring-fields"))) {
+      const c = fieldCentroid(f);
+      await places.at(c.lat, c.lon);
+    }
+    const r = buildFlaringFields(raw, max("flaring-fields"), today, placeAt);
     return { file: writeList(o.out, "flaring-fields", r.watchlist), entities: r.fields.length, aois: r.watchlist.aois.length, versions: { vnfYear: raw.year, vnfFile: raw.url.split("/").pop()!, sites: raw.sites.length } };
   });
   await run("methane-basins", "Climate TRACE v7 (CC BY 4.0) — oil & gas production, refining, transport", async () => {
     const raw = await fetchMethane(http);
-    const r = buildMethaneBasins(raw, max("methane-basins"), today);
+    for (const b of methaneBasins(parseCtRows(raw).rows).slice(0, max("methane-basins"))) await places.at(b.centroid.lat, b.centroid.lon);
+    const r = buildMethaneBasins(raw, max("methane-basins"), today, placeAt);
     return {
       file: writeList(o.out, "methane-basins", r.watchlist),
       entities: r.basins.length,
@@ -145,6 +158,24 @@ export async function discover(o: DiscoverOptions): Promise<DiscoverSummary> {
     return { file: writeList(o.out, "controls-generated", r.watchlist), entities: r.watchlist.aois.length, aois: r.watchlist.aois.length, versions: { [IFL_DATASET]: IFL_VERSION }, skipped: r.skipped };
   });
 
+  if (places.calls > 0) places.save(o.out);
+  if (places.failures.length) log(`  place names: ${places.failures.length} lookup(s) failed — coordinate names used there`);
+
+  // `--only` re-runs some lists: keep the other lists' entries from the previous summary.
+  if (o.only) {
+    try {
+      const prev = JSON.parse(readFileSync(join(o.out, "_summary.json"), "utf8")) as Partial<DiscoverSummary>;
+      const merged: DiscoverSummary["lists"] = {};
+      for (const k of Object.keys(LISTS) as ListName[]) {
+        const v = want(k) ? lists[k] : prev.lists?.[k];
+        if (v) merged[k] = v;
+      }
+      for (const k of Object.keys(LISTS) as ListName[]) delete lists[k];
+      Object.assign(lists, merged);
+    } catch {
+      // no previous summary
+    }
+  }
   const ok = Object.values(lists).filter((l) => !l.error);
   const summary: DiscoverSummary = {
     generatedAt: new Date().toISOString(),
