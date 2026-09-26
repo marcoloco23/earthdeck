@@ -14,18 +14,30 @@ import { z } from "zod";
 
 // ── payload ──────────────────────────────────────────────────────────────────────────────
 
+/** The hand-written watchlists (`watchlists/<name>.json`). */
 export const WATCHLISTS = ["amazon", "congo-borneo", "controls", "methane", "flaring"] as const;
-export type WatchlistName = (typeof WATCHLISTS)[number];
+/**
+ * A sweep target: one hand-written list, `all-handwritten` (those five), `all-generated`
+ * (every file in `watchlists/generated/`), or one generated list `generated/<name>`.
+ */
+export type WatchlistName = (typeof WATCHLISTS)[number] | "all-handwritten" | "all-generated" | `generated/${string}`;
 export type JobName = "sweep" | "analyst" | "export";
+
+const GENERATED = /^generated\/[a-z0-9][a-z0-9-]{0,63}$/;
+const watchlistSchema = z.union([z.enum(WATCHLISTS), z.literal("all-handwritten"), z.literal("all-generated"), z.string().regex(GENERATED, "expected a hand-written name, all-handwritten, all-generated or generated/<name>")]) as z.ZodType<WatchlistName>;
 
 const payloadSchema = z
   .object({
     job: z.enum(["sweep", "analyst", "export", "all"]),
-    watchlist: z.enum(WATCHLISTS).optional(),
+    watchlist: watchlistSchema.optional(),
+    shard: z.string().regex(/^\d{1,3}\/\d{1,3}$/, "expected i/n").refine((s) => { const [i, n] = s.split("/").map(Number); return n! >= 1 && i! < n!; }, "expected 0 ≤ i < n").optional(),
+    timeBudgetSec: z.number().int().positive().max(900).optional(),
     dryRun: z.boolean().optional(),
   })
   .strict()
   .refine((p) => p.watchlist === undefined || p.job === "sweep", { message: "watchlist is only valid with job \"sweep\"" })
+  .refine((p) => p.shard === undefined || p.job === "sweep", { message: "shard is only valid with job \"sweep\"" })
+  .refine((p) => p.timeBudgetSec === undefined || p.job === "sweep", { message: "timeBudgetSec is only valid with job \"sweep\"" })
   .refine((p) => !p.dryRun || p.job === "sweep", { message: "dryRun is only valid with job \"sweep\"" });
 
 export type Payload = z.infer<typeof payloadSchema>;
@@ -48,6 +60,9 @@ export function parsePayload(raw: unknown): Payload {
 export interface Step {
   job: JobName;
   watchlist?: WatchlistName;
+  shard?: string;
+  /** Sweep time budget in seconds (`--time-budget`); set by the runner from the remaining Lambda time. */
+  timeBudgetSec?: number;
   dryRun: boolean;
 }
 
@@ -56,13 +71,43 @@ export function stepsFor(p: Payload): Step[] {
   if (p.job === "all") {
     return [...WATCHLISTS.map((w): Step => ({ job: "sweep", watchlist: w, dryRun: false })), { job: "analyst", dryRun: false }, { job: "export", dryRun: false }];
   }
-  return [{ job: p.job, watchlist: p.watchlist, dryRun: p.dryRun ?? false }];
+  return [{ job: p.job, watchlist: p.watchlist, ...(p.shard ? { shard: p.shard } : {}), ...(p.timeBudgetSec ? { timeBudgetSec: p.timeBudgetSec } : {}), dryRun: p.dryRun ?? false }];
+}
+
+/** `--watchlist` paths for a sweep target (repeatable flag; a directory loads its top-level *.json). */
+export function watchlistPaths(w: WatchlistName | undefined): string[] {
+  if (w === undefined) return ["watchlists"];
+  if (w === "all-handwritten") return WATCHLISTS.map((n) => `watchlists/${n}.json`);
+  if (w === "all-generated") return ["watchlists/generated"];
+  return [`watchlists/${w}.json`];
+}
+
+/** Soft reserve: the sweep's --time-budget ends this long before Lambda's deadline (verify + upload). */
+export const SWEEP_SOFT_RESERVE_MS = 90_000;
+/** Hard reserve: a budgeted sweep that overruns is SIGTERMed this long before the deadline. */
+export const SWEEP_HARD_RESERVE_MS = 60_000;
+
+/**
+ * Budget math for a sweep given the Lambda time left: `--time-budget` = remaining − 90 s
+ * (capped by an explicit request), and the child is killed at remaining − 60 s as a backstop.
+ * `timeBudgetSec` ≤ 0 means there is no time to start.
+ */
+export function sweepTiming(remainingMs: number, requestedSec?: number): { timeBudgetSec: number; killAfterMs: number } {
+  const fromLambda = Math.floor((remainingMs - SWEEP_SOFT_RESERVE_MS) / 1000);
+  return { timeBudgetSec: requestedSec !== undefined ? Math.min(requestedSec, fromLambda) : fromLambda, killAfterMs: remainingMs - SWEEP_HARD_RESERVE_MS };
 }
 
 /** argv for `node dist/cli.js …`. A sweep without a watchlist sweeps the whole directory. */
 export function cliArgs(step: Step, siteDir: string): string[] {
   if (step.job === "sweep") {
-    return ["watch", "--once", ...(step.dryRun ? ["--dry-run"] : []), "--watchlist", step.watchlist ? `watchlists/${step.watchlist}.json` : "watchlists"];
+    return [
+      "watch",
+      "--once",
+      ...(step.dryRun ? ["--dry-run"] : []),
+      ...watchlistPaths(step.watchlist).flatMap((p) => ["--watchlist", p]),
+      ...(step.shard ? ["--shard", step.shard] : []),
+      ...(step.timeBudgetSec !== undefined ? ["--time-budget", String(step.timeBudgetSec)] : []),
+    ];
   }
   if (step.job === "analyst") return ["analyst", "--once"];
   // Public-site metadata comes from the function's environment (set by the stack).
@@ -246,11 +291,15 @@ export interface RunnerConfig {
   env: NodeJS.ProcessEnv;
   /** Wall-clock budget left for this step, ms. */
   budgetMs(): number;
+  /** Raw time left in the invocation, ms (Lambda `getRemainingTimeInMillis`); enables sweep time budgets. */
+  remainingMs?(): number;
 }
 
 export interface StepResult {
   job: JobName;
   watchlist?: WatchlistName;
+  shard?: string;
+  timeBudgetSec?: number;
   dryRun: boolean;
   ok: boolean;
   status: "ok" | "failed" | "unavailable";
@@ -359,7 +408,7 @@ async function uploadDir(bucket: string, dir: string, keyOf: (rel: string) => st
 
 export async function runStep(step: Step, cfg: RunnerConfig, deps: RunnerDeps, avail: Record<JobName, boolean>): Promise<StepResult> {
   const t0 = deps.now().getTime();
-  const base = { job: step.job, ...(step.watchlist ? { watchlist: step.watchlist } : {}), dryRun: step.dryRun };
+  const base: Pick<StepResult, "job" | "watchlist" | "shard" | "timeBudgetSec" | "dryRun"> = { job: step.job, ...(step.watchlist ? { watchlist: step.watchlist } : {}), ...(step.shard ? { shard: step.shard } : {}), dryRun: step.dryRun };
   const done = (r: Omit<StepResult, "job" | "dryRun" | "durationMs">): StepResult => ({ ...base, ...r, durationMs: deps.now().getTime() - t0 });
 
   if (!avail[step.job]) {
@@ -379,7 +428,17 @@ export async function runStep(step: Step, cfg: RunnerConfig, deps: RunnerDeps, a
   const env = { ...cfg.env, EARTHDECK_LEDGER_DIR: cfg.ledgerDir };
 
   if (step.job === "export") rmSync(cfg.siteDir, { recursive: true, force: true });
-  const run = await deps.exec(cliArgs(step, cfg.siteDir), { env, timeoutMs: cfg.budgetMs() });
+  let runStepAs = step;
+  let timeoutMs = cfg.budgetMs();
+  if (step.job === "sweep" && cfg.remainingMs) {
+    // Stop opening pairs 90 s before the deadline, leaving room for verify + upload.
+    const t = sweepTiming(cfg.remainingMs(), step.timeBudgetSec);
+    if (t.timeBudgetSec <= 0) return done({ ok: false, status: "failed", reason: `no time left to sweep (${Math.round(cfg.remainingMs() / 1000)} s remaining)` });
+    runStepAs = { ...step, timeBudgetSec: t.timeBudgetSec };
+    base.timeBudgetSec = t.timeBudgetSec;
+    timeoutMs = t.killAfterMs;
+  }
+  const run = await deps.exec(cliArgs(runStepAs, cfg.siteDir), { env, timeoutMs });
   const outputTail = run.output.slice(-2_000);
 
   if (step.job === "export") {

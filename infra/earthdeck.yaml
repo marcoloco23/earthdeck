@@ -36,7 +36,8 @@ Conditions:
   WithFunction: !Equals [!Ref DeployFunction, "true"]
 
 Mappings:
-  # Schedules: 6-hour slots at 00/06/12/18 UTC — sweeps at :00 :10 :20 :30 :40, analyst :50, export +1 h.
+  # Schedules: 6-hour windows from 00/06/12/18 UTC — generated-list shards 0–7 at +0:00…+1:10
+  # (every 10 min), analyst +1:20, export +1:30, hand-written lists +1:40. See infra/README.md.
   Const:
     CloudFront:
       HostedZoneId: Z2FDTNDATAQYW2 # fixed zone id for every CloudFront alias target
@@ -386,6 +387,12 @@ Resources:
           EARTHDECK_SSM_PREFIX: /earthdeck
           EARTHDECK_SITE_URL: !Sub "https://${DomainName}"
           EARTHDECK_CONTACT: !Ref NotifyEmail
+          # Per-UTC-day caps (counted in ledger/watch/quota.json); see infra/README.md "Quotas".
+          EARTHDECK_MAX_CDSE_CALLS: "60"
+          EARTHDECK_MAX_GFW_CALLS: "400"
+          EARTHDECK_MAX_FIRMS_CALLS: "300"
+          EARTHDECK_MAX_ANALYST_CASES: "10"
+          EARTHDECK_MAX_ANALYST_USD: "3"
           NODE_OPTIONS: --enable-source-maps
       Tags: [{ Key: Project, Value: earthdeck }]
 
@@ -431,11 +438,13 @@ Resources:
       Name: earthdeck
       Tags: [{ Key: Project, Value: earthdeck }]
 
-  SweepAmazon:
+  # Generated watchlists: 8 disjoint shards (hash(aoi.id, rule) mod 8), one every 10 min from +0:00.
+  # Each gets --time-budget = remaining Lambda time − 90 s; a cut shard resumes least-recently-swept first.
+  SweepShard0:
     Type: AWS::Scheduler::Schedule
     Condition: WithFunction
     Properties:
-      Name: earthdeck-sweep-amazon
+      Name: earthdeck-sweep-shard-0
       GroupName: !Ref ScheduleGroup
       State: !Ref SchedulesState
       ScheduleExpression: cron(0 0/6 * * ? *)
@@ -444,14 +453,14 @@ Resources:
       Target:
         Arn: !GetAtt RunnerFunction.Arn
         RoleArn: !GetAtt SchedulerRole.Arn
-        Input: '{"job":"sweep","watchlist":"amazon"}'
+        Input: '{"job":"sweep","watchlist":"all-generated","shard":"0/8"}'
         RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
 
-  SweepCongoBorneo:
+  SweepShard1:
     Type: AWS::Scheduler::Schedule
     Condition: WithFunction
     Properties:
-      Name: earthdeck-sweep-congo-borneo
+      Name: earthdeck-sweep-shard-1
       GroupName: !Ref ScheduleGroup
       State: !Ref SchedulesState
       ScheduleExpression: cron(10 0/6 * * ? *)
@@ -460,14 +469,14 @@ Resources:
       Target:
         Arn: !GetAtt RunnerFunction.Arn
         RoleArn: !GetAtt SchedulerRole.Arn
-        Input: '{"job":"sweep","watchlist":"congo-borneo"}'
+        Input: '{"job":"sweep","watchlist":"all-generated","shard":"1/8"}'
         RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
 
-  SweepControls:
+  SweepShard2:
     Type: AWS::Scheduler::Schedule
     Condition: WithFunction
     Properties:
-      Name: earthdeck-sweep-controls
+      Name: earthdeck-sweep-shard-2
       GroupName: !Ref ScheduleGroup
       State: !Ref SchedulesState
       ScheduleExpression: cron(20 0/6 * * ? *)
@@ -476,14 +485,14 @@ Resources:
       Target:
         Arn: !GetAtt RunnerFunction.Arn
         RoleArn: !GetAtt SchedulerRole.Arn
-        Input: '{"job":"sweep","watchlist":"controls"}'
+        Input: '{"job":"sweep","watchlist":"all-generated","shard":"2/8"}'
         RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
 
-  SweepMethane:
+  SweepShard3:
     Type: AWS::Scheduler::Schedule
     Condition: WithFunction
     Properties:
-      Name: earthdeck-sweep-methane
+      Name: earthdeck-sweep-shard-3
       GroupName: !Ref ScheduleGroup
       State: !Ref SchedulesState
       ScheduleExpression: cron(30 0/6 * * ? *)
@@ -492,14 +501,14 @@ Resources:
       Target:
         Arn: !GetAtt RunnerFunction.Arn
         RoleArn: !GetAtt SchedulerRole.Arn
-        Input: '{"job":"sweep","watchlist":"methane"}'
+        Input: '{"job":"sweep","watchlist":"all-generated","shard":"3/8"}'
         RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
 
-  SweepFlaring:
+  SweepShard4:
     Type: AWS::Scheduler::Schedule
     Condition: WithFunction
     Properties:
-      Name: earthdeck-sweep-flaring
+      Name: earthdeck-sweep-shard-4
       GroupName: !Ref ScheduleGroup
       State: !Ref SchedulesState
       ScheduleExpression: cron(40 0/6 * * ? *)
@@ -508,7 +517,55 @@ Resources:
       Target:
         Arn: !GetAtt RunnerFunction.Arn
         RoleArn: !GetAtt SchedulerRole.Arn
-        Input: '{"job":"sweep","watchlist":"flaring"}'
+        Input: '{"job":"sweep","watchlist":"all-generated","shard":"4/8"}'
+        RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
+
+  SweepShard5:
+    Type: AWS::Scheduler::Schedule
+    Condition: WithFunction
+    Properties:
+      Name: earthdeck-sweep-shard-5
+      GroupName: !Ref ScheduleGroup
+      State: !Ref SchedulesState
+      ScheduleExpression: cron(50 0/6 * * ? *)
+      ScheduleExpressionTimezone: UTC
+      FlexibleTimeWindow: { Mode: "OFF" }
+      Target:
+        Arn: !GetAtt RunnerFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"job":"sweep","watchlist":"all-generated","shard":"5/8"}'
+        RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
+
+  SweepShard6:
+    Type: AWS::Scheduler::Schedule
+    Condition: WithFunction
+    Properties:
+      Name: earthdeck-sweep-shard-6
+      GroupName: !Ref ScheduleGroup
+      State: !Ref SchedulesState
+      ScheduleExpression: cron(0 1/6 * * ? *)
+      ScheduleExpressionTimezone: UTC
+      FlexibleTimeWindow: { Mode: "OFF" }
+      Target:
+        Arn: !GetAtt RunnerFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"job":"sweep","watchlist":"all-generated","shard":"6/8"}'
+        RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
+
+  SweepShard7:
+    Type: AWS::Scheduler::Schedule
+    Condition: WithFunction
+    Properties:
+      Name: earthdeck-sweep-shard-7
+      GroupName: !Ref ScheduleGroup
+      State: !Ref SchedulesState
+      ScheduleExpression: cron(10 1/6 * * ? *)
+      ScheduleExpressionTimezone: UTC
+      FlexibleTimeWindow: { Mode: "OFF" }
+      Target:
+        Arn: !GetAtt RunnerFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"job":"sweep","watchlist":"all-generated","shard":"7/8"}'
         RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
 
   Analyst:
@@ -518,7 +575,7 @@ Resources:
       Name: earthdeck-analyst
       GroupName: !Ref ScheduleGroup
       State: !Ref SchedulesState
-      ScheduleExpression: cron(50 0/6 * * ? *)
+      ScheduleExpression: cron(20 1/6 * * ? *)
       ScheduleExpressionTimezone: UTC
       FlexibleTimeWindow: { Mode: "OFF" }
       Target:
@@ -534,13 +591,30 @@ Resources:
       Name: earthdeck-export
       GroupName: !Ref ScheduleGroup
       State: !Ref SchedulesState
-      ScheduleExpression: cron(0 1/6 * * ? *)
+      ScheduleExpression: cron(30 1/6 * * ? *)
       ScheduleExpressionTimezone: UTC
       FlexibleTimeWindow: { Mode: "OFF" }
       Target:
         Arn: !GetAtt RunnerFunction.Arn
         RoleArn: !GetAtt SchedulerRole.Arn
         Input: '{"job":"export"}'
+        RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
+
+  # The five hand-written watchlists in one invocation (after the export; published next window).
+  SweepHandwritten:
+    Type: AWS::Scheduler::Schedule
+    Condition: WithFunction
+    Properties:
+      Name: earthdeck-sweep-handwritten
+      GroupName: !Ref ScheduleGroup
+      State: !Ref SchedulesState
+      ScheduleExpression: cron(40 1/6 * * ? *)
+      ScheduleExpressionTimezone: UTC
+      FlexibleTimeWindow: { Mode: "OFF" }
+      Target:
+        Arn: !GetAtt RunnerFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"job":"sweep","watchlist":"all-handwritten"}'
         RetryPolicy: { MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 }
 
   # ── watchdog ──────────────────────────────────────────────────────────────────────────
