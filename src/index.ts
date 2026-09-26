@@ -23,6 +23,7 @@ import { registerMethaneTools } from "./tools/methane.js";
 import { registerAttributionTools } from "./tools/attribution.js";
 import { registerBiodiversityTools } from "./tools/biodiversity.js";
 import { registerCoralTools } from "./tools/coral.js";
+import { registerNaturalValueTools } from "./tools/naturalvalue.js";
 
 export function buildServer(): McpServer {
   const server = new McpServer(
@@ -82,6 +83,7 @@ export function buildServer(): McpServer {
   registerAttributionTools(server);
   registerBiodiversityTools(server);
   registerCoralTools(server);
+  registerNaturalValueTools(server);
 
   return server;
 }

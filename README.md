@@ -94,6 +94,28 @@ you how well-documented and conservation-relevant a place is, not how healthy it
 result carries the full `method` block with its blind spots. For global *trends*, use
 `world_pulse` (Living Planet Index −73 % since 1970; Red List Index falling).
 
+### Valuing living nature
+
+| Tool | What it does | Source |
+| --- | --- | --- |
+| `natural_value` | What a bbox/place's living ecosystems are worth per year **alive** (low/mid/high, 2020 USD), over a horizon (undiscounted + NPV, default 100 yr @ 2 %), by biome and by service, from its measured land-cover mix; plus reference values for a great whale, a forest elephant and a tree | Costanza et al. 2014 / de Groot et al. 2012 unit values · CLMS 10 m land cover 2020 via CDSE (optional; else a stated assumption) |
+
+The financial system prices nature once it is dead — timber, gold, pasture. `natural_value`
+puts a number on the work it does while it is alive: regulating climate and water, holding
+soil, feeding people, sheltering species. Read the number plainly:
+
+- **Order of magnitude, not a price.** It is *benefit transfer*: global per-biome average
+  values (USD/ha/yr) applied to this place without local calibration. The true local value
+  can be several times higher or lower; the band says so.
+- **Shown so that "alive" has a number next to "cleared"** — so a forest-loss finding can say
+  what the lost hectares were doing, and a mine can be weighed against the people downstream.
+  It is not a price tag for sale, and nobody will pay it for the land.
+- **A floor for one kind of value.** Sacred, relational and intrinsic values (IPBES 2022) and
+  who actually benefits vs. who pays are not in the dollar column; every result lists these
+  blind spots. Forest-loss findings in the ledger carry the same figure as `living_value_*`
+  evidence values and a context note. Research and every number's source:
+  [`docs/research/2026-09-26_valuing-living-nature.md`](docs/research/2026-09-26_valuing-living-nature.md).
+
 The Earth is one interconnected system — and these tools are built to be cross-referenced:
 ENSO ↔ fires, floods and SST anomalies; river discharge ↔ SAR flood mapping; climate trends
 ↔ what the imagery shows on the ground.
@@ -233,7 +255,7 @@ behave identically without it).
 | Key | Unlocks | How to get it |
 | --- | --- | --- |
 | `FIRMS_MAP_KEY` | `fires_in` (live wildfire detections), `flaring` | Enter your email at [firms.modaps.eosdis.nasa.gov/api/map_key](https://firms.modaps.eosdis.nasa.gov/api/map_key/) — emailed instantly |
-| `CDSE_CLIENT_ID` + `CDSE_CLIENT_SECRET` | `eo_render`, `eo_index`, `eo_search`, `eo_compare`, `sar_render`, `sar_water`, `sar_flood`, `methane_plumes` (10 m Sentinel imagery + radar, Sentinel-5P CH₄) | Free account at [dataspace.copernicus.eu](https://dataspace.copernicus.eu/) → User Settings → **OAuth clients** → Create (copy the secret immediately — it's shown once) |
+| `CDSE_CLIENT_ID` + `CDSE_CLIENT_SECRET` | `eo_render`, `eo_index`, `eo_search`, `eo_compare`, `sar_render`, `sar_water`, `sar_flood`, `methane_plumes`, `natural_value` land-cover mix (optional) (10 m Sentinel imagery + radar, Sentinel-5P CH₄) | Free account at [dataspace.copernicus.eu](https://dataspace.copernicus.eu/) → User Settings → **OAuth clients** → Create (copy the secret immediately — it's shown once) |
 | `GFW_API_KEY` | `forest_alerts` (integrated deforestation alerts) | Free [GFW account](https://www.globalforestwatch.org/), then mint a key per the [API-key guide](https://www.globalforestwatch.org/help/developers/guides/create-and-use-an-api-key/) |
 
 Pass them where your MCP client expects env vars, e.g.:
@@ -327,6 +349,7 @@ Tests mock the network, so the whole suite runs with zero credentials — CI
   [Open Tree of Life](https://tree.opentreeoflife.org/) taxonomy (CC0).
 - NOAA Coral Reef Watch CoralTemp v3.1 5 km products via CoastWatch / PacIOOS ERDDAP (free; credit NOAA CRW).
 - Our World in Data (CC BY 4.0) for `world_pulse`; upstream producers and licences are listed per indicator.
+- `natural_value`: CLMS Global Land Cover 2020, 10 m (© European Union, Copernicus Land Monitoring Service; DOI 10.2909/602507b2-96c7-47bb-b79d-7ba25e97d0a9; free and open, attribute and state modifications); ecosystem-service unit values from Costanza et al. (2014) and de Groot et al. (2012), organism values from Chami et al. (IMF) — cited per entry in the result.
 - Basemap & geocoding: NASA Blue Marble; OpenStreetMap Nominatim.
 - Attribution: protected areas © OpenStreetMap contributors (ODbL) via Overpass; LandMark
   Indigenous & community lands (CC BY-SA 4.0) via the GFW Data API; emissions from
