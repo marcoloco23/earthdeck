@@ -1,37 +1,48 @@
-import { renderChart, type SeriesData } from "./chart";
-import { statusBadge } from "./watch";
+import { renderChart, renderSparkline, type SeriesData } from "./chart";
+import { el, statusBadge, tierBadge } from "./ui";
 import type { Card, EventItem, FireItem, QuakeItem } from "./types";
 
-const TYPE_LABEL: Record<Card["type"], string> = {
-  imagery: "IMAGERY",
-  index: "INDEX",
-  fires: "FIRES",
-  events: "EVENTS",
-  compare: "COMPARE",
-  search: "SEARCH",
-  series: "SERIES",
-  quakes: "QUAKES",
-  pulse: "PULSE",
-  note: "NOTE",
-  similar: "SIMILAR",
-  finding: "finding",
-  worldpulse: "world pulse",
+/**
+ * Display metadata per card type. The order is the filter-chip order. Any type NOT listed
+ * here (a newer server may add one) still renders with the generic chrome — header, time,
+ * provenance, bbox footer — under a neutral tone, so new tools never need UI work to show up.
+ */
+const TYPE_META: Record<string, { label: string }> = {
+  note: { label: "Note" },
+  finding: { label: "Finding" },
+  imagery: { label: "Imagery" },
+  index: { label: "Index" },
+  compare: { label: "Compare" },
+  similar: { label: "Similar" },
+  search: { label: "Search" },
+  fires: { label: "Fires" },
+  events: { label: "Events" },
+  quakes: { label: "Quakes" },
+  series: { label: "Series" },
+  pulse: { label: "Pulse" },
+  worldpulse: { label: "World pulse" },
 };
+
+export const TYPE_ORDER = Object.keys(TYPE_META);
 
 const NOTE_KINDS = new Set(["info", "insight", "warning"]);
 
-/** Coerce an untrusted card type to a known one so it can't be injected into class names. */
-function safeType(type: string): Card["type"] {
-  return (Object.prototype.hasOwnProperty.call(TYPE_LABEL, type) ? type : "search") as Card["type"];
+const known = (type: string): boolean => Object.prototype.hasOwnProperty.call(TYPE_META, type);
+
+/** Class-safe tone key: a known type, or "other" (untrusted strings never reach a class name). */
+export function toneOf(type: string): string {
+  return known(type) ? type : "other";
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+export function typeLabel(type: string): string {
+  if (known(type)) return TYPE_META[type]!.label;
+  const s = String(type).replace(/[_-]+/g, " ").slice(0, 24);
+  return s ? s[0]!.toUpperCase() + s.slice(1) : "Card";
 }
 
-function timeOf(iso: string): string {
+function clockOf(iso: string): string {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString();
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 interface ProvenanceView {
@@ -47,43 +58,30 @@ interface ProvenanceView {
  * innerHTML) since some fields (scene ids) originate from the upstream API.
  */
 function renderProvenance(prov: ProvenanceView, label?: string): HTMLElement {
-  const det = document.createElement("details");
-  det.className = "card-prov";
+  const det = el("details", "card-prov");
   det.addEventListener("click", (e) => e.stopPropagation()); // expanding shouldn't focus the card
-  const sum = document.createElement("summary");
-  sum.textContent = label ? `provenance · ${label}` : "provenance";
-  det.appendChild(sum);
+  det.appendChild(el("summary", "", label ? `Provenance · ${label}` : "Provenance"));
 
-  const dl = document.createElement("dl");
-  dl.className = "prov-dl";
+  const dl = el("dl", "kv");
   const row = (k: string, v: string): void => {
     if (!v) return;
-    const dt = document.createElement("dt");
-    dt.textContent = k;
-    const dd = document.createElement("dd");
-    dd.textContent = v;
-    dl.append(dt, dd);
+    dl.append(el("dt", "", k), el("dd", "", v));
   };
-  row("sensor", prov.sensor ?? "");
+  row("Sensor", prov.sensor ?? "");
   if (prov.composite) {
-    row("composite", `${prov.composite.from ?? "?"} … ${prov.composite.to ?? "?"} (${prov.composite.mosaicking ?? "leastCC"})`);
+    row("Composite", `${prov.composite.from ?? "?"} … ${prov.composite.to ?? "?"} (${prov.composite.mosaicking ?? "leastCC"})`);
   }
   if (prov.cloudMask) {
-    row("cloud mask", prov.cloudMask.method ?? "");
-    if (typeof prov.cloudMask.validPct === "number") row("valid pixels", `${prov.cloudMask.validPct}%`);
-    if (prov.cloudMask.excludedClasses?.length) row("excluded", prov.cloudMask.excludedClasses.join(", "));
+    row("Cloud mask", prov.cloudMask.method ?? "");
+    if (typeof prov.cloudMask.validPct === "number") row("Valid pixels", `${prov.cloudMask.validPct}%`);
+    if (prov.cloudMask.excludedClasses?.length) row("Excluded", prov.cloudMask.excludedClasses.join(", "));
   }
   if (prov.scenes?.length) {
     const ids = prov.scenes.map((s) => (s.datetime || s.id || "").slice(0, 10)).filter(Boolean);
-    row("scenes", ids.join(", "));
+    row("Scenes", ids.join(", "));
   }
   det.appendChild(dl);
-  if (prov.disclaimer) {
-    const note = document.createElement("p");
-    note.className = "prov-note";
-    note.textContent = prov.disclaimer;
-    det.appendChild(note);
-  }
+  if (prov.disclaimer) det.appendChild(el("p", "prov-note", prov.disclaimer));
   return det;
 }
 
@@ -92,13 +90,7 @@ function appendInline(parent: HTMLElement, text: string): void {
   const parts = text.split(/\*\*(.+?)\*\*/g); // odd indices were inside **…**
   parts.forEach((part, i) => {
     if (!part) return;
-    if (i % 2 === 1) {
-      const b = document.createElement("strong");
-      b.textContent = part;
-      parent.appendChild(b);
-    } else {
-      parent.appendChild(document.createTextNode(part));
-    }
+    parent.appendChild(i % 2 === 1 ? el("strong", "", part) : document.createTextNode(part));
   });
 }
 
@@ -108,8 +100,7 @@ function appendInline(parent: HTMLElement, text: string): void {
  * model/tool-supplied and must never reach innerHTML.
  */
 function renderNoteBody(text: string): HTMLElement {
-  const body = document.createElement("div");
-  body.className = "note-body";
+  const body = el("div", "note-body");
   let list: HTMLUListElement | null = null;
   const closeList = () => {
     if (list) body.appendChild(list);
@@ -118,8 +109,8 @@ function renderNoteBody(text: string): HTMLElement {
   for (const rawLine of text.split("\n")) {
     const line = rawLine.trimEnd();
     if (line.startsWith("- ")) {
-      list ??= document.createElement("ul");
-      const li = document.createElement("li");
+      list ??= el("ul");
+      const li = el("li");
       appendInline(li, line.slice(2));
       list.appendChild(li);
       continue;
@@ -127,12 +118,11 @@ function renderNoteBody(text: string): HTMLElement {
     closeList();
     if (line === "") continue;
     if (line.startsWith("## ")) {
-      const h = document.createElement("div");
-      h.className = "note-h";
+      const h = el("div", "note-h");
       appendInline(h, line.slice(3));
       body.appendChild(h);
     } else {
-      const p = document.createElement("p");
+      const p = el("p");
       appendInline(p, line);
       body.appendChild(p);
     }
@@ -141,311 +131,261 @@ function renderNoteBody(text: string): HTMLElement {
   return body;
 }
 
+/** A compact list row: marker dot + primary text + muted secondary text. */
+function listRow(primary: string, secondary: string, dotClass = ""): HTMLLIElement {
+  const li = el("li");
+  li.append(el("span", `dot ${dotClass}`.trim()), el("span", "li-main", primary));
+  if (secondary) li.appendChild(el("span", "li-sub", secondary));
+  return li;
+}
+
+function moreRow(n: number): HTMLLIElement {
+  return el("li", "li-more", `+${n} more`);
+}
+
+/** A big number with a caption — the fires/index/compare headline stat. */
+function stat(value: string, caption: string, tone = ""): HTMLElement {
+  const s = el("div", `stat ${tone}`.trim());
+  s.append(el("span", "stat-v", value), el("span", "stat-k", caption));
+  return s;
+}
+
 /** Build the DOM node for a card in the feed. Newest cards are prepended by the caller. */
 export function renderCard(card: Card, onFocus: (card: Card) => void): HTMLElement {
-  const t = safeType(card.type);
-  const el = document.createElement("article");
-  el.className = `card card--${t}`;
+  const type = String(card.type);
+  const tone = toneOf(type);
+  const root = el("article", `card card--${tone}`);
+  root.dataset.type = tone;
+  root.tabIndex = 0;
 
-  const head = document.createElement("div");
-  head.className = "card-head";
-  head.innerHTML = `<span class="badge badge--${t}">${TYPE_LABEL[t]}</span>
-    <span class="card-title">${escapeHtml(card.title)}</span>
-    <span class="card-time">${timeOf(card.ts)}</span>`;
-  el.appendChild(head);
+  const head = el("header", "card-head");
+  const kind = el("span", "card-kind");
+  kind.append(el("span", "card-kind-dot"), el("span", "", typeLabel(type)));
+  const time = el("time", "card-time", clockOf(card.ts));
+  time.dateTime = card.ts;
+  time.title = card.ts;
+  head.append(kind, time);
+  root.append(head, el("h3", "card-title", card.title));
 
-  if (card.type === "imagery" && card.imageUrl) {
-    const img = document.createElement("img");
-    img.className = "card-img";
+  if (type === "imagery" && card.imageUrl) {
+    const img = el("img", "card-img");
     img.loading = "lazy";
+    img.alt = card.title;
     img.src = card.imageUrl;
-    el.appendChild(img);
+    root.appendChild(img);
   }
 
-  if (card.type === "note") {
+  if (type === "note") {
     const text = typeof card.payload.text === "string" ? card.payload.text : "";
-    const kind = typeof card.payload.kind === "string" && NOTE_KINDS.has(card.payload.kind) ? card.payload.kind : "info";
-    el.classList.add(`note--${kind}`);
-    el.appendChild(renderNoteBody(text));
+    const k = typeof card.payload.kind === "string" && NOTE_KINDS.has(card.payload.kind) ? card.payload.kind : "info";
+    root.classList.add(`note--${k}`);
+    root.appendChild(renderNoteBody(text));
   }
 
-  if (card.type === "similar") {
+  if (type === "similar") {
     const matches = (card.payload.matches as Array<{ lon: number; lat: number; similarity: number }> | undefined) ?? [];
     const stats = card.payload.stats as { cells?: number; simMean?: number; simMax?: number } | undefined;
-    const list = document.createElement("ul");
-    list.className = "evt-list";
-    for (const [i, m] of matches.slice(0, 8).entries()) {
-      const li = document.createElement("li");
-      const dot = document.createElement("span");
-      dot.className = "evt-dot sim-dot";
-      li.appendChild(dot);
-      li.appendChild(document.createTextNode(`#${i + 1}  ${m.similarity.toFixed(3)}  `));
-      const em = document.createElement("em");
-      em.textContent = `${m.lat.toFixed(4)}, ${m.lon.toFixed(4)}`;
-      li.appendChild(em);
-      list.appendChild(li);
+    const list = el("ol", "rows rows--ranked");
+    for (const m of matches.slice(0, 8)) {
+      list.appendChild(listRow(m.similarity.toFixed(3), `${m.lat.toFixed(4)}, ${m.lon.toFixed(4)}`));
     }
-    el.appendChild(list);
-    if (stats) {
-      const s = document.createElement("div");
-      s.className = "series-source";
-      s.textContent = `${stats.cells ?? "?"} cells · mean sim ${stats.simMean ?? "?"} · max ${stats.simMax ?? "?"}`;
-      el.appendChild(s);
-    }
+    root.appendChild(list);
+    if (stats) root.appendChild(el("div", "card-note", `${stats.cells ?? "?"} cells · mean ${stats.simMean ?? "?"} · max ${stats.simMax ?? "?"}`));
     const attr = card.payload.attribution;
-    if (typeof attr === "string") {
-      const a = document.createElement("div");
-      a.className = "series-source";
-      a.textContent = attr;
-      el.appendChild(a);
-    }
+    if (typeof attr === "string") root.appendChild(el("div", "card-note", attr));
   }
 
-  if (card.type === "events") {
+  if (type === "events") {
     const events = (card.payload.events as EventItem[] | undefined) ?? [];
-    const list = document.createElement("ul");
-    list.className = "evt-list";
-    for (const ev of events.slice(0, 12)) {
-      const li = document.createElement("li");
-      li.innerHTML = `<span class="evt-dot"></span>${escapeHtml(ev.title)} <em>${escapeHtml(ev.category)}</em>`;
-      list.appendChild(li);
-    }
-    if (events.length > 12) {
-      const more = document.createElement("li");
-      more.className = "evt-more";
-      more.textContent = `+${events.length - 12} more`;
-      list.appendChild(more);
-    }
-    el.appendChild(list);
+    const list = el("ul", "rows");
+    for (const ev of events.slice(0, 10)) list.appendChild(listRow(ev.title, ev.category));
+    if (events.length > 10) list.appendChild(moreRow(events.length - 10));
+    root.appendChild(list);
   }
 
-  if (card.type === "fires") {
+  if (type === "fires") {
     const fires = (card.payload.fires as FireItem[] | undefined) ?? [];
     const total = typeof card.payload.total === "number" ? card.payload.total : fires.length;
     const maxFrp = fires.reduce((m, f) => Math.max(m, f.frp ?? 0), 0);
-    const summary = document.createElement("div");
-    summary.className = "fire-summary";
-    summary.innerHTML =
-      `<span class="fire-count">${total}</span> active-fire detection${total === 1 ? "" : "s"}` +
-      (maxFrp > 0 ? ` · peak FRP ${maxFrp.toFixed(0)} MW` : "");
-    el.appendChild(summary);
+    const row = el("div", "stats");
+    row.appendChild(stat(total.toLocaleString("en-US"), `active-fire detection${total === 1 ? "" : "s"}`, total > 0 ? "stat--fire" : ""));
+    if (maxFrp > 0) row.appendChild(stat(`${maxFrp.toFixed(0)} MW`, "peak radiative power"));
+    root.appendChild(row);
   }
 
-  if (card.type === "index") {
+  if (type === "index") {
     const stats = card.payload.stats as
       | { mean: number; min: number; max: number; p50: number | null; validPct?: number }
       | undefined;
     const index = String(card.payload.index ?? "index");
-    if (stats) {
+    if (stats && Number.isFinite(stats.mean)) {
       // NDVI/NDWI/NBR are all in [-1, 1]; place the mean on a gradient bar.
       const pos = Math.max(0, Math.min(100, ((stats.mean + 1) / 2) * 100));
       const valid = typeof stats.validPct === "number" ? stats.validPct : null;
-      const panel = document.createElement("div");
-      panel.className = "idx-panel";
-      panel.innerHTML =
-        `<div class="idx-top"><span class="idx-name">${escapeHtml(index)}</span>` +
-        `<span class="idx-mean">${stats.mean.toFixed(3)}</span></div>` +
-        `<div class="idx-bar"><span class="idx-marker" style="left:${pos.toFixed(1)}%"></span></div>` +
-        `<div class="idx-row">min ${stats.min.toFixed(2)} · median ${(stats.p50 ?? stats.mean).toFixed(2)} · max ${stats.max.toFixed(2)}` +
-        (valid !== null ? ` · <span class="${valid < 60 ? "idx-warn" : ""}">${valid}% clear</span>` : ``) +
-        `</div>`;
-      el.appendChild(panel);
+      const panel = el("div", "idx");
+      const top = el("div", "stats");
+      top.appendChild(stat(stats.mean.toFixed(3), `mean ${index}`, "stat--index"));
+      if (valid !== null) top.appendChild(stat(`${valid}%`, "clear pixels", valid < 60 ? "stat--warn" : ""));
+      const bar = el("div", "idx-bar");
+      const marker = el("span", "idx-marker");
+      marker.style.left = `${pos.toFixed(1)}%`;
+      bar.appendChild(marker);
+      const scale = el("div", "idx-scale");
+      scale.append(el("span", "", "−1"), el("span", "", "0"), el("span", "", "+1"));
+      panel.append(top, bar, scale);
+      panel.appendChild(el("div", "card-note", `min ${stats.min.toFixed(2)} · median ${(stats.p50 ?? stats.mean).toFixed(2)} · max ${stats.max.toFixed(2)}`));
+      root.appendChild(panel);
     }
   }
 
-  if (card.type === "compare" && card.imageUrls && card.imageUrls.length >= 2) {
+  if (type === "compare" && card.imageUrls && card.imageUrls.length >= 2) {
     const delta = card.payload.delta as { meanChange: number } | undefined;
     const index = String(card.payload.index ?? "NDVI");
     const dateA = String(card.payload.dateA ?? "A");
     const dateB = String(card.payload.dateB ?? "B");
-    const pair = document.createElement("div");
-    pair.className = "cmp-pair";
+    const pair = el("div", "cmp-pair");
     // Build via DOM nodes (img.src assignment), never innerHTML — the URL embeds an id.
     const figure = (url: string, caption: string): HTMLElement => {
-      const fig = document.createElement("figure");
-      const img = document.createElement("img");
-      img.className = "card-img";
+      const fig = el("figure");
+      const img = el("img", "card-img");
       img.loading = "lazy";
+      img.alt = `${index} ${caption}`;
       img.src = url;
-      const cap = document.createElement("figcaption");
-      cap.textContent = caption;
-      fig.append(img, cap);
+      fig.append(img, el("figcaption", "", caption));
       return fig;
     };
     pair.append(figure(card.imageUrls[0] ?? "", dateA), figure(card.imageUrls[1] ?? "", dateB));
-    el.appendChild(pair);
-    if (delta) {
+    root.appendChild(pair);
+    if (delta && Number.isFinite(delta.meanChange)) {
       const dv = delta.meanChange;
-      const d = document.createElement("div");
-      d.className = `cmp-delta ${dv < 0 ? "down" : "up"}`;
-      d.textContent = `Δ ${escapeHtml(index)} mean ${dv >= 0 ? "+" : ""}${dv.toFixed(3)}`;
-      el.appendChild(d);
+      const row = el("div", "stats");
+      row.appendChild(stat(`${dv >= 0 ? "+" : "−"}${Math.abs(dv).toFixed(3)}`, `Δ mean ${index}`, dv < 0 ? "stat--down" : "stat--up"));
+      root.appendChild(row);
     }
   }
 
-  if (card.type === "search") {
+  if (type === "search") {
     const scenes = (card.payload.scenes as Array<{ datetime: string; cloudCover: number | null }> | undefined) ?? [];
-    const list = document.createElement("ul");
-    list.className = "evt-list";
+    const list = el("ul", "rows");
     for (const s of scenes.slice(0, 10)) {
-      const li = document.createElement("li");
       const cloud = s.cloudCover == null ? "—" : `${s.cloudCover.toFixed(0)}%`;
-      li.innerHTML = `<span class="evt-dot"></span>${escapeHtml((s.datetime || "").slice(0, 10))} <em>cloud ${cloud}</em>`;
-      list.appendChild(li);
+      list.appendChild(listRow((s.datetime || "").slice(0, 10), `cloud ${cloud}`));
     }
     // earthdata_search posts dataset collections instead of scenes.
     const collections =
       (card.payload.collections as Array<{ shortName: string; dataCenter: string; timeStart: string | null; timeEnd: string | null }> | undefined) ?? [];
     for (const c of collections.slice(0, 10)) {
-      const li = document.createElement("li");
-      const dot = document.createElement("span");
-      dot.className = "evt-dot";
-      const em = document.createElement("em");
       const span = `${(c.timeStart ?? "").slice(0, 4)}–${c.timeEnd ? c.timeEnd.slice(0, 4) : "now"}`;
-      em.textContent = `${c.dataCenter} · ${span}`;
-      li.append(dot, document.createTextNode(`${c.shortName} `), em);
-      list.appendChild(li);
+      list.appendChild(listRow(c.shortName, `${c.dataCenter} · ${span}`));
     }
-    el.appendChild(list);
+    root.appendChild(list);
   }
 
-  if (card.type === "series") {
+  if (type === "series") {
     const series = (card.payload.series as SeriesData[] | undefined) ?? [];
     const thresholds = Array.isArray(card.payload.thresholds)
       ? (card.payload.thresholds as number[]).filter((n) => typeof n === "number")
       : [];
-    el.appendChild(renderChart(series, thresholds));
+    root.appendChild(renderChart(series, thresholds));
     if (typeof card.payload.summary === "string" && card.payload.summary) {
-      const p = document.createElement("p");
-      p.className = "series-summary";
-      p.textContent = card.payload.summary;
-      el.appendChild(p);
+      root.appendChild(el("p", "card-text", card.payload.summary));
     }
     if (typeof card.payload.source === "string" && card.payload.source) {
-      const src = document.createElement("div");
-      src.className = "series-source";
-      src.textContent = card.payload.source;
-      el.appendChild(src);
+      root.appendChild(el("div", "card-note", card.payload.source));
     }
   }
 
-  if (card.type === "quakes") {
+  if (type === "quakes") {
     const quakes = (card.payload.quakes as QuakeItem[] | undefined) ?? [];
-    const list = document.createElement("ul");
-    list.className = "evt-list";
+    const list = el("ul", "rows");
     const top = [...quakes].sort((a, b) => (b.mag ?? 0) - (a.mag ?? 0)).slice(0, 8);
     for (const q of top) {
-      const li = document.createElement("li");
-      const dot = document.createElement("span");
-      dot.className = "evt-dot quake-dot";
-      const em = document.createElement("em");
-      em.textContent = q.time.slice(0, 10);
-      li.append(dot, document.createTextNode(`M${q.mag ?? "?"} ${q.place} `), em);
+      const li = el("li");
+      const big = (q.mag ?? 0) >= 6;
+      li.append(el("span", `mag${big ? " mag--big" : ""}`, q.mag == null ? "M?" : `M${q.mag.toFixed(1)}`), el("span", "li-main", q.place), el("span", "li-sub", q.time.slice(0, 10)));
       list.appendChild(li);
     }
-    if (quakes.length > top.length) {
-      const more = document.createElement("li");
-      more.className = "evt-more";
-      more.textContent = `+${quakes.length - top.length} more`;
-      list.appendChild(more);
-    }
-    el.appendChild(list);
+    if (quakes.length > top.length) list.appendChild(moreRow(quakes.length - top.length));
+    root.appendChild(list);
   }
 
-  if (card.type === "pulse") {
+  if (type === "pulse") {
     const metrics =
       (card.payload.metrics as Array<{ label: string; value: string; sub?: string }> | undefined) ?? [];
-    const grid = document.createElement("div");
-    grid.className = "pulse-grid";
+    const grid = el("div", "tiles");
     for (const m of metrics.slice(0, 12)) {
-      const cell = document.createElement("div");
-      cell.className = "pulse-cell";
-      const v = document.createElement("div");
-      v.className = "pulse-value";
-      v.textContent = String(m.value ?? "");
-      const l = document.createElement("div");
-      l.className = "pulse-label";
-      l.textContent = String(m.label ?? "");
-      cell.append(l, v);
-      if (m.sub) {
-        const s = document.createElement("div");
-        s.className = "pulse-sub";
-        s.textContent = String(m.sub);
-        cell.appendChild(s);
-      }
+      const cell = el("div", "tile");
+      cell.append(el("div", "tile-k", String(m.label ?? "")), el("div", "tile-v", String(m.value ?? "")));
+      if (m.sub) cell.appendChild(el("div", "tile-sub", String(m.sub)));
       grid.appendChild(cell);
     }
-    el.appendChild(grid);
+    root.appendChild(grid);
   }
 
-  if (card.type === "finding") {
-    const p = card.payload as { status?: string; tier?: number; rule?: { name: string; version: string }; summary?: string; evidence?: number; findingId?: string };
-    const row = document.createElement("div");
-    row.className = "finding-row";
+  if (type === "finding") {
+    const p = card.payload as { status?: string; tier?: number; rule?: { name: string; version: string }; summary?: string; evidence?: number };
+    const row = el("div", "finding-row");
     row.appendChild(statusBadge(String(p.status ?? "candidate")));
-    const meta = document.createElement("span");
-    meta.className = "finding-meta";
-    meta.textContent = `tier ${p.tier ?? "?"} · ${p.rule ? `${p.rule.name}@${p.rule.version}` : ""} · ${p.evidence ?? 0} evidence`;
-    row.appendChild(meta);
-    el.appendChild(row);
-    if (p.summary) {
-      const sm = document.createElement("p");
-      sm.className = "finding-summary";
-      sm.textContent = String(p.summary);
-      el.appendChild(sm);
-    }
+    row.appendChild(tierBadge(p.tier));
+    row.appendChild(el("span", "finding-meta", `${p.rule ? `${p.rule.name}@${p.rule.version} · ` : ""}${p.evidence ?? 0} evidence`));
+    root.appendChild(row);
+    if (p.summary) root.appendChild(el("p", "card-text", String(p.summary)));
   }
 
-  if (card.type === "worldpulse") {
+  if (type === "worldpulse") {
     const rows =
-      (card.payload.rows as Array<{ label: string; unit: string; status: string; latest?: { t: string; v: number | null } | null; direction?: string; pace?: string | null; pctPerDecade?: number | null }> | undefined) ?? [];
-    const grid = document.createElement("div");
-    grid.className = "wp-grid";
+      (card.payload.rows as Array<{ label: string; unit: string; status: string; latest?: { t: string; v: number | null } | null; direction?: string; pace?: string | null; pctPerDecade?: number | null; sparkline?: { t: string; v: number | null }[] }> | undefined) ?? [];
+    const grid = el("div", "tiles");
     for (const r of rows.slice(0, 16)) {
-      const cell = document.createElement("div");
       const dir = r.status !== "ok" ? "na" : r.direction ?? "flat";
-      cell.className = `wp-cell wp--${/^[a-z]+$/.test(dir) ? dir : "na"}`;
-      const l = document.createElement("div");
-      l.className = "pulse-label";
-      l.textContent = r.label;
-      const v = document.createElement("div");
-      v.className = "pulse-value";
-      v.textContent = r.status !== "ok" || !r.latest || r.latest.v === null ? "n/a" : `${fmtNum(r.latest.v)} ${r.unit}`;
-      const sub = document.createElement("div");
-      sub.className = "pulse-sub";
-      sub.textContent =
+      const cell = el("div", `tile wp--${/^[a-z]+$/.test(dir) ? dir : "na"}`);
+      const v = r.status !== "ok" || !r.latest || r.latest.v === null ? "n/a" : `${fmtNum(r.latest.v)}`;
+      const vEl = el("div", "tile-v", v);
+      if (v !== "n/a" && r.unit) vEl.appendChild(el("span", "tile-unit", ` ${r.unit}`));
+      cell.append(el("div", "tile-k", r.label), vEl);
+      if (r.status === "ok" && Array.isArray(r.sparkline) && r.sparkline.length > 2) cell.appendChild(renderSparkline(r.sparkline));
+      const trend =
         r.status !== "ok"
           ? "unavailable"
-          : `${dir === "improving" ? "▲ improving" : dir === "worsening" ? "▼ worsening" : "— flat"}${r.pctPerDecade != null ? ` · ${r.pctPerDecade > 0 ? "+" : ""}${r.pctPerDecade}%/decade` : ""}${r.pace ? ` · ${r.pace}` : ""} · ${r.latest?.t ?? ""}`;
-      cell.append(l, v, sub);
+          : `${dir === "improving" ? "▲ improving" : dir === "worsening" ? "▼ worsening" : "— flat"}${r.pctPerDecade != null ? ` · ${r.pctPerDecade > 0 ? "+" : ""}${r.pctPerDecade}%/dec` : ""}`;
+      cell.appendChild(el("div", "tile-sub tile-trend", trend));
+      cell.appendChild(el("div", "tile-sub", `${r.pace ? `${r.pace} · ` : ""}${r.latest?.t ?? ""}`));
       grid.appendChild(cell);
     }
-    el.appendChild(grid);
-    if (typeof card.payload.summary === "string") {
-      const s2 = document.createElement("div");
-      s2.className = "series-source";
-      s2.textContent = card.payload.summary;
-      el.appendChild(s2);
-    }
+    root.appendChild(grid);
+    if (typeof card.payload.summary === "string") root.appendChild(el("div", "card-note", card.payload.summary));
   }
 
   // Provenance footer(s): single block for imagery/index, before/after pair for compare.
   const prov = card.payload.provenance as ProvenanceView | undefined;
-  if (prov) el.appendChild(renderProvenance(prov));
+  if (prov && typeof prov === "object") root.appendChild(renderProvenance(prov));
   const provA = card.payload.provenanceA as ProvenanceView | undefined;
   const provB = card.payload.provenanceB as ProvenanceView | undefined;
-  if (provA) el.appendChild(renderProvenance(provA, String(card.payload.dateA ?? "A")));
-  if (provB) el.appendChild(renderProvenance(provB, String(card.payload.dateB ?? "B")));
+  if (provA && typeof provA === "object") root.appendChild(renderProvenance(provA, String(card.payload.dateA ?? "A")));
+  if (provB && typeof provB === "object") root.appendChild(renderProvenance(provB, String(card.payload.dateB ?? "B")));
 
   if (card.bbox) {
-    const bb = document.createElement("div");
-    bb.className = "card-bbox";
-    bb.textContent = card.bbox.map((n) => n.toFixed(2)).join(", ");
-    el.appendChild(bb);
+    const foot = el("footer", "card-foot");
+    const [w, s, e, n] = card.bbox;
+    foot.append(el("span", "coords", `${fmtLat(s)} ${fmtLon(w)} → ${fmtLat(n)} ${fmtLon(e)}`), el("span", "card-go", "Show on map"));
+    root.appendChild(foot);
+    root.classList.add("card--located");
   }
 
-  el.addEventListener("click", () => onFocus(card));
-  return el;
+  root.addEventListener("click", () => onFocus(card));
+  root.addEventListener("keydown", (e) => {
+    if (e.target !== root || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    onFocus(card);
+  });
+  return root;
+}
+
+function fmtLat(v: number): string {
+  return `${Math.abs(v).toFixed(2)}°${v < 0 ? "S" : "N"}`;
+}
+function fmtLon(v: number): string {
+  return `${Math.abs(v).toFixed(2)}°${v < 0 ? "W" : "E"}`;
 }
 
 function fmtNum(v: number): string {
