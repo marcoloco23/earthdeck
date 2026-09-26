@@ -1,4 +1,4 @@
-// Server-side (export-time) HTML for the public Earth Watch site. Every page ships its full
+// Server-side (export-time) HTML for the public site. Every page ships its full
 // content in the HTML — crawlers and no-JS readers get the whole case — and the small site
 // bundle (web/src/site/main.ts) only enhances: relative times, copy buttons, the "include
 // unpublished" switch, the world pulse, and the in-browser proof check.
@@ -462,7 +462,7 @@ export function developersPage(c: Ctx): { head: string; body: string } {
       <p class="band-note">Every case page also carries its own inclusion proof, checked in your browser, under “Technical details”.</p>
     </main>
     ${siteFoot(c)}`;
-  return { head: head(c, { title: `For developers · ${SITE.name}`, description: "Verify every Earth Watch case yourself: the signed ledger, three commands, data feeds, API and schema." }), body };
+  return { head: head(c, { title: `For developers · ${SITE.name}`, description: `Verify every ${SITE.name} case yourself: the signed ledger, three commands, data feeds, API and schema.` }), body };
 }
 
 function datasetLd(c: Ctx, orgId: string): Record<string, unknown> {
@@ -472,7 +472,7 @@ function datasetLd(c: Ctx, orgId: string): Record<string, unknown> {
     "@id": `${abs(c, "watch/") ?? "watch/"}#dataset`,
     name: `${SITE.fullName} findings ledger`,
     description:
-      "Every environmental finding Earth Watch has opened — candidates, confirmations, reviews, publications, replies and false positives — as signed in-toto/DSSE events in an RFC 6962 transparency log with a signed checkpoint.",
+      `Every environmental finding ${SITE.name} has opened — candidates, confirmations, reviews, publications, replies and false positives — as signed in-toto/DSSE events in an RFC 6962 transparency log with a signed checkpoint.`,
     url: abs(c, "watch/") ?? undefined,
     creator: { "@id": orgId, "@type": "Organization", name: SITE.organization.name },
     ...(SITE.dataLicense ? { license: SITE.dataLicense } : {}),

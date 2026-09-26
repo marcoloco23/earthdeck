@@ -8,13 +8,13 @@
 
 export const SITE = {
   /** Wordmark and short name: header, page-title suffix, og:site_name. */
-  name: "Earth Watch",
+  name: "TerraKeep",
   /** Longer form where one reads better: landing title, JSON-LD, dataset name, footer. */
-  fullName: "Earth Watch",
+  fullName: "TerraKeep",
   /** Small label after the wordmark in the header. */
-  byline: "Earth’s vital signs",
+  byline: "Keeping Earth within its limits",
   /** Landing page title, after the name. */
-  tagline: ["The planet’s vital signs —", "and the value of being alive."] as const,
+  tagline: ["Keeping Earth", "within its limits."] as const,
   /** The landing's one sentence (its h1), next to the wordmark — the only prose above the fold. Plain words. */
   oneLine: "Satellites watch the planet. Our AI checks what it sees, gets a second opinion, and publishes what holds up. Anyone can check the evidence.",
   /** Default meta description (landing, JSON-LD). */
@@ -26,7 +26,7 @@ export const SITE = {
    */
   baseUrl: "https://vitalearth.io",
   /** The publisher, for JSON-LD `Organization`. */
-  organization: { name: "Earth Watch", url: "https://vitalearth.io" },
+  organization: { name: "TerraKeep", url: "https://vitalearth.io" },
   /** Footer credit. */
   credit: "Built on open data",
   /** Static social card, relative to the site root (1200×630; carries no product name). */
