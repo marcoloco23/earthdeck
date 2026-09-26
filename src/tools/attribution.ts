@@ -9,7 +9,7 @@ import {
   type ClimateTraceSector,
   type CtSource,
 } from "../clients/climatetrace.js";
-import { landmarkLands, overpassProtectedAreas, type ProtectedArea } from "../clients/protected.js";
+import { landmarkLands, overpassProtectedAreas, wdpaAreas, type ProtectedArea } from "../clients/protected.js";
 import { gfwApiKey } from "../config.js";
 import { pushCard } from "../dashboard/push.js";
 import { OverviewError } from "../errors.js";
@@ -60,11 +60,11 @@ export function registerAttributionTools(server: McpServer): void {
       description:
         "Protected areas and Indigenous/community lands intersecting a bbox (or point + radius). " +
         "Sources: OpenStreetMap via Overpass (boundary=protected_area/national_park/aboriginal_lands; " +
-        "ODbL; no key) and LandMark Indigenous & community lands (CC BY-SA 4.0; via the GFW Data " +
-        "API, used when GFW_API_KEY is set, skipped otherwise). Each row: name, designation, " +
+        "ODbL; no key), plus — when GFW_API_KEY is set, via the GFW Data API — LandMark " +
+        "Indigenous & community lands (CC BY-SA 4.0) and WDPA/Protected Planet (IDs + stats only). Each row: name, designation, " +
         "category, source, licence, id, approximate area, a COARSE centroid (0.1° — never a " +
         "precise pin for Indigenous lands), and whether it contains the AOI centroid. No " +
-        "geometry is returned. WDPA is not queried (redistribution-restricted). Use it to " +
+        "geometry is returned. Use it to " +
         "attribute fires/forest loss to the land they fall on.",
       inputSchema: aoiSchema,
     },
@@ -72,23 +72,23 @@ export function registerAttributionTools(server: McpServer): void {
       safe(async () => {
         const box = resolveAoi(bbox, point, radiusKm);
         const key = gfwApiKey();
-        const [osm, landmark] = await Promise.allSettled([
+        const [osm, landmark, wdpa] = await Promise.allSettled([
           overpassProtectedAreas(box),
           key ? landmarkLands(key, box) : Promise.resolve(null),
+          key ? wdpaAreas(key, box) : Promise.resolve(null),
         ]);
         const areas: ProtectedArea[] = [];
         const sources: Record<string, string> = {};
-        if (osm.status === "fulfilled") {
-          areas.push(...osm.value);
-          sources.osm = `ok (${osm.value.length})`;
-        } else sources.osm = `unavailable: ${errMsg(osm.reason)}`;
-        if (landmark.status === "fulfilled") {
-          if (landmark.value) {
-            areas.push(...landmark.value);
-            sources.landmark = `ok (${landmark.value.length})`;
-          } else sources.landmark = "skipped: GFW_API_KEY not set";
-        } else sources.landmark = `unavailable: ${errMsg(landmark.reason)}`;
-        if (osm.status === "rejected" && !(landmark.status === "fulfilled" && landmark.value)) {
+        const settled = { osm, landmark, wdpa } as const;
+        for (const [name, r] of Object.entries(settled)) {
+          if (r.status === "rejected") sources[name] = `unavailable: ${errMsg(r.reason)}`;
+          else if (r.value === null) sources[name] = "skipped: GFW_API_KEY not set";
+          else {
+            areas.push(...r.value);
+            sources[name] = `ok (${r.value.length})`;
+          }
+        }
+        if (Object.values(settled).every((r) => r.status === "rejected" || r.value === null)) {
           throw new OverviewError(`No protected-area source answered — ${JSON.stringify(sources)}`);
         }
         // Containing areas first, then larger first.
@@ -132,7 +132,7 @@ export function registerAttributionTools(server: McpServer): void {
             "Centroids are rounded to 0.1° (~11 km) on purpose; no geometry is returned.",
             "OSM approxAreaKm2 is the feature's bounding-box extent (upper bound), not its polygon area.",
             "Absence of a row is not absence of protection or of Indigenous/community tenure — coverage has gaps.",
-            "WDPA (Protected Planet) is not queried: its licence restricts redistribution (IDs + stats only, future work).",
+            "WDPA rows are IDs + stats only (licence forbids redistributing its geometry); see protectedplanet.net for boundaries.",
           ],
           dashboard: pushed ? "pushed" : "dashboard offline",
         };

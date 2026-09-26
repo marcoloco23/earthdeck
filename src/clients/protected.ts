@@ -9,8 +9,9 @@
 //   `landmark_ip_lc_and_indicative_poly` (LandMark's own map only exposes MVT tiles; the GFW
 //   mirror is the queryable endpoint). Needs the same free GFW_API_KEY as forest_alerts;
 //   without it the source is skipped cleanly. Licence per GFW metadata: CC BY-SA 4.0.
-// WDPA is deliberately absent: its licence forbids redistribution and there is no zero-key
-// path (see README) — IDs + intersection stats only, as future work.
+// - WDPA via the GFW Data API dataset `wdpa_protected_areas` (same GFW_API_KEY): IDs, names,
+//   designation, IUCN category, reported area and containment only — never geometry, per the
+//   WDPA licence.
 //
 // Indigenous lands are never returned as precise pins: every centroid here is rounded to
 // 0.1° (~11 km), and nothing returns polygons.
@@ -28,7 +29,7 @@ export const LANDMARK_DATASET = "landmark_ip_lc_and_indicative_poly";
 const BOUNDARY_RE = "^(protected_area|national_park|aboriginal_lands)$";
 
 export interface ProtectedArea {
-  source: "osm" | "landmark";
+  source: "osm" | "landmark" | "wdpa";
   id: string;
   name: string | null;
   designation: string | null;
@@ -205,4 +206,54 @@ export function parseLandmarkRows(rows: Array<Record<string, unknown>>): Protect
 export async function landmarkLands(apiKey: string, bbox: BBox): Promise<ProtectedArea[]> {
   const rows = await gfwQuery(apiKey, LANDMARK_DATASET, landmarkSql(bbox), bboxToPolygon(bbox));
   return parseLandmarkRows(rows);
+}
+
+// ---------------------------------------------------------------- WDPA (via GFW)
+// WDPA's licence forbids redistributing its data as a downloadable service, so we take IDs
+// and intersection stats only — never geometry — and deep-link to Protected Planet.
+
+export const WDPA_LICENCE = "WDPA terms — IDs/stats only, no geometry redistributed (UNEP-WCMC & IUCN, Protected Planet)";
+export const WDPA_DATASET = "wdpa_protected_areas";
+
+/** SQL for WDPA sites intersecting the query geometry (no geometry columns), with a point-in-polygon flag. */
+export function wdpaSql(bbox: BBox): string {
+  const [lon, lat] = bboxCenter(bbox);
+  return (
+    "SELECT site_id, name, desig_eng, iucn_cat, gis_area, status, iso3, gfw_bbox, " +
+    `ST_Intersects(geom, ST_SetSRID(ST_MakePoint(${lon}, ${lat}), 4326)) AS contains_center FROM results`
+  );
+}
+
+/** Parse WDPA rows (`gis_area` is km²; numbers arrive as strings). */
+export function parseWdpaRows(rows: Array<Record<string, unknown>>): ProtectedArea[] {
+  return rows.map((r) => {
+    const km2 = r.gis_area == null ? NaN : Number(r.gis_area);
+    const bb = Array.isArray(r.gfw_bbox) ? r.gfw_bbox.map(Number) : [];
+    const centroid: [number, number] | null =
+      bb.length === 4 && bb.every(Number.isFinite)
+        ? [coarse((bb[0]! + bb[2]!) / 2), coarse((bb[1]! + bb[3]!) / 2)]
+        : null;
+    const desig = r.desig_eng == null ? "" : String(r.desig_eng);
+    const iucn = r.iucn_cat == null ? "" : String(r.iucn_cat);
+    const id = String(r.site_id ?? "");
+    return {
+      source: "wdpa" as const,
+      id,
+      name: r.name == null ? null : String(r.name),
+      designation: desig || null,
+      category: [iucn && `IUCN ${iucn}`, r.status == null ? "" : String(r.status)].filter(Boolean).join(" · ") || null,
+      indigenous: /indigenous/i.test(desig),
+      licence: WDPA_LICENCE,
+      approxAreaKm2: Number.isFinite(km2) ? round2(km2) : null,
+      areaBasis: Number.isFinite(km2) ? ("gis" as const) : null,
+      coarseCentroid: centroid,
+      containsAoiCentroid: typeof r.contains_center === "boolean" ? r.contains_center : null,
+      url: id ? `https://www.protectedplanet.net/${id}` : null,
+    };
+  });
+}
+
+export async function wdpaAreas(apiKey: string, bbox: BBox): Promise<ProtectedArea[]> {
+  const rows = await gfwQuery(apiKey, WDPA_DATASET, wdpaSql(bbox), bboxToPolygon(bbox));
+  return parseWdpaRows(rows);
 }

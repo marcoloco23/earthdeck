@@ -44,7 +44,7 @@ Then just ask: *"What's the state of the planet right now?"* · *"Is El Niño co
 | `stac_search` | Search open satellite archives (Sentinel-2/-1, Landsat) for scenes + COG asset URLs (Earth Search STAC) | — |
 | `narrate` | Stream rich text notes/interpretations to the dashboard alongside the data — update one note in place as the story develops | — |
 | `eo_similar` | "Find everywhere that looks like this": AlphaEarth 64-d embedding similarity over a search area (2017–2025, 10 m source) | — |
-| `protected_areas` | Protected areas + Indigenous/community lands intersecting a bbox (or point + radius): name, designation, licence, id, approx. area, coarse (0.1°) centroid, and whether each contains the AOI centre. OSM Overpass (ODbL) + LandMark (CC BY-SA 4.0, when `GFW_API_KEY` is set). No geometry; WDPA not queried (redistribution-restricted) | — (LandMark: `GFW_API_KEY`) |
+| `protected_areas` | Protected areas + Indigenous/community lands intersecting a bbox (or point + radius): name, designation, licence, id, approx. area, coarse (0.1°) centroid, and whether each contains the AOI centre. OSM Overpass (ODbL) + LandMark (CC BY-SA 4.0) and WDPA (IDs + stats only) when `GFW_API_KEY` is set. No geometry | — (LandMark/WDPA: `GFW_API_KEY`) |
 | `emitters` | Emitting assets in a bbox (or point + radius) from Climate TRACE v7 (CC BY 4.0): name, sector, country, lat/lon, latest annual t CO2e + CH4, source id; plus area-wide aggregates for the municipalities touched. Optional sector filter | — |
 | `fires_in` | Active fire / thermal-anomaly detections (NASA FIRMS), near-real-time | `FIRMS_MAP_KEY` |
 | `forest_alerts` | Integrated deforestation alerts (GLAD-L + GLAD-S2 + RADD via Global Forest Watch) — daily, 10 m, tropics | `GFW_API_KEY` |
@@ -258,7 +258,8 @@ Tests mock the network, so the whole suite runs with zero credentials — CI
   Indigenous & community lands (CC BY-SA 4.0) via the GFW Data API; emissions from
   [Climate TRACE](https://climatetrace.org/) (CC BY 4.0), API pinned to `/v7`
   (`EARTHDECK_CLIMATETRACE_BASE`; Overpass mirror: `EARTHDECK_OVERPASS_URL`). WDPA /
-  Protected Planet is future work: IDs + intersection stats only, never geometry.
+  Protected Planet (UNEP-WCMC & IUCN) via the GFW Data API: IDs + intersection stats only,
+  never geometry.
 
 ## Notes
 

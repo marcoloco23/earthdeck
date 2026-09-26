@@ -10,6 +10,10 @@ import {
   overpassQuery,
   parseLandmarkRows,
   parseOverpass,
+  parseWdpaRows,
+  WDPA_DATASET,
+  wdpaAreas,
+  wdpaSql,
 } from "../src/clients/protected.js";
 import { OverviewError } from "../src/errors.js";
 import { resolveAoi } from "../src/tools/attribution.js";
@@ -170,4 +174,48 @@ test("resolveAoi: bbox passthrough, point+radius → bbox, cap and missing-AOI e
   assert.ok(b[0] < -52.15 && b[2] > -52.15);
   assert.throws(() => resolveAoi([-60, -10, -50, 0]), /cap/);
   assert.throws(() => resolveAoi(), /bbox|point/);
+});
+
+// Real WDPA row via the GFW Data API (2026-09-26) for the São Félix bbox [-52.4,-6.9,-51.9,-6.4].
+const WDPA_ROWS = [
+  {
+    site_id: 352203,
+    name: "Área De Proteção Ambiental Triunfo Do Xingu",
+    desig_eng: "Environmental Protection Area",
+    iucn_cat: "V",
+    gis_area: "16796.443918445",
+    status: "Designated",
+    iso3: "BRA",
+    gfw_bbox: ["-53.93916", "-7.21395299999995", "-51.9790649999999", "-5.61881999999997"],
+    contains_center: true,
+  },
+];
+
+test("wdpaSql selects IDs/stats only — no geometry columns", () => {
+  const selected = wdpaSql(SFX).split("ST_Intersects")[0]!;
+  assert.ok(selected.includes("site_id") && selected.includes("iucn_cat"));
+  assert.ok(!/\bgeom\b|gfw_geojson|geostore/.test(selected));
+  assert.ok(wdpaSql(SFX).includes("ST_MakePoint(-52.15, -6.65)"));
+});
+
+test("parseWdpaRows: APA Triunfo do Xingu → id, IUCN V, km² area, coarse centroid, WDPA terms", () => {
+  const [w] = parseWdpaRows(WDPA_ROWS);
+  assert.equal(w!.source, "wdpa");
+  assert.equal(w!.id, "352203");
+  assert.equal(w!.designation, "Environmental Protection Area");
+  assert.equal(w!.category, "IUCN V · Designated");
+  assert.equal(w!.approxAreaKm2, 16796.44);
+  assert.deepEqual(w!.coarseCentroid, [-53, -6.4]);
+  assert.equal(w!.containsAoiCentroid, true);
+  assert.equal(w!.indigenous, false);
+  assert.match(w!.licence, /IDs\/stats only/);
+  assert.equal(w!.url, "https://www.protectedplanet.net/352203");
+});
+
+test("wdpaAreas queries the WDPA dataset with the bbox polygon", async (t) => {
+  const m = mockFetch(() => jsonResponse({ data: WDPA_ROWS, status: "success" }));
+  t.after(m.restore);
+  const rows = await wdpaAreas("KEY", SFX);
+  assert.equal(rows.length, 1);
+  assert.ok(m.calls[0]!.url.includes(`/dataset/${WDPA_DATASET}/latest/query/json`));
 });
