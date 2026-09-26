@@ -19,12 +19,15 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
   CSV + purpose-built bottom-up BigTIFF/zstd reader, `src/utm.ts` Krüger projection). Live:
   urban ref → Manaus city grid (ref cell 1.0), river ref → Rio Negro. **26 tools, 130
   offline tests, build + typecheck green.**
-- **Session 8 (2026-09-26): Earth Watch planned, not yet built.** Brainstorm → strategy →
-  plan in `.plans/2026-09-26_earth-watch.md` + VISION.md §14 + ROADMAP "Earth Watch" block.
-  The project's next big move: a public, evidence-first accountability loop (ledger +
-  standing sweep + world pulse + static public site on Actions/Pages). **Next: build M1**
-  (ledger + `world_pulse` + Watch tab) — see the TASK QUEUE "Earth Watch" section.
-  Horizon 2 leftovers (embedding-diff change, few-shot, pgvector) are parked behind it.
+- **Session 8 (2026-09-26): Earth Watch — strategy, research, M1 shipped.** Plan
+  `.plans/2026-09-26_earth-watch.md` (rev. 2), research `docs/research/…architecture.md`,
+  VISION.md §14. **M1 done**: verifiable ledger (`src/ledger/`, RFC 8785 + RFC 6962 +
+  C2SP checkpoints + DSSE/in-toto, trust contract as code), dashboard Watch tab + feeds
+  + `/ledger/*`, `earthdeck ledger verify|show|seed`, `world_pulse` (tool #27). **27
+  tools, 151 offline tests, build + all typechecks green, committed + pushed** on
+  `claude/ai-planetary-health-i94onh`. **Next: M2** — `src/watch/` kernel + watchlists +
+  rules `forest_loss`, `fires_in_protected` → `earthdeck watch --once`. ⚠️ verify live
+  when network exists: OWID grapher CSV shape (`src/clients/owid.ts`).
 - Session started: 2026-09-26 (Session 8)
 
 ---
@@ -176,12 +179,12 @@ Session 7b (2026-06-13) — user asks + Horizon 2:
 Earth Watch — the public accountability loop (Session 8, planned 2026-09-26) — **CURRENT**:
 Plan `.plans/2026-09-26_earth-watch.md` (read it first; it holds the strategy decisions and
 the trust contract). Checkboxes mirror the ROADMAP "Earth Watch" block.
-- [ ] M1 ledger: `src/ledger/{schema,store,hash}.ts` + tests (evidence required, status
-      machine, party ⇒ review, hash chain, tamper detection)
-- [ ] M1 dashboard: `/api/ledger*`, `/feed.json`, `/feed.geojson`, `finding`/`worldpulse`
-      cards, Watch tab (cases list + case page)
-- [ ] M1 `world_pulse` tool + `src/clients/owid.ts` registry (`betterWhen`, direction,
-      acceleration) + fixtures ⚠️ verify OWID grapher CSV URL shape on a networked session
+- [x] M1 ledger: `src/ledger/{jcs,merkle,checkpoint,schema,store}.ts` + 21 tests (RFC
+      vectors, tampering, every trust-contract rule). Witnessed Merkle log, not a hash chain.
+- [x] M1 dashboard: `LedgerView` (`/api/ledger*`, feeds, `/ledger/*`), `finding`/`worldpulse`
+      cards, Watch tab (cases list + case page + map outline). Screenshotted.
+- [x] M1 `world_pulse` (tool #27) + `src/clients/owid.ts` registry + `earthdeck ledger` CLI.
+      ⚠️ verify OWID grapher CSV URL shape on a networked session.
 - [ ] M2 watchlists + seed lists (incl. control AOIs) · runner · forestLoss/firesInProtected
       detectors · `earthdeck watch --once|--every` · doctor/README
 - [ ] M3 attribution tools (`protected_areas`, `emitters`, `methane_plumes`, `flaring`) +
@@ -205,7 +208,7 @@ Onboarding (Session 6, "make it super simple"): ✅ done + live-verified
 - [x] README restructured: 30-second `npx … demo` quickstart + `claude mcp add` one-liner
       ABOVE the tool tables; keys table with direct links; doctor output sample.
 
-22 tools total. Build + typecheck green. **88 offline tests green** (`pnpm test`).
+27 tools total. Build + typecheck green. **151 offline tests green** (`pnpm test`).
 Live driver: `node scripts/live-drive.mjs [tool …]` (boots dashboard on :5099, reads `.env`).
 
 Engineering quality (cross-cutting):

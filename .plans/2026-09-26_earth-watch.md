@@ -1,7 +1,7 @@
 # Plan: Earth Watch — the public accountability loop
 
 **Date**: 2026-09-26 (rev. 2 — rewritten after the architecture research)
-**Status**: IN PROGRESS (M1)
+**Status**: IN PROGRESS (M1 ✅ 2026-09-26 · M2 next)
 **Phase**: Horizon 3 (the Watchdog), pulled forward as a public-good MVP. See VISION.md §14.
 **Research**: [`docs/research/2026-09-26_earth-watch-architecture.md`](../docs/research/2026-09-26_earth-watch-architecture.md)
 — the ten-year architecture this plan implements. Read it for the *why*; this file is the *what*.
@@ -175,15 +175,15 @@ MVP = M1 + M2. Don't start M3 before one real sweep has opened one real case end
 
 ## Implementation steps
 
-- [ ] M1 `jcs.ts` + RFC 8785 vectors
-- [ ] M1 `merkle.ts` (leaf/node hashing, root, inclusion + consistency proofs, tiles) + vectors
-- [ ] M1 `checkpoint.ts` (signed note format, Ed25519 sign/verify, key load/generate)
-- [ ] M1 `schema.ts` (zod events + envelope, transitions, tiers) + `schema/finding-event.v1.json`
-- [ ] M1 `store.ts` (JSONL append, fold → findings, query, verify) + tampering tests
-- [ ] M1 dashboard endpoints + feeds + card types
-- [ ] M1 `world_pulse` + OWID client + fixtures
-- [ ] M1 Watch tab (cases list, case page, pulse grid)
-- [ ] M1 `earthdeck ledger verify|show`
+- [x] M1 `jcs.ts` + RFC 8785 vectors
+- [x] M1 `merkle.ts` (leaf/node hashing, root, inclusion + consistency proofs, tiles) + vectors
+- [x] M1 `checkpoint.ts` (signed note format, Ed25519 sign/verify, key load/generate)
+- [x] M1 `schema.ts` (zod events + envelope, transitions, tiers) — JSON Schema export `schema/finding-event.v1.json` still TODO
+- [x] M1 `store.ts` (JSONL append, fold → findings, query, verify) + tampering tests
+- [x] M1 dashboard endpoints + feeds + card types
+- [x] M1 `world_pulse` + OWID client + fixtures
+- [x] M1 Watch tab (cases list, case page, pulse grid)
+- [x] M1 `earthdeck ledger verify|show`
 - [ ] M2 … (see milestones)
 
 ## Files to create / modify
@@ -218,10 +218,10 @@ MVP = M1 + M2. Don't start M3 before one real sweep has opened one real case end
 
 ## Definition of done (M1)
 
-- [ ] builds + typechecks; offline tests green; CI green
-- [ ] `earthdeck ledger verify` passes on a seeded ledger and fails on a tampered one
-- [ ] Watch tab shows cases with evidence + the world pulse; feeds + checkpoint + tiles served
-- [ ] CONTINUITY.md + PROGRESS.md + ROADMAP.md updated
+- [x] builds + typechecks; offline tests green (151); CI: pending push
+- [x] `earthdeck ledger verify` passes on a seeded ledger and fails on a tampered one (tests)
+- [x] Watch tab shows cases with evidence; feeds + checkpoint + tiles served (world pulse renders as a feed card)
+- [x] CONTINUITY.md + PROGRESS.md + ROADMAP.md updated
 
 ## Notes / log
 
@@ -230,3 +230,4 @@ MVP = M1 + M2. Don't start M3 before one real sweep has opened one real case end
   Merkle log instead of hash chain; event-sourced findings + new states + four-eyes naming;
   watermark scheduling; R2/Parquet/PMTiles publishing; analyst narrates but never confirms;
   data-source licence rules; Art. 50 disclosure + two-clock TRUST.md. M1 started.
+- 2026-09-26: **M1 shipped.** 27 tools, 151 tests. JSON Schema export deferred; OWID URL verify-live.

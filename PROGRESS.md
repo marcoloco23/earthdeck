@@ -5,6 +5,43 @@ status, next priorities. The live task pointer is in [CONTINUITY.md](CONTINUITY.
 
 ---
 
+## Session: 2026-09-26 — Earth Watch: strategy → research → M1 (verifiable ledger + world_pulse) ✅
+
+**Focus**: the user's brainstorm — "use AI to make the planet healthier, keep everyone
+accountable, make it public" — turned into a strategy, a researched ten-year architecture,
+and the first shipped milestone.
+
+**Done**:
+- [x] **Strategy** (VISION.md §14): the accountability loop *detect → verify → attribute →
+      route → track*; public first, leverage second, same ledger; methane/flaring → EUDR
+      wedges; trust rests on checkable evidence, not the AI.
+- [x] **Architecture research** (`docs/research/2026-09-26_earth-watch-architecture.md`,
+      five streams, ~8.9k words): witnessed Merkle logs not hash chains; deterministic
+      kernel with the LLM as a journaled step; two-clock/tiered policy from MARS, GFW,
+      Carbon Mapper, Berkeley Protocol; verified data-source table with licence traps;
+      static-files publishing; v1→v3 ladder. Plan rewritten (rev. 2).
+- [x] **Ledger** (`src/ledger/`): `jcs.ts` (RFC 8785, RFC vectors), `merkle.ts` (RFC
+      6962/9162 root + inclusion + consistency proofs, RFC vectors; tlog-tiles layout),
+      `checkpoint.ts` (C2SP signed note, Ed25519, key hash), `schema.ts` (11 event kinds,
+      status machine, tiers, `checkAppend` = the trust contract), `store.ts` (append →
+      sign DSSE → tile → consistency-checked checkpoint; `verify`). 21 new tests incl.
+      edit/delete/reorder/forge tampering and every contract rule. **Zero new deps.**
+- [x] **Dashboard**: `LedgerView` (`/api/ledger*`, `/feed.json`, `/feed.geojson`,
+      `/ledger/{checkpoint,pub,entries.jsonl,tile/*}`; re-opens on file change; traversal-
+      safe), `finding` + `worldpulse` cards, **Watch tab** (`web/src/watch.ts`: case list,
+      case page, finding outline on the map). Screenshotted on the seeded ledger.
+- [x] **CLI**: `earthdeck ledger verify | show | seed` (seed refuses non-empty ledgers).
+- [x] **`world_pulse` (tool #27)**: `clients/owid.ts` registry with `betterWhen` + upstream
+      licence per indicator, `assess()` direction/pace, partial-failure-tolerant tool.
+      ⚠️ OWID URL shape unverified live (egress blocked) — fixture-tested only.
+- **Status**: 27 tools · **151 offline tests** · build + typecheck (server, test, web) green
+  · `ledger verify` ✓ on a seeded ledger · all endpoints 200 · `ledger.key` gitignored.
+
+**Next**: M2 — watchlists + Watch Kernel (`earthdeck watch --once`, watermarks, rules
+`forest_loss` / `fires_in_protected` with second-signal confirmation).
+
+---
+
 ## Session: 2026-06-13 — narrate · dashboard nav fixes · eo_similar (Horizon 2 #1) ✅
 
 **Focus**: (1) user ask: stream text interpretations to the dashboard; (2) user bug: card

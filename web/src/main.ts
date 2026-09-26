@@ -1,13 +1,15 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./styles.css";
-import { createMap, mapReady, showImagery, showEvents, showFires, showCompare, showQuakes, showSimilar, focusBBox, clearOverlays } from "./map";
+import { createMap, mapReady, showImagery, showEvents, showFires, showCompare, showQuakes, showSimilar, showFinding, focusBBox, clearOverlays } from "./map";
 import { renderCard } from "./cards";
+import { initWatch } from "./watch";
 import type { Card } from "./types";
 
 const feed = document.getElementById("feed") as HTMLDivElement;
 const empty = document.getElementById("empty") as HTMLDivElement;
 const statusEl = document.getElementById("status") as HTMLSpanElement;
 const clearBtn = document.getElementById("clear") as HTMLButtonElement;
+const watchEl = document.getElementById("watch") as HTMLDivElement;
 
 // Connect the live feed FIRST so it works even if the map (WebGL) fails to initialize.
 connect();
@@ -28,6 +30,7 @@ function focusCard(card: Card): void {
   else if (card.type === "compare") showCompare(card);
   else if (card.type === "quakes") showQuakes(card);
   else if (card.type === "similar") showSimilar(card);
+  else if (card.type === "finding") showFinding(card.payload.geometry as Parameters<typeof showFinding>[0], card.bbox);
   // Everything else (index, search, series, note, …): any card that knows where it is
   // should navigate there on click — focusBBox is a no-op without a bbox.
   else focusBBox(card);
@@ -102,3 +105,21 @@ clearBtn.addEventListener("click", () => {
   clearOverlays();
   empty.style.display = "";
 });
+
+// ---- Tabs: the live feed vs the findings ledger (Watch) ----
+const watch = initWatch(watchEl, (f) => {
+  if (mapReady()) showFinding(f.geometry as Parameters<typeof showFinding>[0], f.bbox);
+});
+function showTab(name: string): void {
+  const isWatch = name === "watch";
+  feed.hidden = isWatch;
+  empty.hidden = isWatch || feed.children.length > 0;
+  watchEl.hidden = !isWatch;
+  clearBtn.hidden = isWatch;
+  for (const b of document.querySelectorAll<HTMLButtonElement>("#tabs .tab")) b.classList.toggle("tab--on", b.dataset.tab === name);
+  if (isWatch) void watch.refresh();
+}
+for (const b of document.querySelectorAll<HTMLButtonElement>("#tabs .tab")) b.addEventListener("click", () => showTab(b.dataset.tab ?? "feed"));
+setInterval(() => {
+  if (!watchEl.hidden) void watch.refresh();
+}, 30_000);

@@ -16,11 +16,15 @@
         <div id="map"></div>
         <aside id="sidebar">
           <div id="feed-head">
-            <span>Feed</span>
+            <nav id="tabs">
+              <button class="tab tab--on" data-tab="feed" type="button">Feed</button>
+              <button class="tab" data-tab="watch" type="button">Watch</button>
+            </nav>
             <button id="clear" title="Clear feed">clear</button>
           </div>
           <div id="feed"></div>
           <div id="empty">Waiting for Claude. Ask it to look at a place — imagery, events, and analysis will stream in here.</div>
+          <div id="watch" hidden></div>
         </aside>
       </main>
     </div>

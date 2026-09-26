@@ -13,3 +13,7 @@ npm-debug.log*
 .vscode/
 .idea/
 *.swp
+
+# Findings ledger: the signing key must never be committed; the log itself lives on the watch-data branch (M4)
+data/ledger/ledger.key
+data/ledger/*.tmp

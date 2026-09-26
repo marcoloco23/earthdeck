@@ -44,6 +44,7 @@ Env: `CDSE_CLIENT_ID`/`CDSE_CLIENT_SECRET` (Copernicus), `FIRMS_MAP_KEY` (fires)
 | `river_discharge(lat, lon, start?, end?)` | Open-Meteo flood (GloFAS, 1984→) | none | series |
 | `planet_pulse()` | all of the above + EONET + USGS, parallel best-effort | none | pulse |
 | `earthdata_search(keyword, bbox?, dateFrom?, dateTo?, limit=10)` | NASA CMR collections.json | none | search |
+| `world_pulse(indicators?)` | Our World in Data grapher CSV | none | worldpulse |
 
 Endpoints:
 - OAuth token: `POST https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token` (`client_credentials`)
@@ -190,17 +191,18 @@ charts, `quakes` magnitude-scaled map layer, `pulse` vital-signs grid).
 Horizons 3–5 (the Watchdog monitoring platform, verticalization, marketplace/system-of-record):
 see [VISION.md](VISION.md) §7.
 
-## Earth Watch — the public accountability loop 🚧 (planned 2026-09-26)
+## Earth Watch — the public accountability loop 🚧 (M1 ✅ 2026-09-26)
 
 Horizon 3 pulled forward as a public good. Plan: [`.plans/2026-09-26_earth-watch.md`](.plans/2026-09-26_earth-watch.md);
 strategy: [VISION.md](VISION.md) §14. Loop = detect → verify → attribute → route → track.
 
 **M1 — Memory + pulse** (zero-key, offline-testable)
-- [ ] `src/ledger/` — Finding schema (evidence required, status machine, party ⇒ human review),
-      JSONL append-only store, SHA-256 hash chain + `verifyChain()`, tests
-- [ ] Dashboard: `/api/ledger`, `/api/ledger/:id`, `/feed.json`, `/feed.geojson`; `finding` +
-      `worldpulse` card types; **Watch** tab (cases → case page w/ map, evidence, timeline)
-- [ ] `world_pulse` tool — OWID/World Bank indicators w/ `betterWhen` + direction + acceleration
+- [x] `src/ledger/` — event-sourced findings (in-toto/DSSE, JCS), RFC 6962 Merkle log in
+      tlog-tiles layout, Ed25519 signed checkpoints, trust contract as code, `verify` (2026-09-26)
+- [x] Dashboard: `/api/ledger*`, `/feed.json`, `/feed.geojson`, `/ledger/{checkpoint,pub,
+      entries.jsonl,tile/*}`; `finding` + `worldpulse` cards; **Watch** tab (2026-09-26)
+- [x] `world_pulse` (tool #27) — OWID registry w/ `betterWhen` + direction + pace; `earthdeck
+      ledger verify|show|seed` CLI (2026-09-26) ⚠️ OWID URL shape: verify live
 
 **M2 — The sweep** (`earthdeck watch`)
 - [ ] `watchlists/*.json` format + seed lists (protected areas, O&G basins, control AOIs)
