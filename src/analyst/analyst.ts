@@ -83,13 +83,66 @@ const REVIEWER_SYSTEM = `You are the independent second reviewer for Earth Watch
 
 verdict: "publish" only if all of the above hold and the finding is fit for the public record; "hold" if a human should look (unclear, overclaiming, fixable); "reject" if the finding itself looks like a false positive or the AOI is a control. Give short, specific reasons.`;
 
-export function select(ledger: AnalystLedger, max: number): { finding: Finding; needs: "narrate" | "review" }[] {
-  const out: { finding: Finding; needs: "narrate" | "review" }[] = [];
-  const confirmed = ledger.list({ status: ["confirmed"] }).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-  for (const f of confirmed) {
-    if (!f.narration) out.push({ finding: f, needs: "narrate" });
-    else if (!f.reviews.some((r) => r.actor.startsWith("model:") && r.at >= f.narration!.at)) out.push({ finding: f, needs: "review" });
-    if (out.length >= max) break;
+export interface Selected {
+  finding: Finding;
+  needs: "narrate" | "review";
+  score: number;
+}
+
+const numParam = (v: unknown, dflt: number) => (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : dflt);
+
+/**
+ * How surprising a finding is: the AOI-vs-ring baseline ratio (1 when absent) times a
+ * rule-specific boost — flaring with no registry match ×2, forest ha / minHa, methane
+ * anomaly ppb / minAnomalyPpb, fires detections / minDetections. Unknown rules: ×1.
+ */
+export function novelty(f: Finding): number {
+  const ratio = f.context?.baseline?.ratio;
+  const base = typeof ratio === "number" && ratio > 0 ? ratio : 1;
+  const v = Object.assign({}, ...f.evidence.map((e) => e.values ?? {})) as Record<string, number>;
+  const p = f.rule.params ?? {};
+  let boost = 1;
+  switch (f.rule.name) {
+    case "flaring":
+      boost = v.new_flare === 1 ? 2 : 1;
+      break;
+    case "forest_loss":
+      if (typeof v.ha === "number") boost = v.ha / numParam(p.minHa, 5);
+      break;
+    case "methane_anomaly":
+      if (typeof v.deltaPpb === "number") boost = v.deltaPpb / numParam(p.minAnomalyPpb, 20);
+      break;
+    case "fires_in_protected":
+      if (typeof v.detections === "number") boost = v.detections / numParam(p.minDetections, 5);
+      break;
+  }
+  return Math.round(base * (boost > 0 ? boost : 1) * 1000) / 1000;
+}
+
+/** Higher score first; ties by observedAt desc, then findingId. */
+const byNovelty = (a: Selected, b: Selected) =>
+  b.score - a.score || (a.finding.observedAt < b.finding.observedAt ? 1 : a.finding.observedAt > b.finding.observedAt ? -1 : 0) || (a.finding.findingId < b.finding.findingId ? -1 : a.finding.findingId > b.finding.findingId ? 1 : 0);
+
+/**
+ * Work for this run, deterministic. Narrations awaiting review go first (already paid for);
+ * the rest is a round-robin across rules — each round takes the most novel remaining finding
+ * of every rule (rules ordered by that finding) — so one cheap-to-confirm rule can't fill `max`.
+ */
+export function select(ledger: AnalystLedger, max: number): Selected[] {
+  const review: Selected[] = [];
+  const groups = new Map<string, Selected[]>();
+  for (const f of ledger.list({ status: ["confirmed"] })) {
+    if (!f.narration) {
+      const g = groups.get(f.rule.name) ?? [];
+      g.push({ finding: f, needs: "narrate", score: novelty(f) });
+      groups.set(f.rule.name, g);
+    } else if (!f.reviews.some((r) => r.actor.startsWith("model:") && r.at >= f.narration!.at)) review.push({ finding: f, needs: "review", score: novelty(f) });
+  }
+  const out = review.sort(byNovelty).slice(0, max);
+  const queues = [...groups.values()].map((g) => g.sort(byNovelty));
+  while (out.length < max && queues.some((q) => q.length)) {
+    const round = queues.filter((q) => q.length).map((q) => q.shift()!).sort(byNovelty);
+    out.push(...round.slice(0, max - out.length));
   }
   return out;
 }
@@ -112,6 +165,10 @@ export async function runAnalyst(o: AnalystOptions): Promise<AnalystReport> {
   report.selected = work.length;
   if (q && q.analystCasesLeft() === 0) log(`daily analyst case cap reached (${q.caps.analystCases}) — nothing to do until tomorrow (UTC)`);
   j("start", { narrator, reviewer, dryRun, selected: work.length });
+  if (work.length) {
+    log(`selection (round-robin by rule, novelty-ranked): ${work.map((w, i) => `${i + 1}. ${w.finding.rule.name} ${w.score} [${w.finding.findingId}]${w.needs === "review" ? " review" : ""}`).join(" · ")}`);
+    j("selection", { order: work.map((w) => ({ findingId: w.finding.findingId, rule: w.finding.rule.name, needs: w.needs, score: w.score })) });
+  }
 
   const call = async (purpose: "narrate" | "review", findingId: string, attempt: number, model: string, system: string, user: string, jsonSchema: Record<string, unknown>): Promise<JsonCallResult> => {
     try {

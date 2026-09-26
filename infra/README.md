@@ -147,6 +147,7 @@ hold across invocations) and set as function env vars in the template:
 | Env var | Default | Counts |
 | --- | --- | --- |
 | `EARTHDECK_MAX_CDSE_CALLS` | 60 | `eo_compare`, `methane_plumes`, `eo_*` tool calls (1 each) |
+| `EARTHDECK_MAX_<PROVIDER>_CALLS_<RULE>` | `…_CDSE_CALLS_METHANE_ANOMALY` 10 | per-rule sub-cap inside a provider's cap (rule name upper-cased, `-`→`_`); keeps methane from spending the CDSE budget forest confirmations need |
 | `EARTHDECK_MAX_GFW_CALLS` | 400 | `forest_alerts` calls (1 each) |
 | `EARTHDECK_MAX_FIRMS_CALLS` | 300 | FIRMS transactions: `fires_in` 1; `flaring` ⌈days/5⌉ × sources (30 d × 2 = 12) |
 | `EARTHDECK_MAX_ANALYST_CASES` | 10 | findings the analyst takes on per day (also the `--max` default) |

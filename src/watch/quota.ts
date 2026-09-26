@@ -18,11 +18,22 @@ export interface QuotaCaps {
   firms: number;
   analystCases: number;
   analystUsd: number;
+  /** Per-rule sub-caps inside a provider's cap, keyed by ruleKey(rule name): e.g. methane may
+   *  spend at most 10 CDSE calls so forest confirmations keep the rest. */
+  perRule?: Record<string, Partial<Record<Provider, number>>>;
 }
 
-const DEFAULT_CAPS: QuotaCaps = { cdse: 60, gfw: 400, firms: 300, analystCases: 10, analystUsd: 3 };
+const DEFAULT_CAPS: QuotaCaps = { cdse: 60, gfw: 400, firms: 300, analystCases: 10, analystUsd: 3, perRule: { METHANE_ANOMALY: { cdse: 10 } } };
 
-/** Caps from EARTHDECK_MAX_{CDSE,GFW,FIRMS}_CALLS, EARTHDECK_MAX_ANALYST_CASES, EARTHDECK_MAX_ANALYST_USD. */
+/** `methane-anomaly` / `methane_anomaly` → `METHANE_ANOMALY` (the env-var suffix form). */
+export function ruleKey(rule: string): string {
+  return rule.toUpperCase().replace(/[-_\s]+/g, "_");
+}
+
+/**
+ * Caps from EARTHDECK_MAX_{CDSE,GFW,FIRMS}_CALLS, EARTHDECK_MAX_ANALYST_CASES, EARTHDECK_MAX_ANALYST_USD,
+ * plus per-rule sub-caps EARTHDECK_MAX_<PROVIDER>_CALLS_<RULE> (rule name upper-cased).
+ */
 export function capsFromEnv(env: NodeJS.ProcessEnv = process.env): QuotaCaps {
   const n = (name: string, dflt: number) => {
     const raw = env[name];
@@ -37,7 +48,19 @@ export function capsFromEnv(env: NodeJS.ProcessEnv = process.env): QuotaCaps {
     firms: n("EARTHDECK_MAX_FIRMS_CALLS", DEFAULT_CAPS.firms),
     analystCases: n("EARTHDECK_MAX_ANALYST_CASES", DEFAULT_CAPS.analystCases),
     analystUsd: n("EARTHDECK_MAX_ANALYST_USD", DEFAULT_CAPS.analystUsd),
+    perRule: perRuleFromEnv(env, n),
   };
+}
+
+function perRuleFromEnv(env: NodeJS.ProcessEnv, n: (name: string, dflt: number) => number): NonNullable<QuotaCaps["perRule"]> {
+  const out: NonNullable<QuotaCaps["perRule"]> = Object.fromEntries(Object.entries(DEFAULT_CAPS.perRule!).map(([k, v]) => [k, { ...v }]));
+  for (const name of Object.keys(env).sort()) {
+    const m = /^EARTHDECK_MAX_(CDSE|GFW|FIRMS)_CALLS_(.+)$/.exec(name);
+    if (!m || env[name] === undefined || env[name]!.trim() === "") continue;
+    const provider = m[1]!.toLowerCase() as Provider;
+    (out[ruleKey(m[2]!)] ??= {})[provider] = n(name, 0);
+  }
+  return out;
 }
 
 const TOOL_PROVIDER: Record<string, Provider> = {
@@ -98,6 +121,8 @@ interface DayRecord {
   cdse?: number;
   gfw?: number;
   firms?: number;
+  /** Per-rule provider usage (only for rules with a sub-cap), keyed by ruleKey. */
+  rules?: Record<string, Partial<Record<Provider, number>>>;
   analystCases?: number;
   analystUsd?: number;
 }
@@ -127,11 +152,27 @@ export class QuotaGovernor {
     return this.today[provider] ?? 0;
   }
 
-  /** Why the provider can't be used now, or null. */
-  blocked(provider: Provider, units = 1): string | null {
+  /** Calls `rule` spent on `provider` today (counted only when the rule has a sub-cap). */
+  ruleUsed(rule: string, provider: Provider): number {
+    return this.today.rules?.[ruleKey(rule)]?.[provider] ?? 0;
+  }
+
+  /** Why the provider can't be used now (by `rule`, when given — its sub-cap applies too), or null. */
+  blocked(provider: Provider, units = 1, rule?: string): string | null {
     const hit = this.exhausted.get(provider);
     if (hit) return hit;
-    return this.used(provider) + units > this.caps[provider] ? `quota:${provider}` : null;
+    if (this.used(provider) + units > this.caps[provider]) return `quota:${provider}`;
+    const sub = rule === undefined ? undefined : this.caps.perRule?.[ruleKey(rule)]?.[provider];
+    return sub !== undefined && this.ruleUsed(rule!, provider) + units > sub ? `quota:${provider}` : null;
+  }
+
+  /** Count a rule's spend against its sub-cap (no-op for rules without one). */
+  chargeRule(rule: string, provider: Provider, units: number): void {
+    const key = ruleKey(rule);
+    if (this.caps.perRule?.[key]?.[provider] === undefined) return;
+    const r = ((this.today.rules ??= {})[key] ??= {});
+    r[provider] = (r[provider] ?? 0) + units;
+    this.save();
   }
 
   markExhausted(provider: Provider): void {
