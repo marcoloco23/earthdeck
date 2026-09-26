@@ -205,10 +205,13 @@ strategy: [VISION.md](VISION.md) §14. Loop = detect → verify → attribute �
       ledger verify|show|seed` CLI (2026-09-26) ⚠️ OWID URL shape: verify live
 
 **M2 — The sweep** (`earthdeck watch`)
-- [ ] `watchlists/*.json` format + seed lists (protected areas, O&G basins, control AOIs)
-- [ ] `src/watch/runner.ts` — in-process MCP client, rate limits, cooldown dedup, `--once`/`--every`
-- [ ] Detectors: `forestLoss`, `firesInProtected` (pure, fixture-tested)
-- [ ] `earthdeck watch` CLI + doctor + README
+- [x] `watchlists/*.json` format + seed lists (Amazon, Congo/Borneo, controls) (2026-09-26)
+- [x] `src/watch/{kernel,journal,run}.ts` — in-process MCP client, delay/cap, cooldown ⇒ evidence,
+      watermarks, gaps, dry run, TTL expiry; `--once` only (schedule it; no `--every`) (2026-09-26)
+- [x] Rules `forest_loss`, `fires_in_protected` — blind spots required, ring baseline, independent
+      confirmation (fixture-tested) (2026-09-26)
+- [x] `earthdeck watch` CLI + README (2026-09-26) · [ ] doctor awareness of watch keys/ledger
+- [ ] **First live sweep with keys → first real case** (needs GFW/FIRMS/CDSE + network)
 
 **M3 — Attribution + methane wedge**
 - [ ] `protected_areas` (Overpass; WDPA opt.) · `emitters` (Climate TRACE) · `methane_plumes`

@@ -37,8 +37,25 @@ and the first shipped milestone.
 - **Status**: 27 tools · **151 offline tests** · build + typecheck (server, test, web) green
   · `ledger verify` ✓ on a seeded ledger · all endpoints 200 · `ledger.key` gitignored.
 
-**Next**: M2 — watchlists + Watch Kernel (`earthdeck watch --once`, watermarks, rules
-`forest_loss` / `fires_in_protected` with second-signal confirmation).
+**M2 — the sweep (same session, later)** ✅
+- [x] Principle "view the world whole" folded into the plan → schema: `context` (ENSO,
+      EONET events, regional baseline, notes) + `blindSpots[]` on `created`.
+- [x] `src/watch/rules/`: `defineRule` (blind spots required), `forest_loss@1.0` (GFW →
+      NDVI median-composite drop; ring baseline fitted under GFW's 4 deg² cap),
+      `fires_in_protected@1.0` (hot-FRP cluster → EONET wildfire or revisit; coarse centroid
+      geometry for Indigenous lands).
+- [x] `src/watch/{watchlist,journal,kernel,run}.ts`: zod watchlists (control AOIs,
+      cooldowns), file journal (tool calls w/ response hashes, watermarks, finding keys,
+      heartbeat), kernel (confirm-open-candidates → detect → context → created →
+      confirm; cooldown ⇒ `evidence_added`; TTL expiry; gaps leave watermarks untouched;
+      dry run; missing keys ⇒ skip), `earthdeck watch --once` over an in-process MCP client.
+- [x] Seed watchlists: Amazon (4 AOIs incl. two Indigenous lands), Congo/Borneo (2),
+      controls (Jaú, Salonga cores).
+- [x] 5 kernel tests (156 total). Smoke: `watch --once --dry-run` with no keys → 12 pairs
+      skipped with the exact missing key named, heartbeat written, exit 0.
+- **Not yet**: a *real* case — needs GFW/FIRMS/CDSE keys + network (Mac session). PR #2 open.
+
+**Next**: live sweep with keys → first real case; then M3 (attribution + methane).
 
 ---
 

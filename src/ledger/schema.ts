@@ -69,6 +69,22 @@ export type Evidence = z.infer<typeof evidence>;
 
 export const tier = z.number().int().min(0).max(3);
 
+/**
+ * "View the world whole": the state of the wider system when the finding was opened, so a
+ * forest loss during an El Niño drought is never narrated (or routed) like a bulldozer.
+ * Everything optional — context collection is best-effort and must never block a finding.
+ */
+export const context = z.object({
+  enso: z.object({ phase: z.string(), oni: z.number() }).optional(),
+  events: z.array(z.object({ id: z.string(), title: z.string(), category: z.string() })).max(20).optional(),
+  /** Regional baseline: the AOI's value vs its neighbourhood ring, to tell "stopped" from "moved". */
+  baseline: z
+    .object({ metric: z.string(), ringKm: z.number(), aoiValue: z.number(), regionalValue: z.number(), ratio: z.number().nullable() })
+    .optional(),
+  notes: z.array(z.string().max(500)).max(20).optional(),
+});
+export type Context = z.infer<typeof context>;
+
 export const STATUSES = [
   "candidate",
   "confirmed",
@@ -102,6 +118,8 @@ export const TRANSITIONS: Readonly<Record<Status, readonly Status[]>> = {
 
 /** Statuses visible on the public site. Candidates and confirmed-but-unreviewed are not. */
 export const PUBLIC_STATUSES: readonly Status[] = ["published", "notified", "replied", "no_response", "resolved", "ignored", "retracted"];
+/** Nothing more can happen to these (except that `retracted` is reachable from any non-terminal state). */
+export const TERMINAL_STATUSES: readonly Status[] = ["resolved", "ignored", "expired", "false_positive", "retracted"];
 
 // ---- Events ------------------------------------------------------------------------------
 
@@ -129,6 +147,9 @@ export const eventPayload = z.discriminatedUnion("kind", [
     aoi: z.object({ id: z.string(), name: z.string().optional(), tags: z.array(z.string()).optional() }).optional(),
     observedAt: rfc3339,
     evidence: z.array(evidence).min(1, "a finding cannot exist without evidence"),
+    context: context.optional(),
+    /** What the detecting rule cannot see — copied from the rule so the finding carries it. */
+    blindSpots: z.array(z.string().max(300)).max(20).optional(),
   }),
   base.extend({ kind: z.literal("evidence_added"), evidence: z.array(evidence).min(1) }),
   base.extend({
@@ -238,6 +259,8 @@ export interface Finding {
   geometry: Geometry;
   bbox: [number, number, number, number];
   aoi?: { id: string; name?: string; tags?: string[] };
+  context?: Context;
+  blindSpots?: string[];
   observedAt: string;
   createdAt: string;
   updatedAt: string;
@@ -348,6 +371,8 @@ export function applyEvent(f: Finding | null, ev: FindingEvent): Finding {
       geometry: ev.geometry,
       bbox: ev.bbox,
       aoi: ev.aoi,
+      context: ev.context,
+      blindSpots: ev.blindSpots,
       observedAt: ev.observedAt,
       createdAt: ev.at,
       updatedAt: ev.at,

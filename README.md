@@ -108,16 +108,30 @@ is a ledger anyone can verify:
   `/ledger/pub`, `/ledger/entries.jsonl`, `/ledger/tile/*`.
 
 ```bash
+earthdeck watch --once     # sweep watchlists/*.json with the real tools → findings in the ledger
+earthdeck watch --once --dry-run   # what would happen, writes nothing (works with zero keys: skips)
 earthdeck ledger seed      # demo cases into an empty ledger (data/ledger by default)
 earthdeck ledger verify    # ✓ OK — every entry is signed, canonical, rule-abiding…
 earthdeck ledger show      # list cases; `show <id>` prints events
 earthdeck dashboard        # → open the Watch tab
 ```
 
+**The sweep (M2)** — `src/watch/`: a deterministic **Watch Kernel** (no LLM) runs every
+AOI × rule in `watchlists/*.json`, journals every tool call, opens a *candidate* with the
+primary signal, and marks it *confirmed* only when the rule's **independent second signal**
+agrees (`forest_loss`: GFW alerts → NDVI drop in a Sentinel-2 median composite;
+`fires_in_protected`: VIIRS cluster → EONET event or re-detection on a later pass).
+Every rule must declare its **blind spots** and keeps a **regional baseline** (the AOI vs
+its neighbourhood ring — "did it stop, or did it move?"); every finding carries **context**
+(ENSO phase, nearby EONET events). Watermarks make late or missed runs self-heal; failures
+are recorded as coverage gaps, never silence. **Control AOIs** (expected quiet) measure our
+own false-positive rate. Needs `GFW_API_KEY` + CDSE creds (forest) and `FIRMS_MAP_KEY`
+(fires); pairs whose keys are missing are skipped, not failed.
+
 Env: `EARTHDECK_LEDGER_DIR` (default `data/ledger`), `EARTHDECK_LEDGER_KEY` (base64
 Ed25519 seed; otherwise `ledger.key` is generated — **never commit it**; `ledger.pub` is
-what you publish). Next: `earthdeck watch --once` (M2), attribution + methane tools (M3),
-a scheduled public site with Rekor/OpenTimestamps witnessing (M4), TRUST.md (M5).
+what you publish). Next: attribution + methane tools (M3), a scheduled public site with
+Rekor/OpenTimestamps witnessing (M4), TRUST.md (M5).
 
 ## Setup details
 

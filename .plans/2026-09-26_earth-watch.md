@@ -1,7 +1,7 @@
 # Plan: Earth Watch — the public accountability loop
 
 **Date**: 2026-09-26 (rev. 2 — rewritten after the architecture research)
-**Status**: IN PROGRESS (M1 ✅ 2026-09-26 · M2 next)
+**Status**: IN PROGRESS (M1 ✅ · M2 built 2026-09-26, live sweep pending · M3 next)
 **Phase**: Horizon 3 (the Watchdog), pulled forward as a public-good MVP. See VISION.md §14.
 **Research**: [`docs/research/2026-09-26_earth-watch-architecture.md`](../docs/research/2026-09-26_earth-watch-architecture.md)
 — the ten-year architecture this plan implements. Read it for the *why*; this file is the *what*.
@@ -210,11 +210,11 @@ MVP = M1 + M2. Don't start M3 before one real sweep has opened one real case end
 - [x] M1 `world_pulse` + OWID client + fixtures
 - [x] M1 Watch tab (cases list, case page, pulse grid)
 - [x] M1 `earthdeck ledger verify|show`
-- [ ] M2 schema: `context` on `created`; rule definition type with `blindSpots[]`, `secondSignal`, `baseline`
-- [ ] M2 watchlist format + validation + seed lists (incl. control AOIs)
-- [ ] M2 kernel: journal (sweeps/steps/tool_calls/heartbeats), watermarks, `finding_key`, cooldown
-- [ ] M2 rules: `forest_loss` (GFW → NDVI drop), `fires_in_protected` (FIRMS cluster → later pass / NBR)
-- [ ] M2 `earthdeck watch --once [--watchlist f] [--dry-run]` + doctor + README
+- [x] M2 schema: `context` on `created`; rule definition type with `blindSpots[]`, `secondSignal`, `baseline`
+- [x] M2 watchlist format + validation + seed lists (incl. control AOIs)
+- [x] M2 kernel: journal (sweeps/steps/tool_calls/heartbeats), watermarks, `finding_key`, cooldown
+- [x] M2 rules: `forest_loss` (GFW → NDVI drop), `fires_in_protected` (FIRMS cluster → later pass / NBR)
+- [x] M2 `earthdeck watch --once [--watchlist f] [--dry-run]` + README (doctor: TODO)
 
 ## Files to create / modify
 
@@ -262,3 +262,4 @@ MVP = M1 + M2. Don't start M3 before one real sweep has opened one real case end
   data-source licence rules; Art. 50 disclosure + two-clock TRUST.md. M1 started.
 - 2026-09-26: **M1 shipped.** 27 tools, 151 tests. JSON Schema export deferred; OWID URL verify-live.
 - 2026-09-26: principle "view the world whole" added (context block, blind spots, regional baseline, couplings). M2 started.
+- 2026-09-26: **M2 built** (kernel, rules, watchlists, journal, CLI; 156 tests). First live sweep needs keys — Mac session.

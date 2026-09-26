@@ -25,9 +25,11 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
   C2SP checkpoints + DSSE/in-toto, trust contract as code), dashboard Watch tab + feeds
   + `/ledger/*`, `earthdeck ledger verify|show|seed`, `world_pulse` (tool #27). **27
   tools, 151 offline tests, build + all typechecks green, committed + pushed** on
-  `claude/ai-planetary-health-i94onh`. **Next: M2** — `src/watch/` kernel + watchlists +
-  rules `forest_loss`, `fires_in_protected` → `earthdeck watch --once`. ⚠️ verify live
-  when network exists: OWID grapher CSV shape (`src/clients/owid.ts`).
+  `claude/ai-planetary-health-i94onh`, **PR #2 open**. **M2 built** (offline-verified):
+  `src/watch/` kernel + rules + watchlists + `earthdeck watch --once`; 156 tests. **Next:
+  first LIVE sweep with keys** (`earthdeck watch --once --max 2 --rules forest_loss`) to
+  open a real case, then M3. ⚠️ verify live: OWID CSV shape; GFW ring-baseline cost (2
+  alert queries per AOI); eo_compare `width: 256` acceptable for confirmation.
 - Session started: 2026-09-26 (Session 8)
 
 ---
@@ -185,8 +187,10 @@ the trust contract). Checkboxes mirror the ROADMAP "Earth Watch" block.
       cards, Watch tab (cases list + case page + map outline). Screenshotted.
 - [x] M1 `world_pulse` (tool #27) + `src/clients/owid.ts` registry + `earthdeck ledger` CLI.
       ⚠️ verify OWID grapher CSV URL shape on a networked session.
-- [ ] M2 watchlists + seed lists (incl. control AOIs) · runner · forestLoss/firesInProtected
-      detectors · `earthdeck watch --once|--every` · doctor/README
+- [x] M2 kernel (`src/watch/`), rules `forest_loss` + `fires_in_protected` (blind spots
+      required, ring baselines, independent confirmation), watchlists + controls, journal
+      (watermarks, heartbeat), `earthdeck watch --once [--dry-run]`, README. ⚠️ live sweep
+      with keys still to run; doctor not yet aware of the watch keys/ledger.
 - [ ] M3 attribution tools (`protected_areas`, `emitters`, `methane_plumes`, `flaring`) +
       detectors + `ledger_*` tools
 - [ ] M4 static export + scheduled Actions + Pages · analyst step · response tracking
@@ -208,7 +212,7 @@ Onboarding (Session 6, "make it super simple"): ✅ done + live-verified
 - [x] README restructured: 30-second `npx … demo` quickstart + `claude mcp add` one-liner
       ABOVE the tool tables; keys table with direct links; doctor output sample.
 
-27 tools total. Build + typecheck green. **151 offline tests green** (`pnpm test`).
+27 tools total. Build + typecheck green. **156 offline tests green** (`pnpm test`).
 Live driver: `node scripts/live-drive.mjs [tool …]` (boots dashboard on :5099, reads `.env`).
 
 Engineering quality (cross-cutting):

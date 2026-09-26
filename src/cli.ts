@@ -25,6 +25,11 @@ function main(): void {
     return;
   }
 
+  if (cmd === "watch") {
+    void import("./watch/run.js").then((m) => m.runWatch(process.argv.slice(3))).catch(fail);
+    return;
+  }
+
   if (cmd === "ledger") {
     void import("./ledger/cli.js").then((m) => m.runLedgerCli(process.argv.slice(3))).catch(fail);
     return;
@@ -46,6 +51,8 @@ function main(): void {
         "  earthdeck doctor       check your setup (env keys + data-source reachability)",
         "  earthdeck dashboard    start the dashboard server (default :5005)",
         "  earthdeck dashboard <port>",
+        "  earthdeck watch --once    sweep the watchlists once, write findings to the ledger",
+        "  earthdeck watch --once --dry-run [--watchlist <file|dir>] [--max N] [--rules a,b]",
         "  earthdeck ledger verify   re-derive the findings ledger and check its checkpoint",
         "  earthdeck ledger show [id] list findings (or one finding with its events)",
         "  earthdeck ledger seed     write demo findings into an EMPTY ledger (for the Watch tab)",
