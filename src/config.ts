@@ -75,3 +75,8 @@ export function climateTraceBase(): string {
 export function ledgerDir(): string {
   return env("LEDGER_DIR") ?? "data/ledger";
 }
+
+/** Claude API key for `earthdeck analyst` (narrate + review + publish), or null. */
+export function anthropicApiKey(): string | null {
+  return process.env.ANTHROPIC_API_KEY || null;
+}

@@ -1,0 +1,23 @@
+{
+  "id": "msg_01ReviewFixture",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-sonnet-5",
+  "content": [
+    { "type": "thinking", "thinking": "", "signature": "EqQBCkYIBxgCKkDfixture" },
+    {
+      "type": "text",
+      "text": "{\"verdict\":\"publish\",\"reasons\":[\"Every number traces to the alert and NDVI evidence.\",\"Blind spots and the drought context are stated.\"],\"checks\":{\"evidenceSupportsClaims\":true,\"blindSpotsAcknowledged\":true,\"noIndividualsNamed\":true,\"controlAoi\":false}}"
+    }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+    "input_tokens": 3650,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 1410,
+    "service_tier": "standard"
+  }
+}
