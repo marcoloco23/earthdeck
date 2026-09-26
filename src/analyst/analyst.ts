@@ -32,8 +32,6 @@ import {
 /** Most capable Opus narrates; a different model family reviews (claude-api skill defaults). */
 export const DEFAULT_NARRATOR = "claude-opus-5";
 export const DEFAULT_REVIEWER = "claude-sonnet-5";
-/** Used only until schema.ts exports PUBLISH_POLICY_VERSION (sibling change). */
-const LOCAL_POLICY_VERSION = "earthdeck-publish/1";
 
 export type AnalystLedger = Pick<Ledger, "list" | "get" | "append">;
 type Verdict = Review["verdict"];
@@ -261,17 +259,17 @@ function record(ledger: AnalystLedger, findingId: string, actor: string, verdict
     return { status: "false_positive" };
   }
   if (verdict === "hold") return { status: "confirmed" };
-  const gate = canPublish(ledger.get(findingId)!);
-  if (!gate.ok) return { status: "confirmed", gate: `publish gate: ${gate.reason}` };
-  const policy = (schema as Record<string, unknown>).PUBLISH_POLICY_VERSION ?? LOCAL_POLICY_VERSION;
+  // The contract itself decides (schema.publishGates); canPublish stays as the offline mirror for tests.
+  const gate = schema.publishGates(ledger.get(findingId)!);
+  if (!gate.ok || !gate.gates) return { status: "confirmed", gate: `publish gate: ${gate.missing.join("; ") || "not publishable"}` };
   append(ledger, {
     kind: "status_changed",
     findingId,
     actor,
     from: "confirmed",
     to: "published",
-    gates: { ...gate.gates, policy },
-    reason: `autonomous publish: narrated by ${gate.gates.narratedBy}, reviewed by ${gate.gates.reviewedBy.join(", ")} (policy ${String(policy)})`,
+    gates: gate.gates,
+    reason: `autonomous publish: narrated by ${gate.gates.narratedBy}, reviewed by ${gate.gates.reviewedBy.join(", ")} (policy ${gate.gates.policy})`,
   });
   return { status: "published" };
 }

@@ -13,7 +13,7 @@ import { runAnalyst, select, type AnalystLedger } from "../src/analyst/analyst.j
 import { callJson, costUsd } from "../src/analyst/anthropic.js";
 import { canPublish, faithfulness, personalNames, type Narration } from "../src/analyst/checks.js";
 import { OverviewError } from "../src/errors.js";
-import { applyEvent, type Finding, type FindingEvent, type Status } from "../src/ledger/schema.js";
+import { applyEvent, PUBLISH_POLICY_VERSION, type Finding, type FindingEvent, type Status } from "../src/ledger/schema.js";
 import { Ledger } from "../src/ledger/store.js";
 import { uuidv7 } from "../src/util.js";
 import { Journal } from "../src/watch/journal.js";
@@ -158,7 +158,7 @@ test("analyst: happy path — narrate (Opus), review (Sonnet), publish with gate
   assert.equal(reviewed!.verdict, "publish");
   assert.equal(reviewed!.tier, 1);
   assert.equal(published!.to, "published");
-  assert.deepEqual(published!.gates, { narratedBy: "model:claude-opus-5", reviewedBy: ["model:claude-sonnet-5"], policy: "earthdeck-publish/1" });
+  assert.deepEqual(published!.gates, { narratedBy: "model:claude-opus-5", reviewedBy: ["model:claude-sonnet-5"], policy: PUBLISH_POLICY_VERSION });
   assert.equal(l.get(id)!.status, "published");
 
   // Request shape: key header, version, structured outputs, refusal fallback only on Opus.
