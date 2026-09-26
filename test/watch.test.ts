@@ -78,6 +78,10 @@ test("kernel: forest loss opens with context + blind spots + baseline and is con
   assert.equal(f.context?.baseline?.metric, "alert ha per deg²");
   assert.ok((f.context?.baseline?.ratio ?? 0) > 1, "AOI denser than its ring");
   assert.ok(f.blindSpots!.length >= 3);
+  // Living value: flat numbers on the evidence + a context note (benefit transfer).
+  assert.ok((f.evidence[0]!.values?.living_value_usd_yr ?? 0) > 0);
+  assert.equal(f.evidence[0]!.values?.living_value_100y_usd, f.evidence[0]!.values!.living_value_usd_yr! * 100);
+  assert.match(f.context?.notes?.join(" ") ?? "", /Living value .*38\.2 ha of tropical forest/);
   assert.match(f.summary, /0\.5 deg²|neighbourhood|Awaiting/);
   assert.equal(s.journal.watermark("br-sfx", "forest_loss"), NOW);
   assert.equal(s.ledger.verify().ok, true);

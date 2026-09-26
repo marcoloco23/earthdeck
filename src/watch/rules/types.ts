@@ -39,6 +39,8 @@ export interface Candidate {
   geometry?: Geometry;
   /** Regional baseline (the "did it move?" question). */
   baseline?: { metric: string; ringKm: number; aoiValue: number; regionalValue: number; ratio: number | null };
+  /** Extra context lines the kernel appends to the finding's `context.notes`. */
+  notes?: string[];
 }
 
 export interface Confirmation {

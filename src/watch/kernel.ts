@@ -157,6 +157,7 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
       } catch {
         context.notes!.push("EONET context unavailable at sweep time");
       }
+      for (const note of candidate.notes ?? []) context.notes!.push(note.slice(0, 500));
       if (aoi.control) context.notes!.push("CONTROL AOI: expected quiet — this finding counts against the rule's error rate");
       if (context.notes!.length === 0) delete context.notes;
 

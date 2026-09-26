@@ -4,6 +4,7 @@
 // provider). Baseline: alert density in a neighbourhood ring, so a quiet AOI next to a
 // loud region — or the reverse — is visible in the finding itself.
 
+import { livingValueForFinding } from "../../clients/naturalvalue.js";
 import type { Evidence } from "../../ledger/schema.js";
 import type { BBox } from "../../types.js";
 import { addDays, isoDate } from "../../util.js";
@@ -67,6 +68,9 @@ export const forestLoss = defineRule({
     if (r.alertCount < num(p.minAlerts, 50) || r.areaHa < num(p.minHa, 5)) return null;
 
     const observedAt = dayStart(r.window.to);
+    // What the cleared area was doing alive (benefit transfer; GFW alerts are tropical-only).
+    const living = livingValueForFinding(r.areaHa, "tropical_forest");
+    const livingValues = { living_value_usd_yr: living.annualUsd, living_value_100y_usd: living.horizonUsd, living_value_100y_npv2_usd: living.npvUsd };
     const evidence: Evidence[] = [
       {
         id: `gfw-integrated-${ctx.aoi.id}-${r.window.from}..${r.window.to}`,
@@ -76,7 +80,7 @@ export const forestLoss = defineRule({
         href: "https://data-api.globalforestwatch.org/dataset/gfw_integrated_alerts",
         method: { name: "forest_alerts", version: "1.0", params: args },
         summary: `${r.alertCount} alerts (≥ ${String(p.minConfidence)} confidence), ${r.areaHa} ha, ${r.window.from}…${r.window.to}.${r.note ? ` ${r.note}` : ""}`,
-        values: { alerts: r.alertCount, ha: r.areaHa, ...flattenConfidence(r.byConfidence) },
+        values: { alerts: r.alertCount, ha: r.areaHa, ...flattenConfidence(r.byConfidence), ...livingValues },
       },
     ];
 
@@ -103,9 +107,10 @@ export const forestLoss = defineRule({
         ". Awaiting optical confirmation.",
       observedAt,
       evidence,
-      values: { alerts: r.alertCount, ha: r.areaHa },
+      values: { alerts: r.alertCount, ha: r.areaHa, ...livingValues },
       geometry: bboxPolygon(ctx.aoi.bbox),
       baseline,
+      notes: [living.note],
     };
   },
 
