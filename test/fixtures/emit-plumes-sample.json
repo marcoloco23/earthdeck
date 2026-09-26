@@ -1,0 +1,528 @@
+{
+ "crs": {
+  "properties": {
+   "name": "urn:ogc:def:crs:OGC:1.3:CRS84"
+  },
+  "type": "name"
+ },
+ "name": "methane_metadata",
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "geometry": {
+    "coordinates": [
+     -103.8651865738883,
+     31.7351900751869,
+     0.0
+    ],
+    "type": "Point"
+   },
+   "properties": {
+    "Plume ID": "CH4_PlumeComplex-3464",
+    "Scene FIDs": [
+     "emit20240823t173410"
+    ],
+    "Orbit": "2423611",
+    "DCID": "1408315670",
+    "Data Download": "https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2BCH4PLM.002/EMIT_L2B_CH4PLM_002_20240823T173410_003464/EMIT_L2B_CH4PLM_002_20240823T173410_003464.tif",
+    "UTC Time Observed": "2024-08-23T17:34:10Z",
+    "Max Plume Concentration (ppm m)": 2715.0,
+    "Latitude of max concentration": 31.73519,
+    "Longitude of max concentration": -103.86519,
+    "style": {
+     "maxZoom": 20,
+     "minZoom": 0,
+     "color": "red",
+     "opacity": 1,
+     "weight": 2,
+     "fillOpacity": 0,
+     "radius": 10
+    },
+    "Wind Speed (m/s)": 4.4358,
+    "Wind Speed Std (m/s)": 0.2007,
+    "Wind Speed Source": "HRRR",
+    "Emissions Rate Estimate (kg/hr)": 1622.3018,
+    "Emissions Rate Estimate Uncertainty (kg/hr)": 115.4577,
+    "Fetch Length (m)": 906.185,
+    "plume_complex_count": 1564
+   },
+   "type": "Feature"
+  },
+  {
+   "geometry": {
+    "coordinates": [
+     -103.94272582428488,
+     32.290978408449604,
+     0.0
+    ],
+    "type": "Point"
+   },
+   "properties": {
+    "Plume ID": "CH4_PlumeComplex-3637",
+    "Scene FIDs": [
+     "emit20241004t165215",
+     "emit20241004t165227"
+    ],
+    "Orbit": "2427811",
+    "DCID": "1411947930",
+    "Data Download": "https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2BCH4PLM.002/EMIT_L2B_CH4PLM_002_20241004T165215_003637/EMIT_L2B_CH4PLM_002_20241004T165215_003637.tif",
+    "UTC Time Observed": "2024-10-04T16:52:15Z",
+    "Max Plume Concentration (ppm m)": 1627.0,
+    "Latitude of max concentration": 32.29098,
+    "Longitude of max concentration": -103.94273,
+    "style": {
+     "maxZoom": 20,
+     "minZoom": 0,
+     "color": "red",
+     "opacity": 1,
+     "weight": 2,
+     "fillOpacity": 0,
+     "radius": 10
+    },
+    "Wind Speed (m/s)": 1.3414,
+    "Wind Speed Std (m/s)": 0.2166,
+    "Wind Speed Source": "HRRR",
+    "Emissions Rate Estimate (kg/hr)": 256.5212,
+    "Emissions Rate Estimate Uncertainty (kg/hr)": 47.4826,
+    "Fetch Length (m)": 1053.7826,
+    "plume_complex_count": 1640
+   },
+   "type": "Feature"
+  },
+  {
+   "geometry": {
+    "coordinates": [
+     -103.74535318691156,
+     32.22699497105935,
+     0.0
+    ],
+    "type": "Point"
+   },
+   "properties": {
+    "Plume ID": "CH4_PlumeComplex-3638",
+    "Scene FIDs": [
+     "emit20241004t165227"
+    ],
+    "Orbit": "2427811",
+    "DCID": "1411947930",
+    "Data Download": "https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2BCH4PLM.002/EMIT_L2B_CH4PLM_002_20241004T165227_003638/EMIT_L2B_CH4PLM_002_20241004T165227_003638.tif",
+    "UTC Time Observed": "2024-10-04T16:52:27Z",
+    "Max Plume Concentration (ppm m)": 2365.0,
+    "Latitude of max concentration": 32.22699,
+    "Longitude of max concentration": -103.74535,
+    "style": {
+     "maxZoom": 20,
+     "minZoom": 0,
+     "color": "red",
+     "opacity": 1,
+     "weight": 2,
+     "fillOpacity": 0,
+     "radius": 10
+    },
+    "Wind Speed (m/s)": "NA",
+    "Wind Speed Std (m/s)": "NA",
+    "Wind Speed Source": "NA",
+    "Emissions Rate Estimate (kg/hr)": "NA",
+    "Emissions Rate Estimate Uncertainty (kg/hr)": "NA",
+    "Fetch Length (m)": "NA",
+    "plume_complex_count": 1641
+   },
+   "type": "Feature"
+  },
+  {
+   "geometry": {
+    "coordinates": [
+     72.21560642652278,
+     49.90919745661948,
+     0.0
+    ],
+    "type": "Point"
+   },
+   "properties": {
+    "Plume ID": "CH4_PlumeComplex-495",
+    "Scene FIDs": [
+     "emit20220815t074645"
+    ],
+    "Orbit": "2222705",
+    "DCID": "1344288859",
+    "Data Download": "https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2BCH4PLM.002/EMIT_L2B_CH4PLM_002_20220815T074645_000495/EMIT_L2B_CH4PLM_002_20220815T074645_000495.tif",
+    "UTC Time Observed": "2022-08-15T07:46:45Z",
+    "Max Plume Concentration (ppm m)": 2407.0,
+    "Latitude of max concentration": 49.9092,
+    "Longitude of max concentration": 72.21561,
+    "style": {
+     "maxZoom": 20,
+     "minZoom": 0,
+     "color": "red",
+     "opacity": 1,
+     "weight": 2,
+     "fillOpacity": 0,
+     "radius": 10
+    },
+    "Wind Speed (m/s)": 4.8335,
+    "Wind Speed Std (m/s)": 0.1086,
+    "Wind Speed Source": "ERA5",
+    "Emissions Rate Estimate (kg/hr)": 3615.8424,
+    "Emissions Rate Estimate Uncertainty (kg/hr)": 194.9612,
+    "Fetch Length (m)": 1071.3405,
+    "plume_complex_count": 10
+   },
+   "type": "Feature"
+  },
+  {
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       35.19766,
+       31.13575
+      ],
+      [
+       35.19766,
+       31.13521
+      ],
+      [
+       35.19549,
+       31.13521
+      ],
+      [
+       35.19549,
+       31.13467
+      ],
+      [
+       35.19441,
+       31.13413
+      ],
+      [
+       35.19441,
+       31.13358
+      ],
+      [
+       35.19333,
+       31.13304
+      ],
+      [
+       35.19333,
+       31.13196
+      ],
+      [
+       35.19278,
+       31.13196
+      ],
+      [
+       35.19278,
+       31.13033
+      ],
+      [
+       35.19224,
+       31.13033
+      ],
+      [
+       35.19224,
+       31.12274
+      ],
+      [
+       35.19278,
+       31.12274
+      ],
+      [
+       35.19278,
+       31.12111
+      ],
+      [
+       35.19333,
+       31.12111
+      ],
+      [
+       35.19333,
+       31.12003
+      ],
+      [
+       35.19387,
+       31.12003
+      ],
+      [
+       35.19441,
+       31.11677
+      ],
+      [
+       35.19549,
+       31.11623
+      ],
+      [
+       35.19604,
+       31.11515
+      ],
+      [
+       35.19658,
+       31.11515
+      ],
+      [
+       35.19712,
+       31.11406
+      ],
+      [
+       35.19766,
+       31.11406
+      ],
+      [
+       35.19821,
+       31.11298
+      ],
+      [
+       35.19929,
+       31.11298
+      ],
+      [
+       35.19929,
+       31.11244
+      ],
+      [
+       35.20037,
+       31.11244
+      ],
+      [
+       35.20037,
+       31.11189
+      ],
+      [
+       35.20254,
+       31.11189
+      ],
+      [
+       35.20254,
+       31.11135
+      ],
+      [
+       35.2123,
+       31.11135
+      ],
+      [
+       35.2123,
+       31.11189
+      ],
+      [
+       35.21447,
+       31.11189
+      ],
+      [
+       35.21447,
+       31.11244
+      ],
+      [
+       35.2161,
+       31.11244
+      ],
+      [
+       35.2161,
+       31.11298
+      ],
+      [
+       35.21718,
+       31.11298
+      ],
+      [
+       35.21718,
+       31.11352
+      ],
+      [
+       35.21827,
+       31.11352
+      ],
+      [
+       35.21827,
+       31.11406
+      ],
+      [
+       35.21935,
+       31.11406
+      ],
+      [
+       35.21935,
+       31.1146
+      ],
+      [
+       35.21989,
+       31.1146
+      ],
+      [
+       35.21989,
+       31.11515
+      ],
+      [
+       35.22098,
+       31.11569
+      ],
+      [
+       35.22098,
+       31.11623
+      ],
+      [
+       35.22152,
+       31.11623
+      ],
+      [
+       35.22152,
+       31.11786
+      ],
+      [
+       35.22206,
+       31.11786
+      ],
+      [
+       35.22206,
+       31.11894
+      ],
+      [
+       35.22261,
+       31.11894
+      ],
+      [
+       35.22261,
+       31.12165
+      ],
+      [
+       35.22206,
+       31.12165
+      ],
+      [
+       35.22206,
+       31.12653
+      ],
+      [
+       35.22152,
+       31.12653
+      ],
+      [
+       35.22152,
+       31.12816
+      ],
+      [
+       35.22098,
+       31.12816
+      ],
+      [
+       35.22098,
+       31.12925
+      ],
+      [
+       35.22044,
+       31.12925
+      ],
+      [
+       35.21989,
+       31.13033
+      ],
+      [
+       35.21935,
+       31.13033
+      ],
+      [
+       35.21935,
+       31.13087
+      ],
+      [
+       35.21827,
+       31.13087
+      ],
+      [
+       35.21827,
+       31.13141
+      ],
+      [
+       35.21718,
+       31.13141
+      ],
+      [
+       35.21718,
+       31.13196
+      ],
+      [
+       35.21556,
+       31.13196
+      ],
+      [
+       35.21556,
+       31.1325
+      ],
+      [
+       35.21339,
+       31.1325
+      ],
+      [
+       35.21339,
+       31.13304
+      ],
+      [
+       35.2058,
+       31.13304
+      ],
+      [
+       35.2058,
+       31.13358
+      ],
+      [
+       35.20471,
+       31.13413
+      ],
+      [
+       35.20471,
+       31.13467
+      ],
+      [
+       35.20417,
+       31.13467
+      ],
+      [
+       35.20417,
+       31.13521
+      ],
+      [
+       35.20309,
+       31.13521
+      ],
+      [
+       35.20309,
+       31.13575
+      ],
+      [
+       35.19766,
+       31.13575
+      ]
+     ]
+    ]
+   },
+   "type": "Feature",
+   "properties": {
+    "Plume ID": "CH4_PlumeComplex-485",
+    "Scene FIDs": [
+     "emit20220810t064957"
+    ],
+    "Orbit": "2222205",
+    "DCID": "1344041727",
+    "Data Download": "https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected/EMITL2BCH4PLM.002/EMIT_L2B_CH4PLM_002_20220810T064957_000485/EMIT_L2B_CH4PLM_002_20220810T064957_000485.tif",
+    "UTC Time Observed": "2022-08-10T06:49:57Z",
+    "Max Plume Concentration (ppm m)": 3038.0,
+    "Latitude of max concentration": 31.12789,
+    "Longitude of max concentration": 35.20281,
+    "style": {
+     "maxZoom": 20,
+     "minZoom": 0,
+     "color": "white",
+     "opacity": 1,
+     "weight": 2,
+     "fillOpacity": 0,
+     "radius": 10
+    },
+    "Wind Speed (m/s)": "NA",
+    "Wind Speed Std (m/s)": "NA",
+    "Wind Speed Source": "NA",
+    "Emissions Rate Estimate (kg/hr)": "NA",
+    "Emissions Rate Estimate Uncertainty (kg/hr)": "NA",
+    "Fetch Length (m)": "NA",
+    "plume_complex_count": 1
+   }
+  }
+ ]
+}

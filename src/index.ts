@@ -19,6 +19,7 @@ import { registerNarrateTools } from "./tools/narrate.js";
 import { registerSimilarTools } from "./tools/similar.js";
 import { registerWorldPulseTools } from "./tools/worldpulse.js";
 import { registerLedgerTools } from "./tools/ledger.js";
+import { registerMethaneTools } from "./tools/methane.js";
 
 export function buildServer(): McpServer {
   const server = new McpServer(
@@ -69,6 +70,7 @@ export function buildServer(): McpServer {
   registerSimilarTools(server);
   registerWorldPulseTools(server);
   registerLedgerTools(server);
+  registerMethaneTools(server);
 
   return server;
 }

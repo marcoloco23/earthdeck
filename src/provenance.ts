@@ -147,3 +147,30 @@ export function sarProvenance(opts: {
     disclaimer: SAR_DISCLAIMER,
   };
 }
+
+const S5P_DISCLAIMER =
+  "Decision-support, not decision. TROPOMI CH₄ pixels are ~7×5.5 km column averages: an " +
+  "anomaly says the regional column rose, not which facility emitted. Cloud, snow, dark or " +
+  "bright surfaces and QA filtering leave gaps; wetland and agricultural CH₄ is seasonal; " +
+  "transport can carry enhancements in from outside the AOI. Check % valid and the baseline.";
+
+/**
+ * Provenance for a Sentinel-5P TROPOMI CH₄ statistic. There is no cloud mask in the S2
+ * sense — retrievals are filtered upstream by TROPOMI's qa_value (Sentinel Hub `minQa`).
+ */
+export function s5pProvenance(opts: { bbox: BBox; from: string; to: string; minQa: number; validPct?: number }): Provenance {
+  return {
+    dataSource: DATA_SOURCE,
+    sensor: "Sentinel-5P TROPOMI, L2 CH₄ column-averaged dry-air mixing ratio (bias-corrected, ppb), ~7×5.5 km",
+    collection: "sentinel-5p-l2",
+    composite: { from: opts.from, to: opts.to, mosaicking: "ORBIT per-pixel mean of valid retrievals (timeliness OFFL)" },
+    cloudMask: {
+      method: `TROPOMI qa_value ≥ ${opts.minQa / 100} (Sentinel Hub minQa=${opts.minQa}); cloudy/low-quality retrievals are absent upstream`,
+      excludedClasses: [],
+      ...(opts.validPct != null ? { validPct: opts.validPct } : {}),
+    },
+    bbox: opts.bbox,
+    retrievedAt: nowIso(),
+    disclaimer: S5P_DISCLAIMER,
+  };
+}
