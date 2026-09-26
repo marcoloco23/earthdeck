@@ -5,9 +5,9 @@
 
 export const SITE = {
   /** Wordmark and short name: header, page-title suffix, og:site_name. */
-  name: "Vital",
+  name: "Earth Watch",
   /** Longer form where one reads better: landing title, JSON-LD, dataset name, footer. */
-  fullName: "Vital Earth",
+  fullName: "Earth Watch",
   /** Small label after the wordmark in the header. */
   byline: "Earth’s vital signs",
   /** Hero headline, one entry per line. */
