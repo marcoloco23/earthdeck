@@ -213,6 +213,7 @@ export function parseFiresCsv(csv: string): FireDetection[] {
   const iTime = at("acq_time");
   const iFrp = at("frp");
   const iSat = at("satellite");
+  const iDn = at("daynight");
 
   const out: FireDetection[] = [];
   for (let i = 1; i < lines.length; i++) {
@@ -232,6 +233,7 @@ export function parseFiresCsv(csv: string): FireDetection[] {
       acqTime: iTime >= 0 ? (c[iTime]?.trim() ?? null) : null,
       frp: iFrp >= 0 ? toNum(c[iFrp]) : null,
       satellite: iSat >= 0 ? (c[iSat]?.trim() ?? null) : null,
+      daynight: iDn >= 0 ? (c[iDn]?.trim() || null) : null,
     });
   }
   return out;

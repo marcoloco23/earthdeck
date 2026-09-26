@@ -28,6 +28,7 @@ test("parseFiresCsv handles VIIRS (bright_ti4 + letter confidence)", () => {
   assert.equal(fires[1]!.confidence, "high"); // h → high
   assert.equal(fires[0]!.frp, 15.3);
   assert.equal(fires[0]!.satellite, "N");
+  assert.equal(fires[0]!.daynight, "D");
 });
 
 test("parseFiresCsv handles MODIS (brightness + numeric confidence)", () => {
