@@ -5,6 +5,53 @@ status, next priorities. The live task pointer is in [CONTINUITY.md](CONTINUITY.
 
 ---
 
+## Session: 2026-09-26 (local, 8c) — Vital: the system publishes on its own; living value; hosting ✅
+
+**Focus**: Marc's decisions in one evening: *publishing is an AI act* (fully autonomous,
+humans verify after, community votes later as signal); host it on his personal AWS; value
+nature *alive* (ecosystem services, Natural Asset Companies, the bioeconomy thesis);
+Google Earth Engine as the next data substrate; a public, SEO-indexable site; rename to
+**Vital** (earthdeck.co belongs to someone else). Same pattern as 8b: one orchestrator,
+Opus workers in worktrees, merged here. 283 offline tests, 43 tools.
+
+**Done**:
+- [x] **Trust contract `2026-09-26-autonomous`** (`TRUST.md`, `src/ledger/schema.ts`):
+      a `model:` actor may publish only with a narration + a review by a *different* model
+      with verdict `publish`, tier ≤ 2; naming a party needs two distinct reviewers and a
+      72 h private notice — or an `unreachable` notice that lists ≥ 2 attempted channels;
+      `status_changed.gates` records why; `publishGates()`; JSON Schema regenerated.
+- [x] **Analyst** (`earthdeck analyst --once`, `src/analyst/`): Opus narrates (strict JSON,
+      faithfulness check — every number must exist in evidence, rounding-tolerant; no-persons
+      detector), Sonnet reviews, publish/hold/reject appended through the contract. Two
+      live bugs from the first run fixed (month abbreviations / line breaks flagged as
+      names; "232 ha" vs 232.05 rejected). **First two autonomous publications**: São
+      Félix and Novo Progresso — 4 API calls, $0.12; ledger 18 entries, verify OK.
+- [x] **Valuing living nature**: `natural_value` (Costanza 2014 / de Groot 2012 per-biome
+      values, whale/elephant/tree references, 100-y living value vs one-time clearing,
+      method + blind spots; land cover from CLMS 10 m via CDSE — pasture-as-grassland flaw
+      flagged), `living_value_*` on forest-loss findings (São Félix bbox ≈ $2.0 bn/yr alive;
+      the 232 ha case ≈ $1.56 M/yr), research `docs/research/2026-09-26_valuing-living-
+      nature.md` (ESVD/SEEA/IPBES, IEG NACs and the NYSE withdrawal, biodiversity credits,
+      debt-for-nature, TFFF, the valuation-provider angle), VISION §15.
+- [x] **Public static site** (`earthdeck watch export --out DIR --base-url URL`): landing +
+      cases index + one real HTML page per case (SEO: titles, canonical, OG, JSON-LD
+      Organization/Dataset/Report, sitemap, robots), in-browser Merkle proof checks, stats
+      incl. false-positive rate per rule and living value at stake, `site.config.ts` holds
+      the brand (Vital), issue templates for right of reply / false positive.
+- [x] **Hosting** (`infra/earthdeck.yaml`, `src/runner/`, `scripts/deploy.sh|run-job.sh|
+      seed-state.sh`): S3 site + state, CloudFront + ACM + Route 53, Lambda runner (arm64,
+      SSM secrets, verify-before-upload, heartbeat + alarm), EventBridge every 6 h staggered
+      per watchlist + analyst + export. Deployed 2026-09-26 evening (see CONTINUITY).
+- [x] **Google Earth Engine**: research (`docs/research/2026-09-26_google-earth-engine.md`:
+      noncommercial free tier, REST API, MapBiomas pasture / Dynamic World / GEDI / Global
+      Pasture Watch / WorldPop) + `gee_query` client with service-account JWT auth (offline
+      tested; needs Marc's GCP project + key — UNCONFIRMED live).
+- [x] Domain: `vital.earth` is taken; `vitalearth.io` was registered ($71/yr) — Marc finds it
+      too long → placeholder only; naming still open. Interim host `vital.marcsperzel.com`.
+
+**Lesson (saved to memory)**: confirm the exact item + price before any purchase, even
+under a blanket "just do it".
+
 ## Session: 2026-09-26 (local, 8b) — Earth Watch MVP: M2 live-verified, M3 shipped, UI overhaul, life layer ✅
 
 **Focus**: Marc's brief — "build the MVP today": one Fable orchestrator planning and

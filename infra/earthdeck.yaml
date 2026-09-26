@@ -144,6 +144,24 @@ Resources:
           HostedZoneId: !Ref HostedZoneId
       Tags: [{ Key: Project, Value: earthdeck }]
 
+  # S3 REST origins have no directory index: map "/x/" and extension-less "/x" to "/x/index.html".
+  IndexRewrite:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub "${AWS::StackName}-index-rewrite"
+      AutoPublish: true
+      FunctionConfig:
+        Comment: Directory index rewrite for the static site
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var req = event.request;
+          var uri = req.uri;
+          if (uri.endsWith('/')) req.uri = uri + 'index.html';
+          else if (!uri.split('/').pop().includes('.')) req.uri = uri + '/index.html';
+          return req;
+        }
+
   Distribution:
     Type: AWS::CloudFront::Distribution
     Properties:
@@ -173,7 +191,21 @@ Resources:
           CachedMethods: [GET, HEAD]
           Compress: true
           CachePolicyId: !FindInMap [Const, CloudFront, CachingOptimized]
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt IndexRewrite.FunctionMetadata.FunctionARN
         CacheBehaviors:
+          # Static case pages live at watch/case/<id>/index.html — directory URLs need the rewrite.
+          - PathPattern: "watch/*"
+            TargetOriginId: site
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            Compress: true
+            CachePolicyId: !Ref ShortCachePolicy
+            FunctionAssociations:
+              - EventType: viewer-request
+                FunctionARN: !GetAtt IndexRewrite.FunctionMetadata.FunctionARN
           - PathPattern: "*.html"
             TargetOriginId: site
             ViewerProtocolPolicy: redirect-to-https
