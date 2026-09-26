@@ -187,7 +187,34 @@ decides: `ledger_advance` publishes when the gates hold (it computes `gates` via
 a `publish | hold | reject` verdict; naming a party still needs tier ≥ 2, two distinct
 reviewer identities and the private-notice clock.
 `earthdeck doctor` has a **Watch** section (ledger verify, each rule's keys, watchlists,
-last sweep heartbeat).
+generated watchlists and their age, last sweep heartbeat).
+
+**Discovery: watchlists from data** — `earthdeck discover --out watchlists/generated
+[--max-per-list N] [--only a,b] [--budget 200]` (`src/watch/discover/`) writes five
+watchlists plus `_summary.json` (counts, sources, dataset versions, request count). One
+run is ~19 requests and under a minute (no CDSE, no FIRMS); it needs `GFW_API_KEY`.
+
+| File | Source (open data) | Default N | What becomes an AOI | Rules |
+| --- | --- | --- | --- | --- |
+| `forest-hotspots.json` | GFW `gadm__integrated_alerts__adm2_daily_alerts` (high+ confidence, primary forest, last 30 days) + GADM 4.1 boxes | 150 districts | GADM level-2 box, tiled to ≤ 4 deg² / ≤ 2° a side (`<iso>-<adm1>-<adm2>-<i>`) | `forest_loss`, `minHa = max(25, ⌈100 ha/deg² × tile⌉)`, `minAlerts = 10 × minHa`, 90 d |
+| `flaring-fields.json` | EOG VIIRS Nightfire annual flare sites (~14k) | 60 fields | sites chained within 15 km, box + 10 km, ≤ 25 deg² | `flaring`, 30 d, `minNights` 5 |
+| `methane-basins.json` | Climate TRACE v7 oil & gas CH₄ (production, refining, transport) | 40 basins | sources chained within 50 km, box + ~0.5°, ≤ 2° a side | `methane_anomaly` (defaults) |
+| `protected-fires.json` | WDPA via GFW (IDs/stats only) + GFW alerts per protected area | 80 areas | tropical areas > 2,000 km² with primary forest, IUCN Ia–IV first, tiled ≤ 4 deg² | `fires_in_protected` + `forest_loss` (60 d, `minHa = max(5, ⌈40 ha/deg² × tile⌉)`), cooldown 14 d |
+| `controls-generated.json` | Intact Forest Landscapes 2020 via GFW | 20 cores | ≤ 0.5° box on each IFL's deepest interior point (maximum inscribed circle), clear of hotspot tiles | `controls.json` thresholds, `control: true` |
+
+Why the thresholds look like that: a São Félix-level frontier runs ≈ 930 ha/deg² per 90 days
+and the control cores' noise is ≈ 60–76 ha/deg² — `100 ha/deg²` is the controls' 25 ha /
+0.25 deg² floor scaled to the tile, so the bar depends only on geometry and does not move
+between runs. Ids come from dataset ids (GADM, VNF site position, Climate TRACE source id,
+WDPA site id, IFL id), so watermarks and cooldowns persist across re-runs; output is
+byte-identical for the same data. Choices and their costs: the forest ranking counts only
+primary-forest alerts (otherwise Sahel dryland alerts top the list; secondary forest and
+cerrado frontiers rank lower); `protected-or-indigenous` marks districts with ≥ 25 % of
+their alerts in IUCN Ia/Ib/II areas or LandMark lands; Climate TRACE places basin-level
+estimates at a basin centroid, so a methane box is a window around that point; national
+"OtherBasins" residuals and offshore basins are dropped. Sweep with
+`earthdeck watch --once --watchlist watchlists/generated` (`--max` caps pairs; lists are in
+rank order). Re-run weekly — `doctor` flags output older than 14 days.
 
 **Analyst (autonomous publishing)** — `src/analyst/`: `earthdeck analyst --once` takes
 confirmed findings (newest first, `--max` default 5) through three steps, each journaled

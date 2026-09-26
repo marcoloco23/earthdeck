@@ -35,6 +35,11 @@ function main(): void {
     return;
   }
 
+  if (cmd === "discover") {
+    void import("./watch/discover.js").then((m) => m.runDiscoverCli(process.argv.slice(3))).catch(fail);
+    return;
+  }
+
   if (cmd === "analyst") {
     void import("./analyst/cli.js").then((m) => m.runAnalystCli(process.argv.slice(3))).catch(fail);
     return;
@@ -64,6 +69,7 @@ function main(): void {
         "  earthdeck watch --once    sweep the watchlists once, write findings to the ledger",
         "  earthdeck watch --once --dry-run [--watchlist <file|dir>] [--max N] [--rules a,b]",
         "  earthdeck watch --once [--shard i/n] [--time-budget SEC]  one shard, stop before the budget",
+        "  earthdeck discover --out watchlists/generated [--max-per-list N] [--only a,b]  generate watchlists from data",
         "  earthdeck analyst --once  narrate + review (two models) + publish confirmed findings",
         "  earthdeck analyst --once --dry-run [--max N] [--model-narrator id] [--model-reviewer id]",
         "  earthdeck watch export --out <dir> [--base-url URL]  write the public static site",
