@@ -65,7 +65,19 @@ export function cliArgs(step: Step, siteDir: string): string[] {
     return ["watch", "--once", ...(step.dryRun ? ["--dry-run"] : []), "--watchlist", step.watchlist ? `watchlists/${step.watchlist}.json` : "watchlists"];
   }
   if (step.job === "analyst") return ["analyst", "--once"];
-  return ["watch", "export", "--out", siteDir];
+  // Public-site metadata comes from the function's environment (set by the stack).
+  const siteUrl = process.env.EARTHDECK_SITE_URL;
+  const contact = process.env.EARTHDECK_CONTACT;
+  return [
+    "watch",
+    "export",
+    "--out",
+    siteDir,
+    ...(siteUrl ? ["--base-url", siteUrl] : []),
+    ...(contact ? ["--contact", contact] : []),
+    "--trust",
+    "TRUST.md",
+  ];
 }
 
 /** Which optional subcommands this build's CLI advertises in `--help`. */

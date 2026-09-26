@@ -384,6 +384,8 @@ Resources:
           EARTHDECK_SITE_BUCKET: !Ref SiteBucket
           EARTHDECK_DISTRIBUTION_ID: !Ref Distribution
           EARTHDECK_SSM_PREFIX: /earthdeck
+          EARTHDECK_SITE_URL: !Sub "https://${DomainName}"
+          EARTHDECK_CONTACT: !Ref NotifyEmail
           NODE_OPTIONS: --enable-source-maps
       Tags: [{ Key: Project, Value: earthdeck }]
 

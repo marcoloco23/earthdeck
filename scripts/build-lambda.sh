@@ -17,7 +17,7 @@ pnpm build >/dev/null
 
 rm -rf "$STAGE" "$ZIP"
 mkdir -p "$STAGE"
-cp -R dist watchlists package.json pnpm-lock.yaml pnpm-workspace.yaml "$STAGE/"
+cp -R dist watchlists package.json pnpm-lock.yaml pnpm-workspace.yaml TRUST.md "$STAGE/"
 rm -rf "$STAGE/dist/"*.tsbuildinfo
 
 # Production deps only, flat (no symlinks in the zip), no lifecycle scripts (prepare = tsc).

@@ -52,7 +52,14 @@ test("stepsFor + cliArgs map payloads to CLI invocations", () => {
   assert.deepEqual(cliArgs({ job: "sweep", watchlist: "methane", dryRun: true }, "/tmp/site"), ["watch", "--once", "--dry-run", "--watchlist", "watchlists/methane.json"]);
   assert.deepEqual(cliArgs({ job: "sweep", dryRun: false }, "/tmp/site"), ["watch", "--once", "--watchlist", "watchlists"]);
   assert.deepEqual(cliArgs({ job: "analyst", dryRun: false }, "/tmp/site"), ["analyst", "--once"]);
-  assert.deepEqual(cliArgs({ job: "export", dryRun: false }, "/tmp/site"), ["watch", "export", "--out", "/tmp/site"]);
+  delete process.env.EARTHDECK_SITE_URL;
+  delete process.env.EARTHDECK_CONTACT;
+  assert.deepEqual(cliArgs({ job: "export", dryRun: false }, "/tmp/site"), ["watch", "export", "--out", "/tmp/site", "--trust", "TRUST.md"]);
+  process.env.EARTHDECK_SITE_URL = "https://example.org";
+  process.env.EARTHDECK_CONTACT = "me@example.org";
+  assert.deepEqual(cliArgs({ job: "export", dryRun: false }, "/tmp/site"), ["watch", "export", "--out", "/tmp/site", "--base-url", "https://example.org", "--contact", "me@example.org", "--trust", "TRUST.md"]);
+  delete process.env.EARTHDECK_SITE_URL;
+  delete process.env.EARTHDECK_CONTACT;
   const all = stepsFor({ job: "all" });
   assert.deepEqual(all.map((s) => s.watchlist ?? s.job), ["amazon", "congo-borneo", "controls", "methane", "flaring", "analyst", "export"]);
   assert.ok(all.every((s) => !s.dryRun));
