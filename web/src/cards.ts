@@ -398,10 +398,23 @@ export function renderCard(card: Card, onFocus: (card: Card) => void): HTMLEleme
 
   if (card.type === "worldpulse") {
     const rows =
-      (card.payload.rows as Array<{ label: string; unit: string; status: string; latest?: { t: string; v: number | null } | null; direction?: string; pace?: string | null; pctPerDecade?: number | null }> | undefined) ?? [];
-    const grid = document.createElement("div");
-    grid.className = "wp-grid";
-    for (const r of rows.slice(0, 16)) {
+      (card.payload.rows as Array<{ label: string; unit: string; group?: string; status: string; latest?: { t: string; v: number | null } | null; direction?: string; pace?: string | null; pctPerDecade?: number | null }> | undefined) ?? [];
+    let grid = document.createElement("div");
+    let group: string | undefined;
+    for (const r of rows.slice(0, 40)) {
+      // One headed grid per group (civilization / life / planet) keeps a long pulse scannable.
+      if (r.group !== group || !grid.className) {
+        group = r.group;
+        if (group) {
+          const h = document.createElement("div");
+          h.className = "wp-group";
+          h.textContent = group;
+          el.appendChild(h);
+        }
+        grid = document.createElement("div");
+        grid.className = "wp-grid";
+        el.appendChild(grid);
+      }
       const cell = document.createElement("div");
       const dir = r.status !== "ok" ? "na" : r.direction ?? "flat";
       cell.className = `wp-cell wp--${/^[a-z]+$/.test(dir) ? dir : "na"}`;
@@ -420,7 +433,6 @@ export function renderCard(card: Card, onFocus: (card: Card) => void): HTMLEleme
       cell.append(l, v, sub);
       grid.appendChild(cell);
     }
-    el.appendChild(grid);
     if (typeof card.payload.summary === "string") {
       const s2 = document.createElement("div");
       s2.className = "series-source";

@@ -69,6 +69,26 @@ Then just ask: *"What's the state of the planet right now?"* · *"Is El Niño co
 | `air_quality` | PM2.5 / PM10 / O₃ / NO₂ / US AQI for any point (Copernicus CAMS), WHO-guideline flags | 48 h |
 | `river_discharge` | Daily river flow at any point (GloFAS) — flood/drought signal vs the period mean | 1984→ |
 | `earthdata_search` | Discover datasets across NASA's full Earth-science archive (~50k collections, CMR) by topic/bbox/time | catalog |
+| `world_pulse` | Vital signs in three groups — civilization, life (Living Planet Index, Red List Index, fish stocks, protected areas, tree cover loss), planet (ocean pH, nitrogen, pesticides, water, plastic, ozone) — each improving/worsening/flat | per indicator |
+
+### Life — biodiversity, species, reefs (all zero-key)
+
+Everything that lives here matters on a global scale — animals, plants, and **fungi as a
+first-class kingdom**, not an afterthought.
+
+| Tool | What it does | Source |
+| --- | --- | --- |
+| `biodiversity` | What lives in a bbox/place: records by kingdom (Animalia, Plantae, **Fungi**, …), distinct and top species, IUCN-threatened species present, licence mix, recent records as map markers, and a 0–100 **score** with components + method | GBIF |
+| `species` | Any animal, plant or fungus by scientific name: taxonomy breadcrumb (kingdom → species), common name, IUCN category, GBIF records worldwide / in a bbox, Open Tree of Life OTT id | GBIF + OpenTree |
+| `coral_bleaching` | Reef heat stress at a point: Degree Heating Weeks, SST + anomaly, Bleaching Alert level, peak in the window, optional box stats | NOAA Coral Reef Watch |
+
+The `biodiversity` score is deliberately small and explainable — 0.4·richness (log species)
++ 0.2·record density (log records/km²) + 0.2·share of IUCN CR/EN/VU records + 0.2·kingdom
+evenness (Animalia/Plantae/Fungi/other). It is **sampling-effort dependent**: GBIF records
+cluster near roads, cities and birders, and fungi/insects are under-recorded — so it tells
+you how well-documented and conservation-relevant a place is, not how healthy it is. Every
+result carries the full `method` block with its blind spots. For global *trends*, use
+`world_pulse` (Living Planet Index −73 % since 1970; Red List Index falling).
 
 The Earth is one interconnected system — and these tools are built to be cross-referenced:
 ENSO ↔ fires, floods and SST anomalies; river discharge ↔ SAR flood mapping; climate trends
@@ -79,8 +99,8 @@ Every Copernicus result (`eo_render`/`eo_index`/`eo_compare`) carries a **proven
 contributing scene IDs — so the output is decision-support you can audit, not a bare number.
 Every indicator result names its source and carries the series, so claims are checkable.
 
-The zero-key tools (`eo_snapshot`, `events`, `geo_resolve`, `stac_search`, and all ten
-planetary-indicator tools) work with no setup at all.
+The zero-key tools (`eo_snapshot`, `events`, `geo_resolve`, `stac_search`, all the
+planetary-indicator tools and the life tools) work with no setup at all.
 
 ## Earth Watch — the public accountability ledger (new, M1)
 
@@ -251,6 +271,11 @@ Tests mock the network, so the whole suite runs with zero credentials — CI
   Copernicus CAMS air quality and ERA5 / GloFAS via [Open-Meteo](https://open-meteo.com/) (CC-BY 4.0).
 - NOAA: CPC Oceanic Niño Index, GML Mauna Loa CO₂, OISST via CoastWatch ERDDAP.
 - NSIDC Sea Ice Index (G02135) · USGS Earthquake Hazards Program.
+- [GBIF.org](https://www.gbif.org/) occurrence data (per-dataset CC0 1.0 / CC BY 4.0 / CC BY-NC 4.0 —
+  the `biodiversity` result reports the licence mix) · IUCN Red List categories as mirrored by GBIF ·
+  [Open Tree of Life](https://tree.opentreeoflife.org/) taxonomy (CC0).
+- NOAA Coral Reef Watch CoralTemp v3.1 5 km products via CoastWatch / PacIOOS ERDDAP (free; credit NOAA CRW).
+- Our World in Data (CC BY 4.0) for `world_pulse`; upstream producers and licences are listed per indicator.
 - Basemap & geocoding: NASA Blue Marble; OpenStreetMap Nominatim.
 
 ## Notes

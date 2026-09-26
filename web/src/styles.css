@@ -338,6 +338,7 @@ body {
 .finding-row { display: flex; align-items: center; gap: 0.5rem; margin: 0.35rem 0 0.2rem; }
 .finding-meta { color: var(--muted); font-size: 0.68rem; }
 .finding-summary { margin: 0.2rem 0 0; font-size: 0.76rem; line-height: 1.45; }
+.wp-group { margin-top: 0.6rem; font-size: 0.62rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
 .wp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-top: 0.4rem; }
 .wp-cell { background: var(--panel-2); border: 1px solid var(--border); border-left-width: 3px; border-radius: 8px; padding: 0.4rem 0.5rem; }
 .wp--improving { border-left-color: #34d399; }
