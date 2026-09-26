@@ -18,9 +18,14 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
   zero-key via the Source Cooperative COG mirror (ranged binary search of the 798 MB index
   CSV + purpose-built bottom-up BigTIFF/zstd reader, `src/utm.ts` Krüger projection). Live:
   urban ref → Manaus city grid (ref cell 1.0), river ref → Rio Negro. **26 tools, 130
-  offline tests, build + typecheck green. NOT committed yet.** Next: Horizon 2 leftovers —
-  embedding-difference change detection, few-shot classify, pgvector index — or CCDC/BFAST.
-- Session started: 2026-06-12 (Session 7)
+  offline tests, build + typecheck green.**
+- **Session 8 (2026-09-26): Earth Watch planned, not yet built.** Brainstorm → strategy →
+  plan in `.plans/2026-09-26_earth-watch.md` + VISION.md §14 + ROADMAP "Earth Watch" block.
+  The project's next big move: a public, evidence-first accountability loop (ledger +
+  standing sweep + world pulse + static public site on Actions/Pages). **Next: build M1**
+  (ledger + `world_pulse` + Watch tab) — see the TASK QUEUE "Earth Watch" section.
+  Horizon 2 leftovers (embedding-diff change, few-shot, pgvector) are parked behind it.
+- Session started: 2026-09-26 (Session 8)
 
 ---
 
@@ -167,6 +172,23 @@ Session 7b (2026-06-13) — user asks + Horizon 2:
       `similar` heatmap card. Live: urban ref → Manaus grid (1.0 at ref), river → Rio Negro.
 - [ ] Horizon 2 next: embedding-difference change detection (two years, same grid — the
       AEF client already supports `year`) · few-shot classification · pgvector index.
+
+Earth Watch — the public accountability loop (Session 8, planned 2026-09-26) — **CURRENT**:
+Plan `.plans/2026-09-26_earth-watch.md` (read it first; it holds the strategy decisions and
+the trust contract). Checkboxes mirror the ROADMAP "Earth Watch" block.
+- [ ] M1 ledger: `src/ledger/{schema,store,hash}.ts` + tests (evidence required, status
+      machine, party ⇒ review, hash chain, tamper detection)
+- [ ] M1 dashboard: `/api/ledger*`, `/feed.json`, `/feed.geojson`, `finding`/`worldpulse`
+      cards, Watch tab (cases list + case page)
+- [ ] M1 `world_pulse` tool + `src/clients/owid.ts` registry (`betterWhen`, direction,
+      acceleration) + fixtures ⚠️ verify OWID grapher CSV URL shape on a networked session
+- [ ] M2 watchlists + seed lists (incl. control AOIs) · runner · forestLoss/firesInProtected
+      detectors · `earthdeck watch --once|--every` · doctor/README
+- [ ] M3 attribution tools (`protected_areas`, `emitters`, `methane_plumes`, `flaring`) +
+      detectors + `ledger_*` tools
+- [ ] M4 static export + scheduled Actions + Pages · analyst step · response tracking
+- [ ] M5 TRUST.md / CONTRIBUTING.md / docs / accuracy page
+MVP = M1 + M2. Don't start M3 before one real sweep has opened one real case end-to-end.
 
 Earth Pulse — planetary indicators (Session 6): ✅ done + live-verified (see ROADMAP section).
 - [x] 10 zero-key tools: enso · ocean_temp · co2 · global_temp · sea_ice · quakes ·

@@ -190,6 +190,42 @@ charts, `quakes` magnitude-scaled map layer, `pulse` vital-signs grid).
 Horizons 3–5 (the Watchdog monitoring platform, verticalization, marketplace/system-of-record):
 see [VISION.md](VISION.md) §7.
 
+## Earth Watch — the public accountability loop 🚧 (planned 2026-09-26)
+
+Horizon 3 pulled forward as a public good. Plan: [`.plans/2026-09-26_earth-watch.md`](.plans/2026-09-26_earth-watch.md);
+strategy: [VISION.md](VISION.md) §14. Loop = detect → verify → attribute → route → track.
+
+**M1 — Memory + pulse** (zero-key, offline-testable)
+- [ ] `src/ledger/` — Finding schema (evidence required, status machine, party ⇒ human review),
+      JSONL append-only store, SHA-256 hash chain + `verifyChain()`, tests
+- [ ] Dashboard: `/api/ledger`, `/api/ledger/:id`, `/feed.json`, `/feed.geojson`; `finding` +
+      `worldpulse` card types; **Watch** tab (cases → case page w/ map, evidence, timeline)
+- [ ] `world_pulse` tool — OWID/World Bank indicators w/ `betterWhen` + direction + acceleration
+
+**M2 — The sweep** (`earthdeck watch`)
+- [ ] `watchlists/*.json` format + seed lists (protected areas, O&G basins, control AOIs)
+- [ ] `src/watch/runner.ts` — in-process MCP client, rate limits, cooldown dedup, `--once`/`--every`
+- [ ] Detectors: `forestLoss`, `firesInProtected` (pure, fixture-tested)
+- [ ] `earthdeck watch` CLI + doctor + README
+
+**M3 — Attribution + methane wedge**
+- [ ] `protected_areas` (Overpass; WDPA opt.) · `emitters` (Climate TRACE) · `methane_plumes`
+      (S5P via CDSE) · `flaring` (VIIRS Nightfire, opt.)
+- [ ] Detectors `methane`, `flaring`; attribution on cases; `ledger_*` tools for Claude triage
+
+**M4 — Public + around the clock**
+- [ ] `earthdeck watch export` → static site; `.github/workflows/watch.yml` (schedule + Pages)
+- [ ] Analyst step (2nd-signal verification + narrative); response tracking (notified → resolved)
+
+**M5 — Open it up**
+- [ ] `TRUST.md`, `CONTRIBUTING.md`, `docs/{detectors,watchlists}.md`, issue templates,
+      published accuracy page (false-positive rate per detector)
+
+New tools (contract): `world_pulse(indicators?)` · `protected_areas(bbox)` · `emitters(bbox, sector?)`
+· `methane_plumes(bbox, days)` · `flaring(bbox, days)` · `ledger_find` / `ledger_add` / `ledger_update`.
+New env: `EARTHDECK_LEDGER_PATH` (default `data/ledger.jsonl`), `PROTECTED_PLANET_TOKEN`,
+`EOG_TOKEN`, `ANTHROPIC_API_KEY` (analyst, optional).
+
 ## Tidy-up backlog (low priority)
 
 - Dashboard design pass (frontend-design skill) if a visual refresh is wanted.

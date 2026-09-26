@@ -370,6 +370,43 @@ update ledgers.
 
 ---
 
+## 14. Earth Watch — the accountability loop (added 2026-09-26)
+
+> Full plan: [`.plans/2026-09-26_earth-watch.md`](.plans/2026-09-26_earth-watch.md).
+> This section reframes Horizon 3 as a **public good first**, not a paid tier first.
+
+**The gap isn't detection, it's consequences.** GFW, FIRMS, S5P, Climate TRACE already
+publish alerts. Almost nobody openly links an alert to a responsible asset, routes it to
+someone with leverage, and records what happened next. The watchdog is therefore a loop:
+
+```
+detect → verify → attribute → route → track the response
+ (done)   (done)   (M3)        (M4)     (the public ledger — the moat)
+```
+
+**Who it's for:** the public first (they are the trust we're building), with journalists,
+NGOs and leverage-holders (EUDR buyers, lenders, regulators) consuming the *same* ledger
+through a machine-readable feed. One product, two doors, nothing paywalled.
+
+**Wedge order:** methane & flaring (highest climate impact per effort, open data, named
+facilities, "notified vs. fixed" is new) → deforestation/EUDR (`forest_alerts` + protected-
+area/concession attribution; legal deadline 30 Dec 2026) → fishing, mining, water.
+
+**The trust contract** (schema-enforced, see the plan): no finding without evidence; a
+status machine where only verified cases are published; a second independent signal or a
+human review to verify; false positives are kept and published as our error rate; naming
+a party needs a human sign-off and a right of reply; subjects are assets, places and
+institutions — never individuals; the ledger is hash-chained and every case ships a
+re-runnable recipe. **Trust rests on checkable evidence, not on the AI's authority.**
+
+**Balance is a feature.** `world_pulse` (Our World in Data / World Bank, zero-key) reports
+direction and rate for civilization's vital signs — improving *and* worsening — because an
+honest dashboard beats a negative news feed for both trust and motivation.
+
+**Around the clock, for free:** `earthdeck watch --once` on a GitHub Actions schedule, the
+ledger committed to a data branch, a static Watch site on Pages. The AI analyst step
+cross-checks and explains; the deterministic layer decides what counts as a finding.
+
 ## Appendix — key sources (2026-06)
 
 - **Embeddings / models:** Google AlphaEarth Satellite Embedding (Earth Engine catalog, CC-BY) ·
