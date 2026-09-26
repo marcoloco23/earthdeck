@@ -210,13 +210,23 @@ strategy: [VISION.md](VISION.md) §14. Loop = detect → verify → attribute �
       watermarks, gaps, dry run, TTL expiry; `--once` only (schedule it; no `--every`) (2026-09-26)
 - [x] Rules `forest_loss`, `fires_in_protected` — blind spots required, ring baseline, independent
       confirmation (fixture-tested) (2026-09-26)
-- [x] `earthdeck watch` CLI + README (2026-09-26) · [ ] doctor awareness of watch keys/ledger
-- [ ] **First live sweep with keys → first real case** (needs GFW/FIRMS/CDSE + network)
+- [x] `earthdeck watch` CLI + README (2026-09-26) · [x] doctor Watch section: ledger verify,
+      rule keys, watchlists, last-sweep heartbeat (2026-09-26)
+- [x] **First live sweep with keys → first real cases** (2026-09-26, local): 8 opened, 2
+      confirmed by NDVI (São Félix 232 ha, Novo Progresso 727 ha); controls fired at detect
+      stage → thresholds tuned (minHa 25 / minAlerts 300), recorded as false positives;
+      three live bugs fixed (GFW `byConfidence` shape, OWID entity filter, FIRMS dayRange ≤ 5)
 
-**M3 — Attribution + methane wedge**
-- [ ] `protected_areas` (Overpass; WDPA opt.) · `emitters` (Climate TRACE) · `methane_plumes`
-      (S5P via CDSE) · `flaring` (VIIRS Nightfire, opt.)
-- [ ] Detectors `methane`, `flaring`; attribution on cases; `ledger_*` tools for Claude triage
+**M3 — Attribution + methane wedge** ✅ 2026-09-26 (MVP)
+- [x] `protected_areas` (Overpass + LandMark via GFW + WDPA IDs/stats via GFW, no geometry) ·
+      `emitters` (Climate TRACE v7, admin → sources → bbox filter) · `methane_plumes` (S5P CH₄
+      anomaly via CDSE Statistics + EMIT plume feed; MARS gated) · `flaring` (FIRMS night
+      persistence + EOG VNF annual sites, zero-key) — all live-verified
+- [x] Rules `methane_anomaly@1.0`, `flaring@1.0` (tier 2, ring baseline, blind spots);
+      `ledger_{list,get,verify,advance,narrate,review,propose_attribution}` — never publish;
+      JSON Schema `schema/finding-event.v1.json` (`pnpm schema`)
+- [ ] Attribution *on cases*: kernel enriches `created` context with `protected_areas` +
+      `emitters` hits (tools exist; wiring is the next step)
 
 **M4 — Public + around the clock**
 - [ ] `earthdeck watch export` → static site; `.github/workflows/watch.yml` (schedule + Pages)
