@@ -298,6 +298,8 @@ test("analyst checks: faithfulness, personal names, cost table", () => {
   assert.match(bad[1]!, /the number 52/);
   assert.deepEqual(personalNames("Dr. Silva visited. The Amazon River basin near São Félix do Xingu, per NASA FIRMS.", "são félix do xingu"), ["Dr. Silva"]);
   assert.deepEqual(personalNames("Maria Oliveira owns the farm. Global Forest Watch and La Niña.", ""), ["Maria Oliveira"]);
+  // Live false positive (2026-09-26): a month abbreviation before a line break + a sentence start.
+  assert.deepEqual(personalNames("Alerts ran 28 Jun to 26 Sep\nValid pixels were 96 %. Cloud Free Composite used.", "valid pixels 96"), []);
   assert.equal(costUsd("claude-opus-5", { input_tokens: 1_000_000, output_tokens: 1_000_000 }), 30);
   assert.equal(costUsd("unknown-model", { input_tokens: 1, output_tokens: 1 }), null);
 });

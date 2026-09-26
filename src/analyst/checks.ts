@@ -102,6 +102,12 @@ export function numbersIn(text: string): number[] {
 }
 
 const same = (a: number, b: number) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a));
+/** A narrated number may be a rounding of a known one at the narrated precision (232.05 ha → "232 ha"). */
+const rounds = (known: number, narrated: number) => {
+  const dec = (String(narrated).split(".")[1] ?? "").length;
+  const f = 10 ** dec;
+  return same(Math.round(known * f) / f, narrated);
+};
 
 /**
  * Violations (empty = faithful): every key number must appear verbatim in its cited
@@ -128,7 +134,7 @@ export function faithfulness(f: Finding, n: Narration): string[] {
   for (const v of numbersIn(`${n.headline}\n${n.narrative}`)) {
     const a = Math.abs(v);
     if (Number.isInteger(a) && a <= 10) continue;
-    if (!known.some((k) => same(k, a))) problems.push(`the number ${v} in the headline/narrative does not appear in the finding's evidence or context`);
+    if (!known.some((k) => same(k, a) || rounds(k, a))) problems.push(`the number ${v} in the headline/narrative does not appear (even rounded) in the finding's evidence or context`);
   }
   for (const name of personalNames(`${n.headline}\n${n.narrative}\n${n.caveats.join("\n")}\n${n.keyNumbers.map((k) => k.label).join("\n")}`, text)) {
     problems.push(`possible personal name "${name}" — never name people; if it is a place or institution, copy it exactly as it appears in the finding`);
@@ -139,7 +145,8 @@ export function faithfulness(f: Finding, n: Narration): string[] {
 // ---- No persons ----------------------------------------------------------------------------
 
 const HONORIFIC = /\b(?:Mr|Mrs|Ms|Mx|Dr|Prof|Sr|Sra|Srta|Dona|Dom|Sir|Madam|Senhor|Senhora|Señor|Señora)\.?\s+\p{Lu}[\p{L}'’-]*/gu;
-const CAP_RUN = /\p{Lu}[\p{L}'’-]*(?:\s+(?:(?:da|de|do|dos|das|di|del|van|von|la|le|bin|al)\s+)?\p{Lu}[\p{L}'’-]*)+/gu;
+// Runs never cross a line break: "…26 Sep\nValid pixels…" is two sentences, not a name.
+const CAP_RUN = /\p{Lu}[\p{L}'’-]*(?:[ \t]+(?:(?:da|de|do|dos|das|di|del|van|von|la|le|bin|al)[ \t]+)?\p{Lu}[\p{L}'’-]*)+/gu;
 const LEADING = new Set(["the", "a", "an", "this", "that", "these", "those", "in", "on", "at", "no", "our", "if", "what", "it", "its", "we", "both", "each", "all", "some", "between", "from", "during", "since", "after", "before", "while", "when", "because", "however", "but", "and", "or", "one", "two", "three", "key", "not"]);
 /** Words that make a capitalised run a place, instrument, dataset or institution — not a person. */
 const NOT_PERSON = new Set(
@@ -148,7 +155,8 @@ const NOT_PERSON = new Set(
     "el la niño niña nino nina enso oni earth amazon amazonia cerrado pantanal state states river basin mountains mountain valley park reserve national " +
     "territory territories indigenous land lands province district region regional coast island islands lake sea ocean bay gulf delta plateau " +
     "protected area areas conservation unit municipality county city north south east west northern southern eastern western central " +
-    "january february march april may june july august september october november december monday tuesday wednesday thursday friday saturday sunday " +
+    "january february march april may june july august september october november december jan feb mar apr jun jul aug sep sept oct nov dec monday tuesday wednesday thursday friday saturday sunday " +
+    "valid pixels alert alerts loss clearing cloud clouds baseline ring window scene scenes hectares ha percent " +
     "ndvi ndwi nbr sar optical radar median composite satellite data api world pulse finding findings evidence confidence ministry agency institute " +
     "department government company corporation university service program programme united nations brazil peru bolivia colombia indonesia congo"
   ).split(" "),
