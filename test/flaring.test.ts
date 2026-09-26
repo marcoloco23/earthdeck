@@ -7,13 +7,14 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { clusterFlares, flaringReport, nightKey, parseVnfKml, sitesIn, windowChunks, type SourcedDetection } from "../src/clients/vnf.js";
+import { clearVnfCache, clusterFlares, flaringReport, nightKey, parseVnfKml, sitesIn, stoppedSites, windowChunks, type SourcedDetection } from "../src/clients/vnf.js";
 import { parseFiresCsv } from "../src/clients/nasa.js";
 import { Ledger } from "../src/ledger/store.js";
 import { Journal } from "../src/watch/journal.js";
 import { sweep } from "../src/watch/kernel.js";
 import { RULES, ToolError, type ToolCall } from "../src/watch/rules/index.js";
 import { parseWatchlist } from "../src/watch/watchlist.js";
+import { addDays } from "../src/util.js";
 import type { BBox } from "../src/types.js";
 import { mockFetch, textResponse } from "./helpers.js";
 
@@ -100,9 +101,20 @@ test("parseVnfKml reads the EOG annual flare summary; non-KML (login wall) throw
   assert.throws(() => parseVnfKml("<!DOCTYPE html><title>Sign in to eog</title>"), /not KML/);
 });
 
-function mockUpstream(opts: { vnf?: "ok" | "404" } = {}) {
+/** Minimal EOG-style placemarks (what parseVnfKml reads) to append to the real sample. */
+const kmlSites = (sites: { id: string; lat: number; lon: number; bcm: number }[]) =>
+  sites
+    .map((s) => `<Placemark><name>${s.id}</name><description><![CDATA[Country: <b>IRQ</b> Lat=${s.lat}, Lon=${s.lon} deg. BCM_total=${s.bcm}</td><td>Type: oil upstream</td>]]></description></Placemark>`)
+    .join("\n");
+const withSites = (kml: string, sites: Parameters<typeof kmlSites>[0]) => kml.replace("</Document>", `${kmlSites(sites)}\n</Document>`);
+
+function mockUpstream(opts: { vnf?: "ok" | "404"; kml2024?: string; kml2023?: string } = {}) {
+  clearVnfCache();
   return mockFetch((url) => {
-    if (url.includes("eogdata.mines.edu")) return opts.vnf === "404" ? textResponse("nope", { status: 404 }) : textResponse(VNF_KML);
+    if (url.includes("eogdata.mines.edu")) {
+      if (opts.vnf === "404") return textResponse("nope", { status: 404 });
+      return textResponse((url.includes("/2023_") ? opts.kml2023 : opts.kml2024) ?? VNF_KML);
+    }
     if (url.includes("/VIIRS_NOAA20_NRT/") && url.endsWith("/5/2026-09-20")) return textResponse(RUMAILA_CSV);
     return textResponse(`${HEADER}\n`);
   });
@@ -159,9 +171,11 @@ function setup() {
 }
 
 test("flaring@1.0: real report → candidate confirmed by the VNF annual summary (provider)", async (t) => {
-  const fm = mockUpstream();
+  // 2023 registry also holds a site at the one Rumaila cluster the 2024 sample lacks → nothing is "new".
+  const fm = mockUpstream({ kml2023: withSites(VNF_KML, [{ id: "IRQ_UPS_2023_47.3347E_30.4032N_v0.2", lat: 30.4035, lon: 47.335, bcm: 0.02 }]) });
   t.after(fm.restore);
   const report = await flaringReport("KEY", RUMAILA, { days: 10, end: "2026-09-24", minFrp: 5, minNights: 4 });
+  assert.equal(report.vnf.newClusters, 0);
   const s = setup();
   const { call, calls } = fakeCall({ flaring: () => report, enso: () => ({ phase: "Neutral", latest: { oni: 0.1 } }), events: () => ({ events: [] }) });
   const wl = parseWatchlist({ version: 1, name: "t", aois: [aoi] });
@@ -224,5 +238,140 @@ test("flaring@1.0: quiet when nothing persists; no VNF → candidate, then confi
   const f = s.ledger.get(r1.created[0]!)!;
   assert.equal(f.confirmed?.independence, "revisit");
   assert.equal(f.confirmed?.signal.values?.clusters, 1, "only the cluster near the flagged point counts");
+  assert.equal(s.ledger.verify().ok, true);
+});
+
+// ---- new vs stopped flares ----------------------------------------------------------------
+
+test("flaringReport: a persistent cluster in neither VNF year is new; a registered site dark all window is stopped", async (t) => {
+  const kml2024 = withSites(VNF_KML, [
+    { id: "IRQ_UPS_2024_47.0500E_30.2500N_v0.2", lat: 30.25, lon: 47.05, bcm: 0.3 }, // no detection near it: stopped
+    { id: "IRQ_UPS_2024_47.0600E_30.2600N_v0.2", lat: 30.26, lon: 47.06, bcm: 0.01 }, // dark too, but under 0.05 BCM
+  ]);
+  const fm = mockUpstream({ kml2024 });
+  t.after(fm.restore);
+  const r = await flaringReport("KEY", RUMAILA, { days: 10, end: "2026-09-24", minFrp: 5, minNights: 4 });
+  const fresh = r.clusters.filter((c) => c.novel);
+  assert.equal(fresh.length, 1, "one Rumaila cluster has no 2023/2024 site within 2 km");
+  assert.deepEqual([fresh[0]!.lat, fresh[0]!.lon], [30.4032, 47.3347]);
+  assert.equal(fresh[0]!.vnf, null);
+  assert.equal(r.vnf.newClusters, 1);
+  assert.equal((r.vnf.previous as { year: number }).year, 2023);
+  const stopped = r.vnf.stopped as { count: number; bcm: number; sites: { id: string }[] };
+  assert.equal(stopped.count, 1);
+  assert.equal(stopped.bcm, 0.3);
+  assert.equal(stopped.sites[0]!.id, "IRQ_UPS_2024_47.0500E_30.2500N_v0.2");
+  assert.ok(fm.calls.some((c) => c.url.includes("/2023_flare_summary")), "previous year fetched for novelty");
+
+  // A window with no night detection at all proves nothing: no stopped claim.
+  const sites = parseVnfKml(kml2024);
+  assert.equal(stoppedSites(sites, []), null);
+  assert.equal(stoppedSites(sites, [{ lat: 0, lon: 0, daynight: "D" }]), null);
+  assert.equal(stoppedSites(sites, [{ lat: 30.2501, lon: 47.0502, daynight: "N" }])!.some((s) => s.lat === 30.25), false, "one detection within 2 km keeps a site lit");
+});
+
+const IRN_AOI = {
+  id: "flare-irn-32p4n-47p2e",
+  name: "Flare field near Dehloran, Ilam (Iran) — 5 registered sites",
+  bbox: [46.9, 32.2, 47.6, 32.8] as [number, number, number, number],
+  rules: [
+    { name: "flaring", params: {} },
+    { name: "flaring_stopped", params: {} },
+  ],
+};
+const SENSORS = ["VIIRS_NOAA20_NRT", "VIIRS_NOAA21_NRT"];
+const cluster = (lat: number, lon: number, extra: Record<string, unknown> = {}) => ({
+  lat, lon, nights: 9, detections: 20, meanFrp: 12, maxFrp: 30, firstNight: "2026-08-30", lastNight: "2026-09-25", sources: SENSORS, vnf: null, ...extra,
+});
+const report = (o: { to?: string; clusters?: unknown[]; stopped?: { lat: number; lon: number; bcm: number }[]; matched?: number }) => {
+  const to = o.to ?? "2026-09-26";
+  const st = o.stopped ?? [];
+  return {
+    window: { from: addDays(to, -29), to, days: 30 },
+    counts: { nightDetections: 40, hotNightDetections: 30, persistentClusters: (o.clusters ?? []).length },
+    clusters: o.clusters ?? [],
+    vnf: {
+      available: true, year: 2024, previous: { available: true, year: 2023 }, matchedClusters: o.matched ?? 0,
+      stopped: { count: st.length, bcm: Math.round(st.reduce((a, s) => a + s.bcm, 0) * 1000) / 1000, sites: st.map((s, i) => ({ id: `IRN_UPS_2024_S${i}`, type: "oil upstream", ...s })) },
+    },
+    provenance: { sensors: SENSORS },
+  };
+};
+const ctxFor = (call: ToolCall) => ({ aoi: parseWatchlist({ version: 1, name: "t", aois: [IRN_AOI] }).aois[0]!, params: {}, now: NOW, since: null, call });
+
+test("flaring@1.0: a cluster in neither VNF year → 'New flaring near <place>', new_flare = 1, not VNF-confirmed", async (t) => {
+  const fm = mockFetch(() => new Response("{}", { status: 200 }));
+  t.after(fm.restore);
+  const r = report({ clusters: [cluster(32.5, 47.2, { vnf: { id: "IRN_UPS_2024_X", type: "oil upstream", bcm: 0.2, km: 0.3 }, novel: false }), cluster(32.61, 47.41, { nights: 6, novel: true })], matched: 1 });
+  const direct = await RULES.get("flaring")!.detect(ctxFor(fakeCall({ flaring: () => r }).call));
+  assert.equal(direct!.title, "New flaring near Dehloran, Ilam (Iran)");
+  assert.deepEqual(direct!.tags, ["new-flare"]);
+  assert.equal(direct!.values.new_flare, 1);
+  assert.deepEqual(direct!.geometry, { type: "Point", coordinates: [47.41, 32.61] }, "the new cluster, not the brighter registered one");
+
+  const s = setup();
+  const { call } = fakeCall({ flaring: () => r, enso: () => ({ phase: "Neutral", latest: { oni: 0.1 } }), events: () => ({ events: [] }) });
+  const wl = parseWatchlist({ version: 1, name: "t", aois: [{ ...IRN_AOI, rules: [{ name: "flaring", params: {} }] }] });
+  const sw = await sweep({ watchlists: [wl], rules: RULES, ledger: s.ledger, journal: s.journal, call, now: NOW, hasKey: () => true });
+  assert.equal(sw.created.length, 1);
+  assert.equal(sw.confirmed.length, 0, "a VNF match elsewhere in the box cannot confirm a flare the registry does not have");
+  const f = s.ledger.get(sw.created[0]!)!;
+  assert.equal(f.title, "New flaring near Dehloran, Ilam (Iran)");
+  assert.equal(f.evidence[0]!.values?.new_flare, 1);
+  assert.equal(f.status, "candidate");
+});
+
+test("flaring_stopped@1.0: dark registered sites → a separate good-news case, confirmed by the next dark window", async (t) => {
+  const fm = mockFetch(() => new Response("{}", { status: 200 }));
+  t.after(fm.restore);
+  const both = [
+    { lat: 32.45, lon: 47.1, bcm: 0.25 },
+    { lat: 32.7, lon: 47.5, bcm: 0.1 },
+  ];
+  let next = [both[0]!]; // the second window: one site relit
+  const s = setup();
+  const { call, calls } = fakeCall({
+    flaring: (a) => (a.endDate ? report({ to: String(a.endDate), stopped: next }) : report({ clusters: [cluster(32.5, 47.2, { novel: false })], stopped: both, matched: 1 })),
+    enso: () => ({ phase: "Neutral", latest: { oni: 0.1 } }),
+    events: () => ({ events: [] }),
+  });
+  const direct = await RULES.get("flaring_stopped")!.detect(ctxFor(fakeCall({ flaring: () => report({ stopped: both }) }).call));
+  assert.deepEqual(direct!.tags, ["improvement"]);
+
+  const wl = parseWatchlist({ version: 1, name: "t", aois: [IRN_AOI] });
+  const run = (now: string) => sweep({ watchlists: [wl], rules: RULES, ledger: s.ledger, journal: s.journal, call, now, hasKey: () => true });
+  const r1 = await run(NOW);
+  assert.equal(r1.created.length, 2, "the flaring case and a separate stopped case for the same AOI");
+  assert.equal(calls.filter((c) => c.tool === "flaring" && c.args.days === 30).length, 1, "both rules share one detect-time FIRMS pull per sweep");
+  const stopped = r1.created.map((id) => s.ledger.get(id)!).find((f) => f.rule.name === "flaring_stopped")!;
+  assert.equal(stopped.title, "Flaring stopped at 2 registered sites near Dehloran, Ilam (Iran)");
+  assert.match(stopped.summary, /^Good news, if it holds: 2 gas-flare sites near Dehloran, Ilam \(Iran\) that burned 0\.35 billion m³/);
+  assert.equal(stopped.evidence[0]!.values?.stopped_sites, 2);
+  assert.equal(stopped.evidence[0]!.values?.stopped_bcm, 0.35);
+  assert.deepEqual(stopped.geometry, { type: "Point", coordinates: [47.1, 32.45] });
+  assert.ok(stopped.blindSpots!.some((b) => /cloud/i.test(b)) && stopped.blindSpots!.some((b) => /seasonal/i.test(b)) && stopped.blindSpots!.some((b) => /sensor/i.test(b)));
+  assert.ok(stopped.context?.notes?.some((n) => /improvement/.test(n)));
+  assert.equal(stopped.status, "candidate");
+
+  // Mid-way through the next window: nothing to check yet, no extra pull for the stopped case.
+  const r2 = await run("2026-10-10T12:00:00Z");
+  assert.equal(r2.confirmed.length, 0);
+  assert.ok(!calls.some((c) => c.args.endDate), "no confirmation pull before the next window has elapsed");
+
+  // Next window over, but one of the two sites relit: not confirmed.
+  const r3 = await run("2026-10-27T06:00:00Z");
+  assert.ok(!r3.confirmed.includes(stopped.findingId));
+  const pull = calls.find((c) => c.args.endDate)!;
+  assert.deepEqual([pull.args.endDate, pull.args.days], ["2026-10-26", 30], "exactly the consecutive 30-night window");
+
+  // Both still dark on the next sweep → confirmed by revisit.
+  next = both;
+  const r4 = await run("2026-10-28T06:00:00Z");
+  assert.ok(r4.confirmed.includes(stopped.findingId));
+  const f = s.ledger.get(stopped.findingId)!;
+  assert.equal(f.status, "confirmed");
+  assert.equal(f.confirmed?.independence, "revisit");
+  assert.equal(f.confirmed?.signal.datetime, "2026-10-26T00:00:00Z");
+  assert.equal(f.confirmed?.signal.values?.stopped_sites, 2);
   assert.equal(s.ledger.verify().ok, true);
 });

@@ -6,6 +6,7 @@
 // cell's AOI hugging only the sites inside it.
 
 import type { BBox } from "../../types.js";
+import { adminLabel, type AdminPlace } from "../../clients/geo.js";
 import { parseVnfKml, VNF_ANNUAL, VNF_DEFAULT_YEAR, type VnfSite } from "../../clients/vnf.js";
 import type { WatchAoi, Watchlist } from "../watchlist.js";
 import { aoiId, bboxArea, clusterSingleLinkage, coordToken, padKm, pointsBBox, round, snapOut } from "./geo.js";
@@ -80,6 +81,19 @@ export function fieldBoxes(f: FlareField): { index: number; bbox: BBox; sites: n
     .sort((a, b) => a.index - b.index);
 }
 
+/** BCM-weighted centroid of a field — the point it is named after. */
+export function fieldCentroid(f: FlareField): { lat: number; lon: number } {
+  return { lat: f.sites.reduce((s, m) => s + m.lat * m.bcm, 0) / f.bcm, lon: f.sites.reduce((s, m) => s + m.lon * m.bcm, 0) / f.bcm };
+}
+
+/** "Flare field near Dehloran, Ilam (Iran) — 5 registered sites"; coordinates only when no place is known. */
+export function fieldName(f: FlareField, place: AdminPlace | null, part?: number): string {
+  const c = fieldCentroid(f);
+  const where = adminLabel(place) ?? `${round(c.lat, 2)}, ${round(c.lon, 2)} (${f.country})`;
+  const n = `${f.sites.length} registered site${f.sites.length === 1 ? "" : "s"}`;
+  return `Flare field near ${where} — ${n}${part ? ` (part ${part})` : ""}`.slice(0, 120);
+}
+
 /** VNF site name minus year/version: "IRQ_UPS_2024_47.1036E_30.5649N_v0.2" → "irq_ups_47.1036e_30.5649n". */
 export function siteTag(id: string): string {
   return id
@@ -89,27 +103,38 @@ export function siteTag(id: string): string {
     .slice(0, 40);
 }
 
-export function buildFlaringFields(raw: FlaringRaw, max: number, generatedOn: string): { watchlist: Watchlist; fields: FlareField[] } {
+export function buildFlaringFields(
+  raw: FlaringRaw,
+  max: number,
+  generatedOn: string,
+  placeAt: (lat: number, lon: number) => AdminPlace | null = () => null,
+): { watchlist: Watchlist; fields: FlareField[] } {
   const fields = flareFields(raw.sites).slice(0, max);
   const aois: WatchAoi[] = [];
   for (const f of fields) {
     const base = aoiId("flare", f.country, coordToken(f.lead.lat, "n", "s"), coordToken(f.lead.lon, "e", "w"));
     const boxes = fieldBoxes(f);
+    const c = fieldCentroid(f);
+    const place = placeAt(c.lat, c.lon);
     for (const b of boxes) {
       const split = boxes.length > 1 || b.index > 0;
       aois.push({
         id: split ? `${base}-${b.index}` : base,
-        name: `Flare field ${f.country} ${round(f.lead.lat, 2)}, ${round(f.lead.lon, 2)} (${f.sites.length} VNF site${f.sites.length === 1 ? "" : "s"})${split ? ` — part ${b.index}` : ""}`,
+        name: fieldName(f, place, split ? b.index : undefined),
         bbox: b.bbox,
         tags: [...new Set(["flaring", "oil-gas", "discovered", f.country.toLowerCase(), siteTag(f.lead.id)])],
         control: false,
         cooldownDays: 30,
-        rules: [{ name: "flaring", params: { ...FLARING_PARAMS } }],
+        rules: [
+          { name: "flaring", params: { ...FLARING_PARAMS } },
+          { name: "flaring_stopped", params: { ...FLARING_PARAMS } },
+        ],
         notes:
           `Discovered ${generatedOn} from the EOG VIIRS Nightfire ${raw.year} annual flare summary (${raw.sensor}): ` +
           `${round(f.bcm, 3)} BCM flared across ${f.sites.length} site(s) chained within ${FIELD_KM} km` +
           (split ? `; this part holds ${b.sites} site(s), ${round(b.bcm, 3)} BCM` : "") +
-          `. Largest site ${f.lead.id} (${f.lead.type}, ${f.lead.bcm} BCM). Box = sites + ${FIELD_PAD_KM} km.`,
+          `. Largest site ${f.lead.id} (${f.lead.type}, ${f.lead.bcm} BCM). Box = sites + ${FIELD_PAD_KM} km.` +
+          (place ? ` Place: Nominatim reverse at the BCM-weighted centroid ${round(c.lat, 3)}, ${round(c.lon, 3)} (admin levels only; © OpenStreetMap contributors).` : ""),
       });
     }
   }

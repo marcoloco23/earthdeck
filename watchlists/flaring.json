@@ -8,14 +8,14 @@
       "name": "Rumaila field (Basra, Iraq)",
       "bbox": [47.0, 30.2, 47.6, 30.8],
       "tags": ["flaring", "oil-gas", "iraq"],
-      "rules": [{ "name": "flaring", "params": { "days": 30, "minFrp": 5, "minNights": 5, "clusterKm": 1 } }]
+      "rules": [{ "name": "flaring", "params": { "days": 30, "minFrp": 5, "minNights": 5, "clusterKm": 1 } }, { "name": "flaring_stopped", "params": { "days": 30, "minFrp": 5, "minNights": 5, "clusterKm": 1 } }]
     },
     {
       "id": "us-bakken",
       "name": "Bakken core (North Dakota, USA)",
       "bbox": [-103.6, 47.6, -102.6, 48.4],
       "tags": ["flaring", "oil-gas", "usa"],
-      "rules": [{ "name": "flaring", "params": { "days": 30, "minFrp": 5, "minNights": 5, "clusterKm": 1 } }]
+      "rules": [{ "name": "flaring", "params": { "days": 30, "minFrp": 5, "minNights": 5, "clusterKm": 1 } }, { "name": "flaring_stopped", "params": { "days": 30, "minFrp": 5, "minNights": 5, "clusterKm": 1 } }]
     },
     {
       "id": "ng-niger-delta",
@@ -23,7 +23,7 @@
       "bbox": [6.2, 4.5, 7.0, 5.3],
       "tags": ["flaring", "oil-gas", "nigeria"],
       "notes": "Tropical cloud cover: expect far fewer clear nights than Basra, so persistence under-counts here.",
-      "rules": [{ "name": "flaring", "params": { "days": 30, "minFrp": 5, "minNights": 3, "clusterKm": 1 } }]
+      "rules": [{ "name": "flaring", "params": { "days": 30, "minFrp": 5, "minNights": 3, "clusterKm": 1 } }, { "name": "flaring_stopped", "params": { "days": 30, "minFrp": 5, "minNights": 3, "clusterKm": 1 } }]
     }
   ]
 }

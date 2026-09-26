@@ -101,6 +101,8 @@ export interface FlareCluster {
   lastNight: string;
   sources: string[];
   vnf?: { id: string; type: string; bcm: number; km: number } | null;
+  /** No VNF site within NOVEL_KM in the latest OR the previous annual summary: not in the registry. */
+  novel?: boolean;
 }
 
 /**
@@ -189,6 +191,11 @@ export function parseVnfKml(kml: string): VnfSite[] {
 
 const vnfCache = new Map<number, Promise<VnfSite[]>>();
 
+/** Forget the per-process VNF downloads (tests that mock EOG differently). */
+export function clearVnfCache(): void {
+  vnfCache.clear();
+}
+
 /** The year's global flare summary (≈12 MB KML, fetched once per process and cached). */
 export async function vnfAnnual(year = VNF_DEFAULT_YEAR): Promise<{ year: number; sensor: string; url: string; sites: VnfSite[] }> {
   const spec = VNF_ANNUAL[year];
@@ -235,6 +242,40 @@ export interface FlaringOptions {
   limit?: number;
 }
 
+/** New / stopped flares: a VNF site "is" a cluster when within this distance. */
+export const NOVEL_KM = 2;
+/** A registered site counts as stopped only if it flared at least this much in the latest year. */
+export const STOPPED_MIN_BCM = 0.05;
+
+/** A VNF site in the box that flared ≥ STOPPED_MIN_BCM in the latest year with zero FIRMS night detections within NOVEL_KM. */
+export interface StoppedSite {
+  id: string;
+  type: string;
+  lat: number;
+  lon: number;
+  bcm: number;
+}
+
+/**
+ * Registered sites (≥ minBcm) with no night-time detection (any FRP) within `km` in the
+ * window. Null when the window holds no night detection at all in the box: then a shutdown
+ * cannot be told from a data gap, so nothing is claimed.
+ */
+export function stoppedSites(
+  sites: readonly VnfSite[],
+  dets: readonly Pick<FireDetection, "lat" | "lon" | "daynight">[],
+  o: { minBcm?: number; km?: number } = {},
+): StoppedSite[] | null {
+  const night = dets.filter((d) => d.daynight === "N");
+  if (night.length === 0) return null;
+  const km = o.km ?? NOVEL_KM;
+  return sites
+    .filter((s) => s.bcm >= (o.minBcm ?? STOPPED_MIN_BCM))
+    .filter((s) => !night.some((d) => kmBetween(s.lat, s.lon, d.lat, d.lon) <= km))
+    .sort((a, b) => b.bcm - a.bcm || a.id.localeCompare(b.id))
+    .map(({ id, type, lat, lon, bcm }) => ({ id, type, lat, lon, bcm }));
+}
+
 export const FLARING_DEFAULTS = { days: 30, minFrp: 3, minNights: 5, clusterKm: 1, vnfYear: VNF_DEFAULT_YEAR, limit: 50 } as const;
 
 export async function flaringReport(mapKey: string, bbox: BBox, o: FlaringOptions = {}) {
@@ -263,6 +304,22 @@ export async function flaringReport(mapKey: string, bbox: BBox, o: FlaringOption
         const m = nearestSite(cl.lat, cl.lon, local, matchKm);
         cl.vnf = m ? { id: m.site.id, type: m.site.type, bcm: m.site.bcm, km: round(m.km, 2) } : null;
       }
+      // New: no site within NOVEL_KM in the latest AND the previous year (sites just outside the box count too).
+      const near = padBBox(bbox, 0.05);
+      const prevYear = a.year - 1 in VNF_ANNUAL ? a.year - 1 : null;
+      let previous: Record<string, unknown> = { available: false, reason: `no VNF annual summary for ${a.year - 1}` };
+      if (prevYear != null) {
+        try {
+          const p = await vnfAnnual(prevYear);
+          const latestNear = sitesIn(near, a.sites);
+          const prevNear = sitesIn(near, p.sites);
+          for (const cl of persistent) cl.novel = !nearestSite(cl.lat, cl.lon, latestNear, NOVEL_KM) && !nearestSite(cl.lat, cl.lon, prevNear, NOVEL_KM);
+          previous = { available: true, year: p.year, sensor: p.sensor, file: p.url, sitesInBbox: sitesIn(bbox, p.sites).length };
+        } catch (err) {
+          previous = { available: false, reason: err instanceof Error ? err.message : String(err) };
+        }
+      }
+      const stopped = stoppedSites(local, detections);
       vnf = {
         available: true,
         product: "VNF annual global flare summary (aggregate; nightly VNF not used)",
@@ -275,6 +332,11 @@ export async function flaringReport(mapKey: string, bbox: BBox, o: FlaringOption
         bcmTotal: round(local.reduce((s, x) => s + x.bcm, 0), 3),
         matchKm,
         matchedClusters: persistent.filter((x) => x.vnf).length,
+        previous,
+        newClusters: persistent.filter((x) => x.novel).length,
+        stopped: stopped
+          ? { minBcm: STOPPED_MIN_BCM, km: NOVEL_KM, count: stopped.length, bcm: round(stopped.reduce((s, x) => s + x.bcm, 0), 3), sites: stopped.slice(0, 50) }
+          : { minBcm: STOPPED_MIN_BCM, km: NOVEL_KM, count: 0, bcm: 0, sites: [], note: "no night detection anywhere in the box this window — a shutdown cannot be told from a data gap" },
         sites: local.slice(0, 20).map(({ id, type, lat, lon, bcm, clearObs, clearPct }) => ({ id, type, lat, lon, bcm, clearObs, clearPct })),
       };
     } catch (err) {
@@ -303,13 +365,15 @@ export async function flaringReport(mapKey: string, bbox: BBox, o: FlaringOption
       href: FIRMS_HREF,
       method: {
         name: "flaring",
-        version: "1.0",
+        version: "1.1",
         nightFilter: 'daynight == "N"',
         frpFilter: `frp >= ${minFrp} MW`,
         night: "local solar night (UTC + lon/15 h − 12 h), so one night's passes count once",
         clustering: `leader clustering by descending FRP, radius ${clusterKm} km`,
         persistence: `cluster lit on >= ${minNights} distinct nights of the ${days}-day window`,
         vnfMatch: `nearest VNF annual site within ${matchKm} km of the cluster centroid`,
+        newFlare: `persistent cluster with no VNF site within ${NOVEL_KM} km in the latest or the previous annual summary`,
+        stopped: `VNF site (≥ ${STOPPED_MIN_BCM} BCM in the latest year) with no night detection of any FRP within ${NOVEL_KM} km in the window`,
       },
       retrievedAt: new Date().toISOString(),
       caveat:
@@ -323,6 +387,10 @@ export type FlaringReport = Awaited<ReturnType<typeof flaringReport>>;
 function round(v: number, dp: number): number {
   const f = 10 ** dp;
   return Math.round(v * f) / f;
+}
+
+function padBBox([w, s, e, n]: BBox, deg: number): BBox {
+  return [w - deg, s - deg, e + deg, n + deg];
 }
 
 function toNum(s: string | undefined): number | null {

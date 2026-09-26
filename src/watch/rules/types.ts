@@ -44,6 +44,8 @@ export interface Candidate {
   baseline?: { metric: string; ringKm: number; aoiValue: number; regionalValue: number; ratio: number | null };
   /** Extra context lines the kernel appends to the finding's `context.notes`. */
   notes?: string[];
+  /** Case-type tags for the finding on top of the AOI's (e.g. "new-flare", "improvement"). */
+  tags?: string[];
 }
 
 export interface Confirmation {
