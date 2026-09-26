@@ -416,6 +416,42 @@ cannot see.
 ledger committed to a data branch, a static Watch site on Pages. The AI analyst step
 cross-checks and explains; the deterministic layer decides what counts as a finding.
 
+## 15. Valuing the living world — the bioeconomy thesis (added 2026-09-26)
+
+> Research: [`docs/research/2026-09-26_valuing-living-nature.md`](docs/research/2026-09-26_valuing-living-nature.md).
+
+**The problem.** The financial system prices nature dead: timber, gold, cleared land.
+A standing hundred-year tree, a living whale, an intact watershed — the *work* they do
+for the planet and for the people living downstream — carries no number, so it loses
+every comparison it is dragged into. The ledger today records what was lost in hectares.
+It must also say what that living system was doing.
+
+**The thesis.** If the world decides to value nature — and it must, or it loses the
+planet — then natural abundance becomes economic abundance and the nature-rich become
+the rich. That decision needs a layer that does not exist yet: a neutral, open,
+evidence-backed way to say what living nature is worth and whether it is still there.
+Every attempt so far — ecosystem-service valuation (Costanza, TEEB, ESVD), the UN's
+SEEA ecosystem accounts, Natural Asset Companies (IEG / Douglas Eger; the NYSE listing
+withdrawn in 2024), biodiversity credits, debt-for-nature swaps, the TFFF — has stalled
+on the same gap: **nobody trusted the numbers**, because nobody could check them.
+
+**Where earthdeck fits.** Not a market, not custody, not a financial product — the
+*audited ecological-performance layer* those instruments lacked. Per area and per
+country: extent → condition → services → value (SEEA-EA structure), each figure with
+its evidence, method, uncertainty band and blind spots, versioned in the same Merkle
+ledger as the findings, with the same published false-positive rate. Think "a ratings
+agency for natural capital" whose ratings anyone can re-derive from open data.
+
+**What ships now.** `natural_value` (benefit-transfer values per biome, per-organism
+reference values, 100-year living value vs. one-time extraction) and a living-value
+line on every finding — order-of-magnitude, sourced, honest. **What it is not:** a
+price tag for sale. Plural and relational values, Indigenous rights (FPIC), and
+distribution — who benefits is not who pays — are named limits, not footnotes.
+
+**Where it goes.** Condition metrics at scale (the detectors already measure change),
+local calibration, and governance: a metric only earns trust if the people whose land
+it describes can challenge it through the same right of reply the findings have.
+
 ## Appendix — key sources (2026-06)
 
 - **Embeddings / models:** Google AlphaEarth Satellite Embedding (Earth Engine catalog, CC-BY) ·
