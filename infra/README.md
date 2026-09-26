@@ -5,8 +5,8 @@ runs the scheduled watch sweeps on Lambda, keeps the signed findings ledger in S
 serves the static Earth Watch site at `https://earthdeck.marcsperzel.com/`.
 
 ```
-                EventBridge Scheduler (UTC, every 6 h, staggered)
-     :00 amazon  :10 congo-borneo  :20 controls  :30 methane  :40 flaring  :50 analyst  +1h export
+                EventBridge Scheduler (UTC, every 6 h from 00/06/12/18, staggered)
+     +0:00…+1:10 generated shards 0–7   +1:20 analyst   +1:30 export   +1:40 hand-written lists
                                │  async invoke, JSON payload
                                ▼
   SSM /earthdeck/* ──► Lambda "earthdeck" (Node 22, arm64, 900 s, 1 GB, concurrency 1)
@@ -73,9 +73,26 @@ touched. Pause/resume all schedules: `EARTHDECK_SCHEDULES=DISABLED|ENABLED scrip
 
 ## How a run works
 
-Payload: `{ "job": "sweep"|"analyst"|"export"|"all", "watchlist"?: "amazon"|"congo-borneo"|"controls"|"methane"|"flaring", "dryRun"?: true }`
-(`watchlist`/`dryRun` only with `sweep`; `all` = five sweeps + analyst + export, manual use —
-it may not fit in 900 s).
+Payload: `{ "job": "sweep"|"analyst"|"export"|"all", "watchlist"?: W, "shard"?: "i/n", "timeBudgetSec"?: N, "dryRun"?: true }`
+where `W` is a hand-written list (`amazon`|`congo-borneo`|`controls`|`methane`|`flaring` →
+`watchlists/<W>.json`), `all-handwritten` (those five), `all-generated` (every file in
+`watchlists/generated/`) or `generated/<name>` (`watchlists/generated/<name>.json`).
+`watchlist`/`shard`/`timeBudgetSec`/`dryRun` only with `sweep`; no `watchlist` = every
+top-level `watchlists/*.json`. `all` = five hand-written sweeps + analyst + export, manual use —
+it may not fit in 900 s.
+
+- **Every sweep in Lambda is time-budgeted**: the runner passes
+  `--time-budget` = remaining invocation time − 90 s (or `timeBudgetSec`, whichever is smaller)
+  to `node dist/cli.js watch --once`. The kernel stops opening new pairs when one more pair (as
+  slow as the slowest so far) would overrun, finishes the current one, writes watermarks /
+  journal / ledger as usual and exits 0 with `budget exhausted: k of n pairs done`. As a
+  backstop the child is SIGTERMed at remaining − 60 s, leaving the rest for verify + upload.
+- **Shards**: `--shard i/n` keeps only pairs with `sha256(aoi.id, rule) mod n == i` — disjoint,
+  deterministic, independent of file order. Within a sweep, pairs run **least-recently-swept
+  first** (never-swept first of all, by watermark), so a budget- or quota-cut sweep resumes
+  where the last one left off and nothing starves.
+- **Quotas** (below): pairs whose provider's daily cap is spent are `skipped` with reason
+  `quota:<provider>` (journaled, watermark untouched).
 
 - The ledger working copy is `ledger/` in the state bucket minus `ledger/checkpoints/` (the
   archive) and `ledger.key` (never stored). It is downloaded fresh every run.
@@ -99,18 +116,77 @@ The AWS SDK v3 is **not** in the zip: the Lambda Node.js 22 runtime ships it. Th
 `@aws-sdk/client-*` packages are exact-pinned devDependencies for typechecking only; the
 runner loads them lazily (`import()`, falling back to `require` via `NODE_PATH`).
 
+## Schedule
+
+Every 6 hours, windows starting 00:00 / 06:00 / 12:00 / 18:00 UTC (11 schedules, all behind
+`SchedulesState`):
+
+| Offset | Schedule | Payload |
+| --- | --- | --- |
+| +0:00 | `earthdeck-sweep-shard-0` | `{"job":"sweep","watchlist":"all-generated","shard":"0/8"}` |
+| +0:10 … +1:10 | `earthdeck-sweep-shard-1` … `-7` (every 10 min) | same, `shard` `1/8` … `7/8` |
+| +1:20 | `earthdeck-analyst` | `{"job":"analyst"}` |
+| +1:30 | `earthdeck-export` | `{"job":"export"}` |
+| +1:40 | `earthdeck-sweep-handwritten` | `{"job":"sweep","watchlist":"all-handwritten"}` |
+
+- ~350 generated AOIs / 8 shards ≈ 44 pairs per shard; at 1.5 s politeness delay + a few
+  seconds of API time per pair that is ~5–8 min, inside the ~13 min budget. A shard that runs
+  long is cut by its budget and resumes least-recently-swept first next window.
+- Slots are 10 min apart but a run may take up to 15: with concurrency 1 an overlapping
+  invocation is throttled and Lambda's async queue retries it (event age ≤ 6 h), so the chain
+  drifts later instead of dropping a run. Only one writer ever touches the ledger.
+- The hand-written lists run after the export, so their findings are narrated/published in
+  the next window (≤ 6 h later).
+- 44 invocations/day; the 14 h no-success alarm is unchanged.
+
+## Quotas
+
+Per-UTC-day caps, counted in the ledger's `watch/quota.json` (synced with the ledger, so they
+hold across invocations) and set as function env vars in the template:
+
+| Env var | Default | Counts |
+| --- | --- | --- |
+| `EARTHDECK_MAX_CDSE_CALLS` | 60 | `eo_compare`, `methane_plumes`, `eo_*` tool calls (1 each) |
+| `EARTHDECK_MAX_GFW_CALLS` | 400 | `forest_alerts` calls (1 each) |
+| `EARTHDECK_MAX_FIRMS_CALLS` | 300 | FIRMS transactions: `fires_in` 1; `flaring` ⌈days/5⌉ × sources (30 d × 2 = 12) |
+| `EARTHDECK_MAX_ANALYST_CASES` | 10 | findings the analyst takes on per day (also the `--max` default) |
+| `EARTHDECK_MAX_ANALYST_USD` | 3 | analyst API spend per day; journaled as `analyst_spend` |
+
+A pair is skipped `quota:<provider>` when any provider its rule needs (from the rule's
+`requires`) is spent — note `forest_loss` needs CDSE (for its NDVI confirmation), so it stops
+when CDSE does. A call that would cross a cap mid-pair is refused (skip, not gap). An HTTP 429,
+a 403 whose body says quota/limit, or FIRMS's "transaction limit" text marks that provider
+exhausted for the rest of the run.
+
+Expected demand for ~350 AOIs (assumed mix — one rule each: 170 `forest_loss`, 90
+`fires_in_protected`, 45 `flaring`, 45 `methane_anomaly`; recompute when the generated lists
+land):
+
+| Provider | Per pair | Per full pass | Per day (4 passes) | Daily cap | Effective revisit under the cap | Provider's own limit |
+| --- | --- | --- | --- | --- | --- | --- |
+| GFW | forest 2 | 340 | 1,360 | 400 | forest pairs ~1.2×/day | rate-limited per key (UNCONFIRMED figure) |
+| CDSE | forest 0–1 (confirm only; ~10% → 17), methane 1 | ~62 (45–215) | ~250 (180–860) | 60 | methane ~1×/day; forest capped with it | processing units / requests per month (UNCONFIRMED figure) |
+| FIRMS | fires 2 (1 when quiet), flaring ~12 | 720 (180 + 540) | 2,880 | 300 | FIRMS pairs ~every 2.4 days | 5,000 transactions / 10 min per map key |
+| Anthropic | ≈ $0.10 per case (narrate + review) | — | ≤ 10 cases | $3 | — | — |
+
+The caps, not Lambda time, set the revisit rate. FIRMS's own limit is per 10 minutes, so
+`EARTHDECK_MAX_FIRMS_CALLS` can be raised (≈ 3,000 covers four full passes; one shard spends
+~90) without risk; raising CDSE needs the account's monthly PU budget checked first. Caps
+reset at 00:00 UTC, so the 00:00 window's shards spend them first; later windows sweep what
+is left, least-recently-swept first within each shard.
+
 ## Monthly cost (estimate)
 
 | Item | Usage | ≈ USD/month |
 | --- | --- | --- |
-| Lambda (arm64, 1 GB) | 28 invocations/day ≈ 840/month; at ~3 min avg ≈ 150k GB-s (worst case 900 s each ≈ 760k GB-s) | 0 within the 400k GB-s free tier; ≤ 5 worst case |
+| Lambda (arm64, 1 GB) | 44 invocations/day ≈ 1,320/month; shards ~8 min, others ~2 min ≈ 500k GB-s (worst case 900 s each ≈ 1.19M GB-s) | ~1.5 over the 400k GB-s free tier; ≤ 11 worst case |
 | S3 (3 buckets, versioned state) | tens of MB, a few thousand PUT/GET | < 0.20 |
 | CloudFront | low traffic; 1 TB + 10M requests/month always-free; ~120 `/*` invalidations (1,000 free) | ~0 |
 | Route 53 | existing zone (already paid); alias queries free | 0 extra |
 | SSM + KMS | standard parameters free; `aws/ssm` key free; ~5k decrypts | < 0.05 |
 | CloudWatch | 1 custom metric 0.30 + 1 alarm 0.10 + small log ingest (30-day retention) | ~0.50 |
 | EventBridge Scheduler, ACM, SNS email | well inside free tiers | 0 |
-| **Total** | | **~1–3** (Anthropic API usage by the analyst is separate) |
+| **Total** | | **~2–5** (analyst Anthropic spend is separate, capped at $3/day ≈ $90/month) |
 
 ## Key rotation
 
@@ -160,5 +236,9 @@ CFN cannot create a bucket whose name already exists.
   and `s3://earthdeck-state-185692190330/state/heartbeat.json` for the last success.
 - **Site shows the placeholder** — the export job is `unavailable` in this build or hasn't
   run yet; `scripts/run-job.sh export`.
-- **Sweeps time out at 900 s** — split a watchlist, or lower per-call delay (`--delay-ms`);
-  watermarks mean a killed sweep resumes next slot (its unverified writes are not uploaded).
+- **Sweeps time out at 900 s** — should not happen (every Lambda sweep is time-budgeted); if
+  one does, a single call hung past the budget. Watermarks mean a killed sweep resumes next
+  slot. `budget exhausted: k of n pairs done` in the log is normal, not an error.
+- **Many `quota:<provider>` skips** — the daily cap is spent (see Quotas); check
+  `ledger/watch/quota.json` in the state bucket, raise the env var in the template if the
+  provider allows it.

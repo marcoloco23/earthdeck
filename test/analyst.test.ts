@@ -17,6 +17,7 @@ import { applyEvent, PUBLISH_POLICY_VERSION, type Finding, type FindingEvent, ty
 import { Ledger } from "../src/ledger/store.js";
 import { uuidv7 } from "../src/util.js";
 import { Journal } from "../src/watch/journal.js";
+import { QuotaGovernor } from "../src/watch/quota.js";
 import { jsonResponse, mockFetch, type CapturedCall } from "./helpers.js";
 
 const NARRATION_FIXTURE = JSON.parse(readFileSync("test/fixtures/anthropic-narration.json", "utf8")) as { content: { type: string; text?: string }[]; model: string };
@@ -319,4 +320,35 @@ test("analyst vs the real Ledger: the narrated event satisfies today's contract"
   // contract (recorded as an error, finding stays confirmed); after it lands, it publishes.
   assert.ok(["confirmed", "published"].includes(f.status));
   assert.ok(ledger.verify().ok);
+});
+
+test("analyst: daily USD cap stops the run and journals analyst_spend; the daily case cap persists across runs", async (t) => {
+  const caps = { cdse: 60, gfw: 400, firms: 300, analystCases: 10, analystUsd: 0.15 };
+  const l = new PolicyLedger();
+  l.seed();
+  l.seed();
+  l.seed();
+  const m = anthropicMock({ "claude-opus-5": [NARRATION_FIXTURE, NARRATION_FIXTURE], "claude-sonnet-5": [REVIEW_FIXTURE, REVIEW_FIXTURE] });
+  t.after(m.restore);
+  const j = journal();
+  const q = new QuotaGovernor(j.dir, caps, "2026-09-26");
+  const lines: string[] = [];
+  const r = await runAnalyst({ ledger: l as unknown as AnalystLedger, journal: j, apiKey: "sk-test", max: 10, quota: q, log: (s) => lines.push(s) });
+  // ≈ $0.099 per finding: after two the day's $0.15 is spent, the third is not started.
+  assert.equal(r.published.length, 2);
+  assert.equal(m.api.length, 4);
+  assert.ok(lines.some((s) => /daily analyst budget spent/.test(s)));
+  const recs = readFileSync(join(j.dir, "journal.jsonl"), "utf8").trim().split("\n").map((s) => JSON.parse(s) as { kind: string; dayUsd?: number; limitUsd?: number });
+  const spend = recs.filter((x) => x.kind === "analyst_spend");
+  assert.equal(spend.length, 4);
+  assert.ok(Math.abs(spend.at(-1)!.dayUsd! - r.costUsd) < 1e-6);
+  assert.equal(spend[0]!.limitUsd, 0.15);
+  assert.ok(recs.some((x) => x.kind === "analyst_budget_stop"));
+
+  // Same day, new process: spend is remembered → nothing runs. Case cap: 2 used of 2 → nothing selected.
+  const again = await runAnalyst({ ledger: l as unknown as AnalystLedger, journal: j, apiKey: "sk-test", quota: new QuotaGovernor(j.dir, caps, "2026-09-26") });
+  assert.equal(m.api.length, 4);
+  assert.equal(again.published.length, 0);
+  const cases = await runAnalyst({ ledger: l as unknown as AnalystLedger, journal: j, apiKey: "sk-test", quota: new QuotaGovernor(j.dir, { ...caps, analystUsd: 100, analystCases: 2 }, "2026-09-26") });
+  assert.equal(cases.selected, 0);
 });

@@ -63,6 +63,7 @@ function main(): void {
         "  earthdeck dashboard <port>",
         "  earthdeck watch --once    sweep the watchlists once, write findings to the ledger",
         "  earthdeck watch --once --dry-run [--watchlist <file|dir>] [--max N] [--rules a,b]",
+        "  earthdeck watch --once [--shard i/n] [--time-budget SEC]  one shard, stop before the budget",
         "  earthdeck analyst --once  narrate + review (two models) + publish confirmed findings",
         "  earthdeck analyst --once --dry-run [--max N] [--model-narrator id] [--model-reviewer id]",
         "  earthdeck watch export --out <dir> [--base-url URL]  write the public static site",

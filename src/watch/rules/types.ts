@@ -13,6 +13,9 @@ export class ToolError extends Error {
   constructor(
     readonly tool: string,
     message: string,
+    /** Upstream HTTP status / body when the tool reported one (quota detection). */
+    readonly status?: number,
+    readonly body?: unknown,
   ) {
     super(`${tool}: ${message}`);
     this.name = "ToolError";

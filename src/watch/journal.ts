@@ -9,7 +9,7 @@ import { createHash } from "node:crypto";
 export interface JournalRecord {
   t: string;
   sweepId: string;
-  kind: "sweep_start" | "tool_call" | "candidate" | "created" | "evidence_added" | "confirmed" | "expired" | "gap" | "skip" | "sweep_end" | `analyst_${string}`;
+  kind: "sweep_start" | "tool_call" | "candidate" | "created" | "evidence_added" | "confirmed" | "expired" | "gap" | "skip" | "sweep_end" | "budget_exhausted" | `analyst_${string}`;
   aoi?: string;
   rule?: string;
   tool?: string;

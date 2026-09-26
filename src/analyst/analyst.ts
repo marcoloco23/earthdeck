@@ -15,6 +15,7 @@ import type { Finding } from "../ledger/schema.js";
 import type { EventInput, Ledger } from "../ledger/store.js";
 import { uuidv7 } from "../util.js";
 import type { Journal } from "../watch/journal.js";
+import type { QuotaGovernor } from "../watch/quota.js";
 import { callJson, type JsonCallResult } from "./anthropic.js";
 import {
   canPublish,
@@ -45,6 +46,8 @@ export interface AnalystOptions {
   max?: number;
   dryRun?: boolean;
   log?: (line: string) => void;
+  /** Daily case count + USD spend cap (quota.json). Omitted = no daily limits. */
+  quota?: QuotaGovernor;
 }
 
 export interface AnalystReport {
@@ -103,8 +106,11 @@ export async function runAnalyst(o: AnalystOptions): Promise<AnalystReport> {
   const report: AnalystReport = { runId, dryRun, selected: 0, narrated: [], published: [], held: [], rejected: [], errors: [], calls: 0, costUsd: 0 };
   const j = (kind: string, rec: Record<string, unknown> = {}) => o.journal.append({ t: new Date().toISOString(), sweepId: runId, kind: `analyst_${kind}`, ...rec });
 
-  const work = select(o.ledger, o.max ?? 5);
+  const q = o.quota;
+  const limit = Math.min(o.max ?? 5, q ? q.analystCasesLeft() : Infinity);
+  const work = limit > 0 ? select(o.ledger, limit) : [];
   report.selected = work.length;
+  if (q && q.analystCasesLeft() === 0) log(`daily analyst case cap reached (${q.caps.analystCases}) — nothing to do until tomorrow (UTC)`);
   j("start", { narrator, reviewer, dryRun, selected: work.length });
 
   const call = async (purpose: "narrate" | "review", findingId: string, attempt: number, model: string, system: string, user: string, jsonSchema: Record<string, unknown>): Promise<JsonCallResult> => {
@@ -113,6 +119,7 @@ export async function runAnalyst(o: AnalystOptions): Promise<AnalystReport> {
       report.calls++;
       report.costUsd += r.costUsd ?? 0;
       j("call", { findingId, purpose, attempt, model: r.model, usage: r.usage, costUsd: r.costUsd, ms: r.ms, requestSha256: r.requestSha256, responseSha256: r.responseSha256 });
+      if (q) j("spend", { day: q.day, callUsd: r.costUsd, dayUsd: q.addAnalystUsd(r.costUsd ?? 0), limitUsd: q.caps.analystUsd });
       log(`    ↳ ${purpose}#${attempt} ${r.model} · ${r.usage.input_tokens} in / ${r.usage.output_tokens} out · ${r.costUsd == null ? "cost n/a" : `$${r.costUsd.toFixed(4)}`} · ${(r.ms / 1000).toFixed(1)}s`);
       return r;
     } catch (err) {
@@ -123,6 +130,12 @@ export async function runAnalyst(o: AnalystOptions): Promise<AnalystReport> {
   };
 
   for (const { finding: f, needs } of work) {
+    if (q?.analystBudgetSpent()) {
+      log(`daily analyst budget spent ($${q.analystUsd().toFixed(4)} ≥ $${q.caps.analystUsd}) — stopping until tomorrow (UTC)`);
+      j("budget_stop", { day: q.day, dayUsd: q.analystUsd(), limitUsd: q.caps.analystUsd });
+      break;
+    }
+    q?.chargeAnalystCase();
     log(`• ${f.title} [${f.findingId}] tier ${f.tier}${isControl(f) ? " CONTROL" : ""} — ${needs}`);
     const facts = JSON.stringify(dossier(f), null, 2);
     try {
