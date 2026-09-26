@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-26T20:25:00.543Z",
+  "generatedAt": "2026-09-26T21:51:14.558Z",
   "tool": "earthdeck discover",
   "lists": {
     "forest-hotspots": {
@@ -70,13 +70,13 @@
     "controls": 20
   },
   "requests": {
-    "total": 19,
+    "total": 104,
     "bySource": {
-      "gfw": 15,
       "eog-vnf": 1,
+      "nominatim": 100,
       "climatetrace": 3
     },
     "budget": 200
   },
-  "elapsedMs": 5434
+  "elapsedMs": 141584
 }

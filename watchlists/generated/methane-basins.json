@@ -5,7 +5,7 @@
   "aois": [
     {
       "id": "ch4-rus-ct-53059054",
-      "name": "Central Sub-basin - West Siberia, RUS — oil & gas CH₄",
+      "name": "Oil & gas basin: Central Sub-basin - West Siberia, Russia",
       "bbox": [
         74.12,
         62.16,
@@ -36,7 +36,7 @@
     },
     {
       "id": "ch4-irn-ct-53058858",
-      "name": "Zagros Foldbelt, IRN — oil & gas CH₄",
+      "name": "Oil & gas basin: Zagros Foldbelt, Iran",
       "bbox": [
         48.35,
         30.78,
@@ -67,7 +67,7 @@
     },
     {
       "id": "ch4-ven-ct-60952351",
-      "name": "Maturin, VEN — oil & gas CH₄",
+      "name": "Oil & gas basin: Maturin, Venezuela",
       "bbox": [
         -64.36,
         8.59,
@@ -98,7 +98,7 @@
     },
     {
       "id": "ch4-sau-ct-60952298",
-      "name": "Widyan - North Arabian Gulf, SAU — oil & gas CH₄",
+      "name": "Oil & gas basin: Widyan - North Arabian Gulf, Saudi Arabia",
       "bbox": [
         48.71,
         25.96,
@@ -129,7 +129,7 @@
     },
     {
       "id": "ch4-usa-ct-60952256",
-      "name": "Permian Spraberry Lower (TX), USA — oil & gas CH₄",
+      "name": "Oil & gas basin: Permian Spraberry Lower (TX), United States",
       "bbox": [
         -102.8,
         30.84,
@@ -160,7 +160,7 @@
     },
     {
       "id": "ch4-irq-ct-53058863",
-      "name": "Widyan - North Arabian Gulf, IRQ — oil & gas CH₄",
+      "name": "Oil & gas basin: Widyan - North Arabian Gulf, Iraq",
       "bbox": [
         46.7,
         30.34,
@@ -191,7 +191,7 @@
     },
     {
       "id": "ch4-irn-ct-53058854",
-      "name": "Rub al Khali, IRN — oil & gas CH₄",
+      "name": "Oil & gas basin: Rub al Khali, IRN",
       "bbox": [
         51.78,
         26.07,
@@ -222,7 +222,7 @@
     },
     {
       "id": "ch4-are-ct-60952344",
-      "name": "Rub al Khali, ARE — oil & gas CH₄",
+      "name": "Oil & gas basin: Rub al Khali, ARE",
       "bbox": [
         53.14,
         24.19,
@@ -253,7 +253,7 @@
     },
     {
       "id": "ch4-usa-ct-60952224",
-      "name": "Permian Bone Spring (NM), USA — oil & gas CH₄",
+      "name": "Oil & gas basin: Permian Bone Spring (NM), United States",
       "bbox": [
         -104.73,
         31.1,
@@ -284,7 +284,7 @@
     },
     {
       "id": "ch4-qat-ct-60952284",
-      "name": "Rub al Khali, QAT — oil & gas CH₄",
+      "name": "Oil & gas basin: Rub al Khali, QAT",
       "bbox": [
         51.63,
         25.62,
@@ -315,7 +315,7 @@
     },
     {
       "id": "ch4-nga-ct-53058963",
-      "name": "Niger Delta, NGA — oil & gas CH₄",
+      "name": "Oil & gas basin: Niger Delta, Nigeria",
       "bbox": [
         5.53,
         4.05,
@@ -346,7 +346,7 @@
     },
     {
       "id": "ch4-mex-ct-60952110",
-      "name": "Salinas - Sureste, MEX — oil & gas CH₄",
+      "name": "Oil & gas basin: Salinas - Sureste, Mexico",
       "bbox": [
         -93.72,
         17.92,
@@ -377,7 +377,7 @@
     },
     {
       "id": "ch4-can-ct-60951985",
-      "name": "West Canadian - Alberta, CAN — oil & gas CH₄",
+      "name": "Oil & gas basin: West Canadian - Alberta, Canada",
       "bbox": [
         -119.13,
         53.91,
@@ -408,7 +408,7 @@
     },
     {
       "id": "ch4-usa-ct-53058916",
-      "name": "Marcellus (PA), USA — oil & gas CH₄",
+      "name": "Oil & gas basin: Marcellus (PA), United States",
       "bbox": [
         -78.72,
         40.55,
@@ -439,7 +439,7 @@
     },
     {
       "id": "ch4-rus-ct-53059076",
-      "name": "Volga - Urals, RUS — oil & gas CH₄",
+      "name": "Oil & gas basin: Volga - Urals, Russia",
       "bbox": [
         51.49,
         53.98,
@@ -470,7 +470,7 @@
     },
     {
       "id": "ch4-dza-ct-53058453",
-      "name": "Illizi - Ghadames, DZA — oil & gas CH₄",
+      "name": "Oil & gas basin: Illizi - Ghadames, Algeria",
       "bbox": [
         7.47,
         29.63,
@@ -501,7 +501,7 @@
     },
     {
       "id": "ch4-arg-ct-60951941",
-      "name": "Neuquen, ARG — oil & gas CH₄",
+      "name": "Oil & gas basin: Neuquen, Argentina",
       "bbox": [
         -69.72,
         -38.91,
@@ -532,7 +532,7 @@
     },
     {
       "id": "ch4-usa-ct-53058733",
-      "name": "Eagle Ford (TX), USA — oil & gas CH₄",
+      "name": "Oil & gas basin: Eagle Ford (TX), United States",
       "bbox": [
         -99.36,
         27.78,
@@ -563,7 +563,7 @@
     },
     {
       "id": "ch4-kwt-ct-60952093",
-      "name": "Widyan - North Arabian Gulf, KWT — oil & gas CH₄",
+      "name": "Oil & gas basin: Widyan - North Arabian Gulf, Kuwait",
       "bbox": [
         47.46,
         28.21,
@@ -594,7 +594,7 @@
     },
     {
       "id": "ch4-can-ct-60951982",
-      "name": "West Canadian - Alberta, CAN — oil & gas CH₄",
+      "name": "Oil & gas basin: West Canadian - Alberta, Canada",
       "bbox": [
         -112.46,
         55.62,
@@ -625,7 +625,7 @@
     },
     {
       "id": "ch4-irq-ct-53058864",
-      "name": "Zagros Foldbelt, IRQ — oil & gas CH₄",
+      "name": "Oil & gas basin: Zagros Foldbelt, Iraq",
       "bbox": [
         44.15,
         34.21,
@@ -656,7 +656,7 @@
     },
     {
       "id": "ch4-usa-ct-60952068",
-      "name": "Haynesville-Bossier (LA), USA — oil & gas CH₄",
+      "name": "Oil & gas basin: Haynesville-Bossier (LA), United States",
       "bbox": [
         -94.56,
         31.21,
@@ -687,7 +687,7 @@
     },
     {
       "id": "ch4-usa-ct-53059201",
-      "name": "Utica (OH), USA — oil & gas CH₄",
+      "name": "Oil & gas basin: Utica (OH), United States",
       "bbox": [
         -81.98,
         39.06,
@@ -718,7 +718,7 @@
     },
     {
       "id": "ch4-uzb-ct-53059209",
-      "name": "Amu-Dar'ya, UZB — oil & gas CH₄",
+      "name": "Oil & gas basin: Amu-Dar'ya, Uzbekistan",
       "bbox": [
         64.51,
         38.49,
@@ -749,7 +749,7 @@
     },
     {
       "id": "ch4-usa-ct-53059245",
-      "name": "Williston (ND), USA — oil & gas CH₄",
+      "name": "Oil & gas basin: Williston (ND), United States",
       "bbox": [
         -103.71,
         46.99,
@@ -780,7 +780,7 @@
     },
     {
       "id": "ch4-usa-ct-53058448",
-      "name": "Alaska North Slope (AK), USA — oil & gas CH₄",
+      "name": "Oil & gas basin: Alaska North Slope (AK), United States",
       "bbox": [
         -149.78,
         69.3,
@@ -811,7 +811,7 @@
     },
     {
       "id": "ch4-chn-ct-60951995",
-      "name": "North China, CHN — oil & gas CH₄",
+      "name": "Oil & gas basin: North China, China",
       "bbox": [
         118.31,
         38.35,
@@ -842,7 +842,7 @@
     },
     {
       "id": "ch4-usa-ct-53058917",
-      "name": "Marcellus (WV), USA — oil & gas CH₄",
+      "name": "Oil & gas basin: Marcellus (WV), United States",
       "bbox": [
         -81.86,
         38.17,
@@ -873,7 +873,7 @@
     },
     {
       "id": "ch4-ven-ct-60952350",
-      "name": "Maracaibo, VEN — oil & gas CH₄",
+      "name": "Oil & gas basin: Maracaibo, Venezuela",
       "bbox": [
         -71.88,
         9.47,
@@ -904,7 +904,7 @@
     },
     {
       "id": "ch4-tkm-ct-53059168",
-      "name": "Amu-Dar'ya, TKM — oil & gas CH₄",
+      "name": "Oil & gas basin: Amu-Dar'ya, Turkmenistan",
       "bbox": [
         61.36,
         37.29,
@@ -935,7 +935,7 @@
     },
     {
       "id": "ch4-aze-ct-60951951",
-      "name": "South Caspian, AZE — oil & gas CH₄",
+      "name": "Oil & gas basin: South Caspian, AZE",
       "bbox": [
         49.27,
         39.64,
@@ -966,7 +966,7 @@
     },
     {
       "id": "ch4-usa-ct-60952069",
-      "name": "Haynesville-Bossier (TX), USA — oil & gas CH₄",
+      "name": "Oil & gas basin: Haynesville-Bossier (TX), United States",
       "bbox": [
         -95.42,
         31.09,
@@ -997,7 +997,7 @@
     },
     {
       "id": "ch4-usa-ct-60951901",
-      "name": "Anadarko - Hugoton (OK), USA — oil & gas CH₄",
+      "name": "Oil & gas basin: Anadarko - Hugoton (OK), United States",
       "bbox": [
         -99.06,
         35.21,
@@ -1028,7 +1028,7 @@
     },
     {
       "id": "ch4-cog-ct-60951998",
-      "name": "Lower Congo, COG — oil & gas CH₄",
+      "name": "Oil & gas basin: Lower Congo, COG",
       "bbox": [
         11.13,
         -5.34,
@@ -1059,7 +1059,7 @@
     },
     {
       "id": "ch4-kaz-ct-53058886",
-      "name": "Precaspian, KAZ — oil & gas CH₄",
+      "name": "Oil & gas basin: Precaspian, Kazakhstan",
       "bbox": [
         53.32,
         46.92,
@@ -1090,7 +1090,7 @@
     },
     {
       "id": "ch4-aus-ct-60951946",
-      "name": "Bowen - Surat, AUS — oil & gas CH₄",
+      "name": "Oil & gas basin: Bowen - Surat, Australia",
       "bbox": [
         148.91,
         -26.73,
@@ -1121,7 +1121,7 @@
     },
     {
       "id": "ch4-aus-ct-60951947",
-      "name": "North Carnarvon, AUS — oil & gas CH₄",
+      "name": "Oil & gas basin: North Carnarvon, Australia",
       "bbox": [
         114.73,
         -20.8,
@@ -1152,7 +1152,7 @@
     },
     {
       "id": "ch4-ecu-ct-60952022",
-      "name": "Oriente, ECU — oil & gas CH₄",
+      "name": "Oil & gas basin: Oriente, Ecuador",
       "bbox": [
         -77.16,
         -1.01,
@@ -1183,7 +1183,7 @@
     },
     {
       "id": "ch4-pak-ct-53059003",
-      "name": "Indus, PAK — oil & gas CH₄",
+      "name": "Oil & gas basin: Indus, Pakistan",
       "bbox": [
         68.3,
         26.24,
@@ -1214,7 +1214,7 @@
     },
     {
       "id": "ch4-usa-ct-53059080",
-      "name": "San Juan (NM), USA — oil & gas CH₄",
+      "name": "Oil & gas basin: San Juan (NM), United States",
       "bbox": [
         -108.91,
         36.18,

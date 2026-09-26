@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { watchChecks } from "../src/doctor.js";
 import { parseVnfKml } from "../src/clients/vnf.js";
+import { adminLabel, parseReverseGeocode, reverseGeocode, shortAdmin } from "../src/clients/geo.js";
 import type { BBox } from "../src/types.js";
 import { discover } from "../src/watch/discover.js";
 import { buildControls, pickIfl } from "../src/watch/discover/controls.js";
@@ -165,6 +166,10 @@ function replay() {
   return mockFetch((url) => {
     const u = new URL(url);
     if (u.hostname === "eogdata.mines.edu") return textResponse(VNF_KML);
+    if (u.hostname === "nominatim.openstreetmap.org") {
+      const key = `${Number(u.searchParams.get("lat")).toFixed(3)},${Number(u.searchParams.get("lon")).toFixed(3)}`;
+      return jsonResponse(FX.nominatim[key] ?? { error: "Unable to geocode" });
+    }
     if (u.hostname === "api.climatetrace.org") return jsonResponse(FX.climatetrace[u.searchParams.get("subsectors")!] ?? []);
     const m = /^\/dataset\/([^/]+)(?:\/([^/]+)\/query\/json)?$/.exec(u.pathname);
     if (!m) return textResponse("unexpected", { status: 404 });
@@ -190,14 +195,14 @@ function replay() {
 const readLists = (dir: string) =>
   Object.fromEntries(readdirSync(dir).filter((f) => f.endsWith(".json") && !f.startsWith("_")).sort().map((f) => [f, readFileSync(join(dir, f), "utf8")]));
 
-test("discover end to end (replayed): 19 requests, every list valid, deterministic, ids stable under --max-per-list, no CDSE", async (t) => {
+test("discover end to end (replayed): 19 data requests + 43 place lookups, every list valid, deterministic, ids stable under --max-per-list, no CDSE", async (t) => {
   const fm = replay();
   t.after(fm.restore);
   const a = tmp();
-  const s = await discover({ out: a, today: "2026-09-26", gfwKey: "KEY" });
-  assert.equal(s.requests.total, 19, JSON.stringify(s.requests));
-  assert.deepEqual(s.requests.bySource, { gfw: 15, "eog-vnf": 1, climatetrace: 3 });
-  assert.equal(fm.calls.length, 19);
+  const s = await discover({ out: a, today: "2026-09-26", gfwKey: "KEY", geocodeDelayMs: 0 });
+  assert.equal(s.requests.total, 62, JSON.stringify(s.requests));
+  assert.deepEqual(s.requests.bySource, { gfw: 15, "eog-vnf": 1, nominatim: 43, climatetrace: 3 });
+  assert.equal(fm.calls.length, 62);
   assert.ok(fm.calls.every((c) => !/copernicus|dataspace/.test(c.url)), "never calls CDSE");
   assert.ok(fm.calls.filter((c) => c.url.includes("globalforestwatch")).every((c) => c.headers["x-api-key"] === "KEY" && c.headers.origin === "localhost"));
   for (const l of Object.values(s.lists)) assert.equal(l.error, undefined, l.error);
@@ -213,16 +218,16 @@ test("discover end to end (replayed): 19 requests, every list valid, determinist
   assert.equal(aois.length, s.totals.aois);
   for (const x of aois) for (const r of x.rules) assert.ok(RULES.has(r.name));
   const summary = JSON.parse(readFileSync(join(a, "_summary.json"), "utf8"));
-  assert.equal(summary.requests.total, 19);
+  assert.equal(summary.requests.total, 62);
 
   // Determinism: a second run over the same data writes byte-identical lists.
   const b = tmp();
-  await discover({ out: b, today: "2026-09-26", gfwKey: "KEY" });
+  await discover({ out: b, today: "2026-09-26", gfwKey: "KEY", geocodeDelayMs: 0 });
   assert.deepEqual(readLists(b), readLists(a));
 
   // Stability: a smaller run keeps the same ids for what it keeps (ids come from dataset ids, not positions).
   const c = tmp();
-  const sc = await discover({ out: c, today: "2026-09-26", gfwKey: "KEY", maxPerList: 5 });
+  const sc = await discover({ out: c, today: "2026-09-26", gfwKey: "KEY", maxPerList: 5, geocodeDelayMs: 0 });
   assert.equal(sc.lists["forest-hotspots"]!.entities, 5);
   assert.equal(sc.lists["controls-generated"]!.aois, 5);
   const full = new Set(aois.map((x) => x.id));
@@ -236,10 +241,10 @@ test("discover: the request budget is enforced; a failing list is reported, the 
   const fm = replay();
   t.after(fm.restore);
   const dir = tmp();
-  const s = await discover({ out: dir, today: "2026-09-26", gfwKey: "KEY", budget: 13 });
-  assert.equal(s.requests.total, 13);
+  const s = await discover({ out: dir, today: "2026-09-26", gfwKey: "KEY", budget: 56, geocodeDelayMs: 0 }); // 13 data + 43 place lookups
+  assert.equal(s.requests.total, 56);
   assert.ok(s.lists["forest-hotspots"]!.error === undefined);
-  assert.match(s.lists["protected-fires"]!.error ?? "", /budget of 13 exhausted/);
+  assert.match(s.lists["protected-fires"]!.error ?? "", /budget of 56 exhausted/);
   assert.equal(loadWatchlists(dir).length, 3); // forest, flaring, methane
   const noKey = await discover({ out: tmp(), today: "2026-09-26", gfwKey: null, only: ["forest-hotspots"] });
   assert.match(noKey.lists["forest-hotspots"]!.error ?? "", /GFW_API_KEY/);
@@ -280,4 +285,64 @@ test("doctor: a line for the generated watchlists — fresh, stale, or invalid",
   assert.equal(bad.failed, true);
   assert.ok(bad.lines.some((l) => /^    ✗ Generated watchlists\s+invalid: /.test(l)));
   assert.ok(watchChecks({ ledgerDir: join(root, "ledger"), watchlistsPath: join(root, "none"), env: {} }).lines.some((l) => /^    · Generated watchlists\s+none at/.test(l)));
+});
+
+// ---------------------------------------------------------------- place names
+
+test("reverse geocode keeps admin levels only — a facility/operator name never reaches an AOI name", async (t) => {
+  // What Nominatim can answer for a point on an industrial site (operator name in name/industrial).
+  const body = {
+    name: "Acme Petroleum Gas Plant",
+    display_name: "Acme Petroleum Gas Plant, Road 12, Mousian, Dehloran County, Ilam Province, Iran",
+    address: { industrial: "Acme Petroleum Gas Plant", road: "Road 12", city: "Mousian", county: "Dehloran County", state: "Ilam Province", country: "Iran", country_code: "IR" },
+  };
+  assert.deepEqual(parseReverseGeocode(body), { county: "Dehloran County", state: "Ilam Province", country: "Iran", countryCode: "ir" });
+  assert.deepEqual(parseReverseGeocode({ error: "Unable to geocode" }), {});
+  const fm = mockFetch(() => jsonResponse(body));
+  t.after(fm.restore);
+  const p = await reverseGeocode(32.48912, 47.21234);
+  assert.equal(adminLabel(p), "Dehloran, Ilam (Iran)");
+  const u = new URL(fm.calls[0]!.url);
+  assert.equal(u.pathname, "/reverse");
+  assert.deepEqual([u.searchParams.get("lat"), u.searchParams.get("lon"), u.searchParams.get("zoom")], ["32.489", "47.212", "8"]);
+  assert.match(fm.calls[0]!.headers["user-agent"] ?? "", /earthdeck/);
+
+  // Labels: generic admin words dropped, compass-only names kept, non-Latin units skipped.
+  assert.equal(shortAdmin("Municipio Ezequiel Zamora"), "Ezequiel Zamora");
+  assert.equal(shortAdmin("Delta State"), "Delta");
+  assert.equal(shortAdmin("Eastern Province"), "Eastern Province");
+  assert.equal(adminLabel({ county: "Усть-Кутский район", state: "Irkutsk Oblast", country: "Russia" }), "Irkutsk (Russia)");
+  assert.equal(adminLabel({ country: "Qatar" }), "Qatar");
+  assert.equal(adminLabel({}), null);
+});
+
+test("discover names flare fields and basins after their place; cached in _places.json; a failed lookup falls back to coordinates", async (t) => {
+  const fm = replay();
+  t.after(fm.restore);
+  const dir = tmp();
+  await discover({ out: dir, today: "2026-09-26", gfwKey: "KEY", only: ["flaring-fields", "methane-basins"], geocodeDelayMs: 0 });
+  const [flares, basins] = ["flaring-fields.json", "methane-basins.json"].map((f) => JSON.parse(readFileSync(join(dir, f), "utf8")).aois as { id: string; name: string; notes: string }[]);
+  assert.match(flares![0]!.name, /^Flare field near Al-Zubair, Basra \(Iraq\) — \d+ registered sites$/);
+  assert.equal(flares![0]!.id, aoiId("flare", "IRQ", coordToken(flareFields(parseVnfKml(VNF_KML))[0]!.lead.lat, "n", "s"), coordToken(flareFields(parseVnfKml(VNF_KML))[0]!.lead.lon, "e", "w")), "ids still come from the lead VNF site, not the name");
+  assert.match(flares![0]!.notes, /Nominatim reverse at the BCM-weighted centroid 30\.505, 47\.325 \(admin levels only/);
+  assert.equal(basins![0]!.name, "Oil & gas basin: Central Sub-basin - West Siberia, Russia");
+  const cache = JSON.parse(readFileSync(join(dir, "_places.json"), "utf8"));
+  assert.equal(Object.keys(cache.places).length, 43);
+  assert.match(cache.note, /OpenStreetMap/);
+
+  // Second run in the same dir: every centroid is cached → no Nominatim request, same names.
+  const before = fm.calls.length;
+  const again = await discover({ out: dir, today: "2026-09-26", gfwKey: "KEY", only: ["flaring-fields", "methane-basins"], geocodeDelayMs: 0 });
+  assert.equal(again.requests.bySource.nominatim, undefined);
+  assert.ok(fm.calls.slice(before).every((c) => !c.url.includes("nominatim")));
+  assert.equal(JSON.parse(readFileSync(join(dir, "flaring-fields.json"), "utf8")).aois[0].name, flares![0]!.name);
+
+  // Nominatim down: names fall back to coordinates, the lists are still written.
+  fm.restore();
+  const down = mockFetch((url) => (url.includes("nominatim") ? textResponse("busy", { status: 503 }) : textResponse(VNF_KML)));
+  t.after(down.restore);
+  const d2 = tmp();
+  const s = await discover({ out: d2, today: "2026-09-26", gfwKey: "KEY", only: ["flaring-fields"], geocodeDelayMs: 0 });
+  assert.equal(s.lists["flaring-fields"]!.error, undefined);
+  assert.match(JSON.parse(readFileSync(join(d2, "flaring-fields.json"), "utf8")).aois[0].name, /^Flare field near 30\.\d+, 47\.\d+ \(IRQ\) — \d+ registered sites$/);
 });
