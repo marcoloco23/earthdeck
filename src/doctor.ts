@@ -199,6 +199,8 @@ export function watchChecks(o: WatchCheckOptions = {}): { lines: string[]; faile
     );
   }
 
+  line(env.ANTHROPIC_API_KEY ? "✓" : "·", "Analyst (narrate/review/publish)", env.ANTHROPIC_API_KEY ? "ANTHROPIC_API_KEY present" : "missing ANTHROPIC_API_KEY — `earthdeck analyst` can't run");
+
   if (!existsSync(wlPath)) {
     line("·", "Watchlists", `none at ./${wlPath} — \`earthdeck watch\` needs --watchlist`);
   } else {

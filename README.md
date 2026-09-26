@@ -162,6 +162,33 @@ and naming a party still needs tier ≥ 2 and two distinct human reviewers.
 `earthdeck doctor` has a **Watch** section (ledger verify, each rule's keys, watchlists,
 last sweep heartbeat).
 
+**Analyst (autonomous publishing)** — `src/analyst/`: `earthdeck analyst --once` takes
+confirmed findings (newest first, `--max` default 5) through three steps, each journaled
+(`analyst_*` in `<ledger>/watch/journal.jsonl`, with token usage and a cost estimate per call):
+
+1. **Narrate** (default `claude-opus-5`): the full finding — evidence with values, the
+   confirming signal, baseline ring, ENSO, nearby events, blind spots, AOI tags incl.
+   `control` — in; strict JSON out (`headline`, plain-language `narrative`, `keyNumbers`
+   citing evidence ids, `confidence`, `caveats`). A **faithfulness check** rejects any key
+   number that is not verbatim in its cited evidence, any other number not in the finding,
+   and anything that looks like a person's name — then retries once, quoting the violation.
+2. **Review** by a *different* model (default `claude-sonnet-5`): `publish | hold | reject`
+   plus checks. Deterministic overrides: control AOI ⇒ reject, an identifiable individual
+   ⇒ hold, `publish` contradicting its own checks ⇒ hold.
+3. **Append**: `narrated` → `reviewed` → on publish (tier ≤ 2, gates pass)
+   `status_changed confirmed → published` with `gates`; hold stays `confirmed` for a human;
+   reject → `false_positive`. Tier 3 is never auto-published.
+
+```bash
+ANTHROPIC_API_KEY=… earthdeck analyst --once              # narrate + review + publish
+earthdeck analyst --once --dry-run --max 2                # one narration call per finding, nothing appended
+earthdeck analyst --once --model-narrator claude-opus-5 --model-reviewer claude-sonnet-5
+```
+
+Rough cost: ~$0.10–0.25 per finding (Opus narration + Sonnet review; a faithfulness retry
+adds one narration). The API is called with native `fetch` (no SDK dependency);
+`ANTHROPIC_BASE_URL` overrides the endpoint.
+
 **The contract as JSON Schema** — [`schema/finding-event.v1.json`](schema/finding-event.v1.json)
 (JSON Schema 2020-12: the event, the in-toto Statement and the DSSE Envelope), generated
 from the zod schemas with `pnpm schema`; a test fails if it drifts. It covers each event's
