@@ -42,7 +42,8 @@ function fakeCall(script: Record<string, (args: Record<string, unknown>) => unkn
   return { call, calls };
 }
 
-const alerts = (n: number, ha: number) => ({ window: { from: "2026-06-28", to: "2026-09-26" }, alertCount: n, areaHa: ha, byConfidence: { high: n } });
+// Same shape the live forest_alerts tool returns (nested per-confidence objects).
+const alerts = (n: number, ha: number) => ({ window: { from: "2026-06-28", to: "2026-09-26" }, alertCount: n, areaHa: ha, byConfidence: { high: { alertCount: n, areaHa: ha }, highest: { alertCount: 0, areaHa: null } } });
 const compare = (delta: number, valid = 95) => ({ dateA: "2026-05-14", dateB: "2026-09-26", validPctA: valid, validPctB: valid, delta: { meanChange: delta }, provenanceA: { scenes: ["S2A_X"] }, provenanceB: { scenes: ["S2B_Y"] } });
 const fires = (n: number, frp = 40, date = "2026-09-26") => ({ count: n, source: "VIIRS_NOAA20_NRT", fires: Array.from({ length: n }, (_, i) => ({ lat: -7.85 + i * 0.001, lon: -52.95, frp, brightness: 340, confidence: "h", acqDate: date, acqTime: "1730", satellite: "N20" })) });
 

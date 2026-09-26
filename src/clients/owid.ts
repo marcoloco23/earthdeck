@@ -22,6 +22,8 @@ export interface Indicator {
   licence: string;
   /** Entity to fetch (World aggregate by default). */
   entity?: string;
+  /** Column short name to read; default = first column after `year` (the chart's headline). */
+  column?: string;
 }
 
 /** The registry. Adding an indicator is one line — but check its upstream licence first. */
@@ -36,39 +38,60 @@ export const INDICATORS: readonly Indicator[] = [
   { slug: "co-emissions-per-capita", label: "CO₂ emissions per person", unit: "t/yr", betterWhen: "down", upstream: "Global Carbon Budget", licence: "CC BY 4.0" },
   { slug: "forest-area-km", label: "Forest area", unit: "km²", betterWhen: "up", upstream: "FAO FRA", licence: "CC BY 4.0" },
   { slug: "terrestrial-protected-areas", label: "Protected land", unit: "% of land area", betterWhen: "up", upstream: "UNEP-WCMC via World Bank", licence: "CC BY 4.0" },
-  { slug: "number-of-deaths-from-natural-disasters", label: "Deaths from natural disasters", unit: "people/yr", betterWhen: "down", upstream: "EM-DAT (CRED)", licence: "EM-DAT terms — non-commercial; attribute" },
+  // Multi-column chart: per-disaster-type columns come first, the total is last.
+  { slug: "number-of-deaths-from-natural-disasters", label: "Deaths from natural disasters", unit: "people/yr", betterWhen: "down", upstream: "EM-DAT (CRED)", licence: "EM-DAT terms — non-commercial; attribute", column: "total_dead_all_disasters_yearly" },
 ];
 
 export function indicator(slug: string): Indicator | undefined {
   return INDICATORS.find((i) => i.slug === slug);
 }
 
-/** OWID grapher CSV URL for one chart, filtered to one entity. */
-export function owidUrl(ind: Indicator): string {
-  const entity = ind.entity ?? "OWID_WRL";
-  return `${OWID_BASE}/${ind.slug}.csv?v=1&csvType=filtered&useColumnShortNames=true&country=${encodeURIComponent(entity)}`;
+/**
+ * OWID grapher CSV URL for one chart. `filtered` asks for one entity; live-verified
+ * 2026-09-26: some charts silently ignore `country=` and return every entity (and others
+ * only have the World row in the `full` CSV), so the parser filters by entity itself and
+ * `fetchIndicator` falls back to `full` when the filtered CSV lacks the entity.
+ */
+export function owidUrl(ind: Indicator, csvType: "filtered" | "full" = "filtered"): string {
+  const base = `${OWID_BASE}/${ind.slug}.csv?v=1&csvType=${csvType}&useColumnShortNames=true`;
+  return csvType === "filtered" ? `${base}&country=${encodeURIComponent(ind.entity ?? "OWID_WRL")}` : base;
+}
+
+export class OwidEntityMissing extends OverviewError {
+  constructor(entity: string) {
+    super(`OWID CSV: no rows for entity ${entity}`);
+  }
 }
 
 /**
- * Parse a grapher CSV (`Entity,Code,Year,<value>[,…]`) into annual points. Takes the first
- * numeric column after Year — grapher charts with several columns put the headline first.
+ * Parse a grapher CSV (`entity,code,year,<value>[,…]`) into annual points for one entity
+ * (matched on the `code` column). Reads `column` if given, else the first column after
+ * `year` — grapher charts with several columns put the headline first.
  */
-export function parseOwidCsv(text: string): SeriesPoint[] {
+export function parseOwidCsv(text: string, opts: { entity?: string; column?: string } = {}): SeriesPoint[] {
+  const entity = opts.entity ?? "OWID_WRL";
   const lines = text.split(/\r?\n/).filter((l) => l.trim() !== "");
   if (lines.length < 2) throw new OverviewError("OWID CSV: no data rows");
-  const header = splitCsv(lines[0]!);
-  const yearIdx = header.findIndex((h) => h.toLowerCase() === "year");
+  const header = splitCsv(lines[0]!).map((h) => h.trim());
+  const lower = header.map((h) => h.toLowerCase());
+  const yearIdx = lower.indexOf("year");
+  const codeIdx = lower.indexOf("code");
   if (yearIdx < 0 || header.length <= yearIdx + 1) throw new OverviewError("OWID CSV: unexpected header — format changed?");
-  const valIdx = yearIdx + 1;
+  const valIdx = opts.column ? header.indexOf(opts.column) : yearIdx + 1;
+  if (valIdx < 0) throw new OverviewError(`OWID CSV: column ${opts.column} not found — format changed?`);
   const out: SeriesPoint[] = [];
+  let sawEntity = false;
   for (const line of lines.slice(1)) {
     const cols = splitCsv(line);
+    if (codeIdx >= 0 && cols[codeIdx] !== entity) continue;
+    sawEntity = true;
     const y = cols[yearIdx];
     const v = cols[valIdx];
     if (!y || !/^-?\d{1,4}$/.test(y)) continue;
     const num = v === undefined || v === "" ? null : Number(v);
     out.push({ t: y.padStart(4, "0"), v: num !== null && Number.isFinite(num) ? num : null });
   }
+  if (!sawEntity) throw new OwidEntityMissing(entity);
   if (out.length === 0) throw new OverviewError("OWID CSV: no year rows parsed");
   return out.sort((a, b) => (a.t < b.t ? -1 : 1));
 }
@@ -137,10 +160,20 @@ export function assess(points: SeriesPoint[], betterWhen: "up" | "down"): Assess
 }
 
 export async function fetchIndicator(ind: Indicator): Promise<SeriesPoint[]> {
-  const res = await fetch(owidUrl(ind), { headers: { "user-agent": USER_AGENT, accept: "text/csv" } });
+  const opts = { entity: ind.entity, column: ind.column };
+  try {
+    return parseOwidCsv(await getCsv(ind, "filtered"), opts);
+  } catch (err) {
+    if (!(err instanceof OwidEntityMissing)) throw err;
+    return parseOwidCsv(await getCsv(ind, "full"), opts); // the entity filter was ignored or unsupported
+  }
+}
+
+async function getCsv(ind: Indicator, csvType: "filtered" | "full"): Promise<string> {
+  const res = await fetch(owidUrl(ind, csvType), { headers: { "user-agent": USER_AGENT, accept: "text/csv" }, redirect: "follow" });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new OverviewError(`OWID ${ind.slug} request failed (${res.status})`, res.status, body.slice(0, 300));
   }
-  return parseOwidCsv(await res.text());
+  return res.text();
 }

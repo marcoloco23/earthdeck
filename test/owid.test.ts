@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { assess, INDICATORS, owidUrl, parseOwidCsv, indicator } from "../src/clients/owid.js";
+import { assess, INDICATORS, owidUrl, OwidEntityMissing, parseOwidCsv, indicator } from "../src/clients/owid.js";
 import { pulseRow } from "../src/tools/worldpulse.js";
 import { mockFetch, textResponse } from "./helpers.js";
 
@@ -25,12 +25,40 @@ test("owid: url shape and CSV parsing", () => {
   assert.equal(pts[0]!.t, "1996");
   assert.equal(pts[29]!.t, "2025");
   // Quoted entity names and blank values are handled.
-  const quoted = parseOwidCsv('Entity,Code,Year,x\n"Korea, Rep.",KOR,2000,\n"Korea, Rep.",KOR,2001,3.5\n');
+  const quoted = parseOwidCsv('Entity,Code,Year,x\n"Korea, Rep.",KOR,2000,\n"Korea, Rep.",KOR,2001,3.5\n', { entity: "KOR" });
   assert.deepEqual(quoted, [
     { t: "2000", v: null },
     { t: "2001", v: 3.5 },
   ]);
   assert.throws(() => parseOwidCsv("nope"), /no data rows/);
+});
+
+// Live-verified shapes (2026-09-26): some charts ignore `country=` and return every
+// entity; the disaster-deaths chart puts per-type columns before the total.
+test("owid: rows are filtered to the entity; column override; entity-missing is a typed error", () => {
+  const multi = "entity,code,year,v\nZambia,ZMB,2025,71.6\nWorld,OWID_WRL,2024,9.1\nWorld,OWID_WRL,2025,8.9\nZimbabwe,ZWE,2025,50\n";
+  assert.deepEqual(parseOwidCsv(multi), [
+    { t: "2024", v: 9.1 },
+    { t: "2025", v: 8.9 },
+  ]);
+  assert.throws(() => parseOwidCsv("entity,code,year,v\nZambia,ZMB,2025,71.6\n"), OwidEntityMissing);
+  const deaths = "entity,code,year,total_dead_drought_yearly,total_dead_all_disasters_yearly\nWorld,OWID_WRL,2025,89,16373\n";
+  assert.deepEqual(parseOwidCsv(deaths, { column: "total_dead_all_disasters_yearly" }), [{ t: "2025", v: 16373 }]);
+  assert.throws(() => parseOwidCsv(deaths, { column: "nope" }), /column nope not found/);
+  assert.equal(indicator("number-of-deaths-from-natural-disasters")!.column, "total_dead_all_disasters_yearly");
+  assert.equal(owidUrl(indicator("forest-area-km")!, "full"), "https://ourworldindata.org/grapher/forest-area-km.csv?v=1&csvType=full&useColumnShortNames=true");
+});
+
+test("owid: fetchIndicator falls back to the full CSV when the filtered one lacks the entity", async (t) => {
+  const filtered = "entity,code,year,v\nZambia,ZMB,2025,71.6\n";
+  const full = "entity,code,year,v\nZambia,ZMB,2025,71.6\nWorld,OWID_WRL,2025,8.9\n";
+  const fm = mockFetch((url) => textResponse(url.includes("csvType=full") ? full : filtered));
+  t.after(fm.restore);
+  const { fetchIndicator } = await import("../src/clients/owid.js");
+  assert.deepEqual(await fetchIndicator(indicator("forest-area-km")!), [{ t: "2025", v: 8.9 }]);
+  assert.equal(fm.calls.length, 2);
+  assert.ok(fm.calls[0]!.url.includes("csvType=filtered"));
+  assert.ok(fm.calls[1]!.url.includes("csvType=full"));
 });
 
 test("owid: direction honours betterWhen; pace detects a slowing decline", () => {

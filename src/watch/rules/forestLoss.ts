@@ -15,8 +15,22 @@ interface AlertsResult {
   window: { from: string; to: string };
   alertCount: number;
   areaHa: number;
-  byConfidence?: Record<string, number>;
+  /** forest_alerts returns `{ high: { alertCount, areaHa }, highest: … }` (live-verified 2026-09-26). */
+  byConfidence?: Record<string, { alertCount: number; areaHa: number | null } | number>;
   note?: string;
+}
+
+/** Evidence `values` must be flat numbers — `{ high: { alertCount, areaHa } }` → `{ high_alerts, high_ha }`. */
+function flattenConfidence(bc: AlertsResult["byConfidence"]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [conf, v] of Object.entries(bc ?? {})) {
+    if (typeof v === "number") out[`${conf}_alerts`] = v;
+    else {
+      out[`${conf}_alerts`] = v.alertCount;
+      if (typeof v.areaHa === "number") out[`${conf}_ha`] = v.areaHa;
+    }
+  }
+  return out;
 }
 
 interface CompareResult {
@@ -62,7 +76,7 @@ export const forestLoss = defineRule({
         href: "https://data-api.globalforestwatch.org/dataset/gfw_integrated_alerts",
         method: { name: "forest_alerts", version: "1.0", params: args },
         summary: `${r.alertCount} alerts (≥ ${String(p.minConfidence)} confidence), ${r.areaHa} ha, ${r.window.from}…${r.window.to}.${r.note ? ` ${r.note}` : ""}`,
-        values: { alerts: r.alertCount, ha: r.areaHa, ...(r.byConfidence ?? {}) },
+        values: { alerts: r.alertCount, ha: r.areaHa, ...flattenConfidence(r.byConfidence) },
       },
     ];
 
