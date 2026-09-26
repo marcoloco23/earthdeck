@@ -94,6 +94,28 @@ you how well-documented and conservation-relevant a place is, not how healthy it
 result carries the full `method` block with its blind spots. For global *trends*, use
 `world_pulse` (Living Planet Index −73 % since 1970; Red List Index falling).
 
+### Valuing living nature
+
+| Tool | What it does | Source |
+| --- | --- | --- |
+| `natural_value` | What a bbox/place's living ecosystems are worth per year **alive** (low/mid/high, 2020 USD), over a horizon (undiscounted + NPV, default 100 yr @ 2 %), by biome and by service, from its measured land-cover mix; plus reference values for a great whale, a forest elephant and a tree | Costanza et al. 2014 / de Groot et al. 2012 unit values · CLMS 10 m land cover 2020 via CDSE (optional; else a stated assumption) |
+
+The financial system prices nature once it is dead — timber, gold, pasture. `natural_value`
+puts a number on the work it does while it is alive: regulating climate and water, holding
+soil, feeding people, sheltering species. Read the number plainly:
+
+- **Order of magnitude, not a price.** It is *benefit transfer*: global per-biome average
+  values (USD/ha/yr) applied to this place without local calibration. The true local value
+  can be several times higher or lower; the band says so.
+- **Shown so that "alive" has a number next to "cleared"** — so a forest-loss finding can say
+  what the lost hectares were doing, and a mine can be weighed against the people downstream.
+  It is not a price tag for sale, and nobody will pay it for the land.
+- **A floor for one kind of value.** Sacred, relational and intrinsic values (IPBES 2022) and
+  who actually benefits vs. who pays are not in the dollar column; every result lists these
+  blind spots. Forest-loss findings in the ledger carry the same figure as `living_value_*`
+  evidence values and a context note. Research and every number's source:
+  [`docs/research/2026-09-26_valuing-living-nature.md`](docs/research/2026-09-26_valuing-living-nature.md).
+
 The Earth is one interconnected system — and these tools are built to be cross-referenced:
 ENSO ↔ fires, floods and SST anomalies; river discharge ↔ SAR flood mapping; climate trends
 ↔ what the imagery shows on the ground.
@@ -118,12 +140,15 @@ is a ledger anyone can verify:
   JSON), in an **RFC 6962 Merkle log** with the C2SP `tlog-tiles` static layout and
   Ed25519 **signed checkpoints**. `earthdeck ledger verify` re-derives everything and
   catches edits, deletions, reordering and forged entries. Zero new dependencies.
-- **The trust contract is code** (`src/ledger/schema.ts`): no finding without evidence; a
-  candidate is *confirmed* only by an **independent second signal** (never an LLM judge);
-  tiers of human review; **two distinct reviewers to name a party**; a **72 h private
-  notice / 30-day public** right-of-reply clock; retractions and false positives are kept
-  forever as our published error rate; subjects are assets, places and institutions —
-  never people.
+- **The trust contract is code** (`src/ledger/schema.ts`; plain language: [TRUST.md](TRUST.md)):
+  no finding without evidence; a candidate is *confirmed* only by an **independent second
+  signal** (never an LLM judge); **publishing is autonomous and verified afterwards**
+  (policy `2026-09-26-autonomous`): a narration plus a *publish* verdict from a **different
+  identity** than the narrator, tier ≤ 2 (tier 3 needs a human), with the gates recorded
+  on the publish event and re-checked by the ledger; **two distinct reviewers and a 72 h
+  private notice to name a party**; a 30-day public right-of-reply clock; retractions and
+  false positives are kept forever as our published error rate; subjects are assets,
+  places and institutions — never people.
 - **`world_pulse`** (tool #27, zero-key): civilization's vital signs from Our World in
   Data, each with an honest *improving / worsening / flat* direction and pace — good news
   and bad, not a news feed.
@@ -156,11 +181,40 @@ own false-positive rate. Needs `GFW_API_KEY` + CDSE creds (forest) and `FIRMS_MA
 
 **Triage from Claude** — `ledger_list`, `ledger_get`, `ledger_verify` (read) and
 `ledger_advance`, `ledger_narrate`, `ledger_review`, `ledger_propose_attribution` (append)
-expose the ledger over MCP. Every write goes through the trust contract; these tools
-**never publish** — any move into a public status is refused (publishing is a human act),
-and naming a party still needs tier ≥ 2 and two distinct human reviewers.
+expose the ledger over MCP. Every write goes through the trust contract, which alone
+decides: `ledger_advance` publishes when the gates hold (it computes `gates` via
+`publishGates` if the model omits them) and retracts with a reason; `ledger_review` records
+a `publish | hold | reject` verdict; naming a party still needs tier ≥ 2, two distinct
+reviewer identities and the private-notice clock.
 `earthdeck doctor` has a **Watch** section (ledger verify, each rule's keys, watchlists,
 last sweep heartbeat).
+
+**Analyst (autonomous publishing)** — `src/analyst/`: `earthdeck analyst --once` takes
+confirmed findings (newest first, `--max` default 5) through three steps, each journaled
+(`analyst_*` in `<ledger>/watch/journal.jsonl`, with token usage and a cost estimate per call):
+
+1. **Narrate** (default `claude-opus-5`): the full finding — evidence with values, the
+   confirming signal, baseline ring, ENSO, nearby events, blind spots, AOI tags incl.
+   `control` — in; strict JSON out (`headline`, plain-language `narrative`, `keyNumbers`
+   citing evidence ids, `confidence`, `caveats`). A **faithfulness check** rejects any key
+   number that is not verbatim in its cited evidence, any other number not in the finding,
+   and anything that looks like a person's name — then retries once, quoting the violation.
+2. **Review** by a *different* model (default `claude-sonnet-5`): `publish | hold | reject`
+   plus checks. Deterministic overrides: control AOI ⇒ reject, an identifiable individual
+   ⇒ hold, `publish` contradicting its own checks ⇒ hold.
+3. **Append**: `narrated` → `reviewed` → on publish (tier ≤ 2, gates pass)
+   `status_changed confirmed → published` with `gates`; hold stays `confirmed` for a human;
+   reject → `false_positive`. Tier 3 is never auto-published.
+
+```bash
+ANTHROPIC_API_KEY=… earthdeck analyst --once              # narrate + review + publish
+earthdeck analyst --once --dry-run --max 2                # one narration call per finding, nothing appended
+earthdeck analyst --once --model-narrator claude-opus-5 --model-reviewer claude-sonnet-5
+```
+
+Rough cost: ~$0.10–0.25 per finding (Opus narration + Sonnet review; a faithfulness retry
+adds one narration). The API is called with native `fetch` (no SDK dependency);
+`ANTHROPIC_BASE_URL` overrides the endpoint.
 
 **The contract as JSON Schema** — [`schema/finding-event.v1.json`](schema/finding-event.v1.json)
 (JSON Schema 2020-12: the event, the in-toto Statement and the DSSE Envelope), generated
@@ -171,6 +225,15 @@ Env: `EARTHDECK_LEDGER_DIR` (default `data/ledger`), `EARTHDECK_LEDGER_KEY` (bas
 Ed25519 seed; otherwise `ledger.key` is generated — **never commit it**; `ledger.pub` is
 what you publish). Next: attribution + methane tools (M3), a scheduled public site with
 Rekor/OpenTimestamps witnessing (M4), TRUST.md (M5).
+
+## Hosting
+
+Earth Watch runs unattended on AWS from one CloudFormation stack: EventBridge Scheduler
+fires staggered sweeps every 6 h into a Lambda that pulls the ledger from S3, runs
+`earthdeck watch --once`, and pushes it back only after `ledger verify` passes; the static
+export is served by CloudFront. Deploy with `scripts/deploy.sh` — see
+[infra/README.md](infra/README.md) for the architecture, first-deploy walkthrough, costs
+(low single-digit USD/month), key rotation and tear-down.
 
 ## Setup details
 
@@ -201,7 +264,7 @@ behave identically without it).
 | Key | Unlocks | How to get it |
 | --- | --- | --- |
 | `FIRMS_MAP_KEY` | `fires_in` (live wildfire detections), `flaring` | Enter your email at [firms.modaps.eosdis.nasa.gov/api/map_key](https://firms.modaps.eosdis.nasa.gov/api/map_key/) — emailed instantly |
-| `CDSE_CLIENT_ID` + `CDSE_CLIENT_SECRET` | `eo_render`, `eo_index`, `eo_search`, `eo_compare`, `sar_render`, `sar_water`, `sar_flood`, `methane_plumes` (10 m Sentinel imagery + radar, Sentinel-5P CH₄) | Free account at [dataspace.copernicus.eu](https://dataspace.copernicus.eu/) → User Settings → **OAuth clients** → Create (copy the secret immediately — it's shown once) |
+| `CDSE_CLIENT_ID` + `CDSE_CLIENT_SECRET` | `eo_render`, `eo_index`, `eo_search`, `eo_compare`, `sar_render`, `sar_water`, `sar_flood`, `methane_plumes`, `natural_value` land-cover mix (optional) (10 m Sentinel imagery + radar, Sentinel-5P CH₄) | Free account at [dataspace.copernicus.eu](https://dataspace.copernicus.eu/) → User Settings → **OAuth clients** → Create (copy the secret immediately — it's shown once) |
 | `GFW_API_KEY` | `forest_alerts` (integrated deforestation alerts) | Free [GFW account](https://www.globalforestwatch.org/), then mint a key per the [API-key guide](https://www.globalforestwatch.org/help/developers/guides/create-and-use-an-api-key/) |
 
 Pass them where your MCP client expects env vars, e.g.:
@@ -295,6 +358,7 @@ Tests mock the network, so the whole suite runs with zero credentials — CI
   [Open Tree of Life](https://tree.opentreeoflife.org/) taxonomy (CC0).
 - NOAA Coral Reef Watch CoralTemp v3.1 5 km products via CoastWatch / PacIOOS ERDDAP (free; credit NOAA CRW).
 - Our World in Data (CC BY 4.0) for `world_pulse`; upstream producers and licences are listed per indicator.
+- `natural_value`: CLMS Global Land Cover 2020, 10 m (© European Union, Copernicus Land Monitoring Service; DOI 10.2909/602507b2-96c7-47bb-b79d-7ba25e97d0a9; free and open, attribute and state modifications); ecosystem-service unit values from Costanza et al. (2014) and de Groot et al. (2012), organism values from Chami et al. (IMF) — cited per entry in the result.
 - Basemap & geocoding: NASA Blue Marble; OpenStreetMap Nominatim.
 - Attribution: protected areas © OpenStreetMap contributors (ODbL) via Overpass; LandMark
   Indigenous & community lands (CC BY-SA 4.0) via the GFW Data API; emissions from

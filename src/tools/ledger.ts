@@ -1,8 +1,9 @@
-// `ledger_*` — Claude's hands on the findings ledger: read, propose, advance. Never publish.
+// `ledger_*` — Claude's hands on the findings ledger: read, narrate, review, advance, publish.
 // Every write goes through `Ledger.append`, so the trust contract (`checkAppend` in
-// src/ledger/schema.ts) decides; its error messages are returned verbatim. On top of that,
-// these tools refuse any move INTO a public status — publishing is a human act, done
-// outside the MCP surface.
+// src/ledger/schema.ts, policy PUBLISH_POLICY_VERSION) decides; its error messages are
+// returned verbatim. Publishing is an AI act that runs autonomously and is verified
+// afterwards: the gates (narration + a publish verdict by a different identity, tier ≤ 2,
+// private notice before naming a party) are the ledger's, not this file's. See TRUST.md.
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createHash } from "node:crypto";
@@ -12,7 +13,17 @@ import { z } from "zod";
 import { ledgerDir } from "../config.js";
 import { pushFindingCard } from "../dashboard/push.js";
 import { OverviewError } from "../errors.js";
-import { PUBLIC_STATUSES, STATUSES, TRANSITIONS, type Finding, type Status } from "../ledger/schema.js";
+import {
+  gates as gatesSchema,
+  NOTICE_PRIVATE_HOURS,
+  PUBLIC_STATUSES,
+  PUBLISH_POLICY_VERSION,
+  publishGates,
+  STATUSES,
+  TRANSITIONS,
+  type Finding,
+  type Status,
+} from "../ledger/schema.js";
 import { Ledger, type EventInput } from "../ledger/store.js";
 import { safe } from "../result.js";
 
@@ -21,14 +32,14 @@ const writerActor = z
   .string()
   .regex(/^(model|reviewer):\S.*$/, "actor must be model:<id> or reviewer:<handle>")
   .describe("Who is acting: `model:<id>` (you) or `reviewer:<handle>` (a named human, only on their explicit instruction)");
-const reviewerHandle = z.string().regex(/^reviewer:\S.*$/, "must be reviewer:<handle>");
+const reviewerIdentity = z.string().regex(/^(reviewer|model):\S.*$/, "must be reviewer:<handle> or model:<id>");
 const registryRef = z.object({ name: z.string().min(1), url: z.string().url(), id: z.string().min(1) });
 const MAX_NARRATION_CHARS = 20_000; // mirrors the `narrated` event's text limit in schema.ts
 const sha256Hex = z.string().regex(/^[0-9a-f]{64}$/);
 
-/** Statuses this tool surface may move a finding into: legal, and not public. */
+/** Statuses ledger_advance may request from here: the legal moves, plus retraction (always, with a reason). */
 export function advanceableFrom(status: Status): Status[] {
-  return TRANSITIONS[status].filter((s) => !PUBLIC_STATUSES.includes(s));
+  return status === "retracted" ? [] : [...TRANSITIONS[status], "retracted"];
 }
 
 export function compactFinding(f: Finding) {
@@ -156,7 +167,7 @@ export function registerLedgerTools(server: McpServer): void {
         return {
           finding: f,
           events: l.eventsOf(id).map((ev) => ({ index: l.eventIndex(ev.eventId), ...ev })),
-          next: { legal: TRANSITIONS[f.status], viaLedgerAdvance: advanceableFrom(f.status), publicStatusesNeedAHuman: PUBLIC_STATUSES },
+          next: { legal: TRANSITIONS[f.status], viaLedgerAdvance: advanceableFrom(f.status), publish: publishGates(f) },
           dashboard: pushed ? "card pushed" : "dashboard not running",
         };
       }),
@@ -197,27 +208,39 @@ export function registerLedgerTools(server: McpServer): void {
   server.registerTool(
     "ledger_advance",
     {
-      title: "Ledger — advance a finding's status",
+      title: "Ledger — advance, publish or retract a finding",
       description:
-        "Append a status_changed event (with a reason) to a finding. Only legal moves are accepted " +
-        "(e.g. candidate → expired | false_positive). NEVER publishes: any move into a public " +
-        `status (${PUBLIC_STATUSES.join(", ")}) is refused — publication is a human act outside this tool. ` +
-        "Confirmation happens only via the watch kernel's independent second signal, not here.",
+        "Append a status_changed event (with a reason) to a finding, or a retracted event when " +
+        "to = retracted (always allowed, with a reason). Only legal moves are accepted. Publishing " +
+        `(confirmed → published) is autonomous under policy ${PUBLISH_POLICY_VERSION}: the ledger ` +
+        "requires an independent second signal, a narration, and after it a review with verdict " +
+        '"publish" by a DIFFERENT identity than the narrator (another model:<id> or a reviewer:); ' +
+        "tier ≤ 2 only — tier 3 needs a human reviewer: actor. Naming a party additionally needs two " +
+        `distinct attribution reviewers and a private notice to the party ≥ ${NOTICE_PRIVATE_HOURS} h before ` +
+        "publishing (or a recorded unreachable notice). A model:'s publish carries `gates` (who " +
+        "narrated/reviewed, notice hours, policy); omit them and they are computed from the ledger " +
+        "(ledger_get shows next.publish). Moves out of a public status need a reason. Confirmation " +
+        "happens only via the watch kernel's independent second signal, not here.",
       inputSchema: {
         findingId,
-        to: z.enum(STATUSES).describe("Target status"),
+        to: z.enum(STATUSES).describe("Target status (retracted appends a retraction)"),
         reason: z.string().min(1).max(2000).describe("Why — recorded in the ledger forever"),
         actor: writerActor,
+        gates: gatesSchema.optional().describe("Publish only: the gates passed; computed from the ledger when omitted"),
       },
     },
-    async ({ findingId: id, to, reason, actor }) =>
+    async ({ findingId: id, to, reason, actor, gates }) =>
       safe(async () => {
-        if (PUBLIC_STATUSES.includes(to)) {
-          throw new OverviewError(
-            `refused: "${to}" is a public status. Publishing (or moving a public finding) is a human act — ledger_advance never does it.`,
-          );
-        }
-        return write(id, (f) => ({ kind: "status_changed", findingId: id, actor, from: f.status, to, reason }));
+        if (to === "retracted") return write(id, () => ({ kind: "retracted", findingId: id, actor, reason }));
+        return write(id, (f) => {
+          let g = gates;
+          if (to === "published" && !g && actor.startsWith("model:")) {
+            const check = publishGates(f);
+            if (!check.gates) throw new OverviewError(`cannot publish: ${check.missing.join("; ")}`);
+            g = check.gates;
+          }
+          return { kind: "status_changed", findingId: id, actor, from: f.status, to, reason, ...(g ? { gates: g } : {}) };
+        });
       }),
   );
 
@@ -261,24 +284,34 @@ export function registerLedgerTools(server: McpServer): void {
   server.registerTool(
     "ledger_review",
     {
-      title: "Ledger — record a human review",
+      title: "Ledger — record a review",
       description:
-        "Record a named human reviewer's approve/reject decision on a finding (a reviewed event). " +
-        "Call only on that reviewer's explicit instruction — you are recording their judgement, not " +
-        "making one. The ledger refuses reviews by the actor that opened the finding. Approvals " +
-        "count toward the publication gate (tier ≥ 1: one; tier ≥ 2: two distinct), but this tool " +
-        "never publishes.",
+        "Record a review of a finding (a reviewed event) with a publication verdict: publish | hold | " +
+        "reject. The reviewer is a model:<id> (an independent second model, not the one that " +
+        "narrated) or a reviewer:<handle> (a named human, only on their explicit instruction). A " +
+        '"publish" verdict by an identity other than the narrator, after the latest narration, is ' +
+        "what the autonomous publication gate needs; hold/reject as the latest review blocks it. The " +
+        "ledger refuses reviews by the actor that opened the finding. Never publishes by itself.",
       inputSchema: {
         findingId,
-        reviewer: reviewerHandle.describe("reviewer:<handle> of the human who decided"),
-        decision: z.enum(["approve", "reject"]),
+        reviewer: reviewerIdentity.describe("model:<id> or reviewer:<handle> of whoever decided"),
+        verdict: z.enum(["publish", "hold", "reject"]),
+        decision: z.enum(["approve", "reject"]).optional().describe("Default: approve for publish, reject otherwise"),
         tier: z.number().int().min(0).max(3).optional().describe("Tier the decision covers (default: the finding's tier)"),
         note: z.string().max(2000).optional(),
       },
     },
-    async ({ findingId: id, reviewer, decision, tier, note }) =>
+    async ({ findingId: id, reviewer, verdict, decision, tier, note }) =>
       safe(async () => {
-        return write(id, (f) => ({ kind: "reviewed", findingId: id, actor: reviewer, decision, tier: tier ?? f.tier, ...(note ? { note } : {}) }));
+        return write(id, (f) => ({
+          kind: "reviewed",
+          findingId: id,
+          actor: reviewer,
+          decision: decision ?? (verdict === "publish" ? "approve" : "reject"),
+          verdict,
+          tier: tier ?? f.tier,
+          ...(note ? { note } : {}),
+        }));
       }),
   );
 
@@ -290,8 +323,8 @@ export function registerLedgerTools(server: McpServer): void {
         "Append an attributed event: what the finding is about (subject: an asset, place or " +
         "institution — never a natural person) and, optionally, a responsible party, which must " +
         "come from a cited registry (Climate TRACE / GEM ownership etc.). Naming a party requires " +
-        "tier ≥ 2 and two distinct human reviewers (neither the actor who opened the finding) — the " +
-        "ledger refuses otherwise. This is a PROPOSAL recorded in the ledger; it NEVER publishes " +
+        "tier ≥ 2 and two distinct reviewer identities (models allowed; neither the actor who opened " +
+        "the finding nor its narrator) — the ledger refuses otherwise. This is a PROPOSAL recorded in the ledger; it NEVER publishes " +
         "and never changes the finding's status.",
       inputSchema: {
         findingId,
@@ -305,7 +338,7 @@ export function registerLedgerTools(server: McpServer): void {
           .object({ name: z.string().min(1), registry: registryRef, stake: z.number().min(0).max(1).optional() })
           .optional()
           .describe("Responsible party, only via a cited registry"),
-        reviewers: z.array(reviewerHandle).default([]).describe("Distinct human reviewers who signed off (two when a party is named)"),
+        reviewers: z.array(reviewerIdentity).default([]).describe("Distinct reviewer identities who signed off (two when a party is named)"),
       },
     },
     async ({ findingId: id, actor, subject, party, reviewers }) =>

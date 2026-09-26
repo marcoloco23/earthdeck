@@ -60,6 +60,39 @@ export function selectIndicators(slugs?: string[], groups?: IndicatorGroup[]): I
   return picked.map((ind, idx) => ({ ind, idx })).sort((a, b) => order(a.ind) - order(b.ind) || a.idx - b.idx).map((x) => x.ind);
 }
 
+export interface WorldPulse {
+  source: string;
+  generatedAt: string;
+  rows: PulseRow[];
+  counts: { improving: number; worsening: number; flat: number; unavailable: number };
+  summary: string;
+}
+
+/** Fetch every selected indicator in parallel; a failing source becomes an "unavailable" row. */
+export async function worldPulse(indicators?: string[], groups?: IndicatorGroup[]): Promise<WorldPulse> {
+  const wanted = selectIndicators(indicators, groups);
+  const settled = await Promise.allSettled(wanted.map((ind) => fetchIndicator(ind)));
+  const rows: PulseRow[] = settled.map((r, i) => {
+    const ind = wanted[i]!;
+    if (r.status === "fulfilled") return pulseRow(ind, r.value);
+    const msg = r.reason instanceof Error ? r.reason.message : String(r.reason);
+    return { slug: ind.slug, label: ind.label, unit: ind.unit, group: ind.group, betterWhen: ind.betterWhen, upstream: ind.upstream, licence: ind.licence, status: "unavailable", error: msg };
+  });
+  const ok = rows.filter((r) => r.status === "ok");
+  const counts = {
+    improving: ok.filter((r) => r.direction === "improving").length,
+    worsening: ok.filter((r) => r.direction === "worsening").length,
+    flat: ok.filter((r) => r.direction === "flat").length,
+    unavailable: rows.length - ok.length,
+  };
+  const summary =
+    `${counts.improving} improving · ${counts.worsening} worsening · ${counts.flat} flat` +
+    (counts.unavailable ? ` · ${counts.unavailable} unavailable` : "") +
+    ". Improving: " + (ok.filter((r) => r.direction === "improving").map((r) => r.label).join(", ") || "—") +
+    ". Worsening: " + (ok.filter((r) => r.direction === "worsening").map((r) => r.label).join(", ") || "—") + ".";
+  return { source: SOURCE, generatedAt: nowIso(), rows, counts, summary };
+}
+
 /** Register world_pulse — civilization's and the planet's vital signs, each with an honest direction. */
 export function registerWorldPulseTools(server: McpServer): void {
   server.registerTool(
@@ -89,26 +122,7 @@ export function registerWorldPulseTools(server: McpServer): void {
     },
     async ({ indicators, groups }) =>
       safe(async () => {
-        const wanted = selectIndicators(indicators, groups);
-        const settled = await Promise.allSettled(wanted.map((ind) => fetchIndicator(ind)));
-        const rows: PulseRow[] = settled.map((r, i) => {
-          const ind = wanted[i]!;
-          if (r.status === "fulfilled") return pulseRow(ind, r.value);
-          const msg = r.reason instanceof Error ? r.reason.message : String(r.reason);
-          return { slug: ind.slug, label: ind.label, unit: ind.unit, group: ind.group, betterWhen: ind.betterWhen, upstream: ind.upstream, licence: ind.licence, status: "unavailable", error: msg };
-        });
-        const ok = rows.filter((r) => r.status === "ok");
-        const counts = {
-          improving: ok.filter((r) => r.direction === "improving").length,
-          worsening: ok.filter((r) => r.direction === "worsening").length,
-          flat: ok.filter((r) => r.direction === "flat").length,
-          unavailable: rows.length - ok.length,
-        };
-        const summary =
-          `${counts.improving} improving · ${counts.worsening} worsening · ${counts.flat} flat` +
-          (counts.unavailable ? ` · ${counts.unavailable} unavailable` : "") +
-          ". Improving: " + (ok.filter((r) => r.direction === "improving").map((r) => r.label).join(", ") || "—") +
-          ". Worsening: " + (ok.filter((r) => r.direction === "worsening").map((r) => r.label).join(", ") || "—") + ".";
+        const { rows, counts, summary } = await worldPulse(indicators, groups);
         const pushed = await pushCard({
           id: newId(),
           type: "worldpulse",

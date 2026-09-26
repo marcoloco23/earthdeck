@@ -241,6 +241,40 @@ export class CopernicusClient {
     });
   }
 
+  /**
+   * Pixel counts per integer class value of a categorical (UINT8) raster over a bbox, in
+   * one Statistics request (histogram with 1-wide bins over 0–255). For land-cover maps.
+   * Returns class value → pixel count (no-data pixels excluded).
+   */
+  async classHistogram(
+    bbox: BBox,
+    opts: { collection: string; band: string; dateFrom: string; dateTo: string; width: number; height: number },
+  ): Promise<Map<number, number>> {
+    assertBBox(bbox);
+    const from = startIso(opts.dateFrom);
+    const to = endIso(opts.dateTo);
+    const days = Math.max(1, Math.floor((Date.parse(to) - Date.parse(from)) / 86_400_000));
+    const evalscript = `//VERSION=3
+function setup(){return {input:[{bands:["${opts.band}","dataMask"]}],output:[{id:"data",bands:1,sampleType:"UINT8"},{id:"dataMask",bands:1}]}}
+function evaluatePixel(s){return {data:[s.${opts.band}],dataMask:[s.dataMask]}}`;
+    const body = {
+      input: this.buildInput(bbox, opts.dateFrom, opts.dateTo, { collection: opts.collection }),
+      aggregation: { timeRange: { from, to }, aggregationInterval: { of: `P${days}D` }, width: opts.width, height: opts.height, evalscript },
+      calculations: { default: { histograms: { default: { binWidth: 1, lowEdge: 0, highEdge: 256 } } } },
+    };
+    const res = await this.authed(`${SH}/statistics`, body, "application/json");
+    const text = await res.text();
+    if (!res.ok) throw new OverviewError(`Copernicus Statistics failed (${res.status})`, res.status, text.slice(0, 300));
+    const j = JSON.parse(text) as {
+      data?: Array<{ outputs?: { data?: { bands?: { B0?: { histogram?: { bins?: Array<{ lowEdge: number; count: number }> } } } } } }>;
+    };
+    const out = new Map<number, number>();
+    for (const b of j.data?.[0]?.outputs?.data?.bands?.B0?.histogram?.bins ?? []) {
+      if (b.count > 0) out.set(Math.round(b.lowEdge), (out.get(Math.round(b.lowEdge)) ?? 0) + b.count);
+    }
+    return out;
+  }
+
   /** Search the Sentinel-2 archive (STAC). Cloud filtering is applied client-side. */
   async search(bbox: BBox, opts: SearchOpts): Promise<SceneInfo[]> {
     assertBBox(bbox);

@@ -1,0 +1,23 @@
+{
+  "id": "msg_01NarrationFixture",
+  "type": "message",
+  "role": "assistant",
+  "model": "claude-opus-5",
+  "content": [
+    { "type": "thinking", "thinking": "", "signature": "EqQBCkYIBxgCKkDfixture" },
+    {
+      "type": "text",
+      "text": "{\"headline\":\"Forest loss in São Félix do Xingu: 38.2 ha of deforestation alerts in 90 days, confirmed from orbit\",\"narrative\":\"Between 2026-06-28 and 2026-09-26, 420 high-confidence deforestation alerts covered 38.2 ha inside the São Félix do Xingu watch area. A cloud-free Sentinel-2 median composite independently shows vegetation (NDVI) falling by -0.21 over the same period. The area's alert density is 1.47 times that of its 25 km neighbourhood, so this is not just a regional trend. What it is not: these sensors cannot tell legal clearing, fire or storm damage from illegal clearing, and a drought was reported nearby during a La Niña phase. What would change our mind: a licensed clearing permit, fire scars rather than cut edges, or regrowth in later imagery.\",\"keyNumbers\":[{\"label\":\"Alert area (ha)\",\"value\":38.2,\"evidenceId\":\"gfw-integrated-br-sfx-2026-06-28..2026-09-26\"},{\"label\":\"High-confidence alerts\",\"value\":420,\"evidenceId\":\"gfw-integrated-br-sfx-2026-06-28..2026-09-26\"},{\"label\":\"NDVI change\",\"value\":-0.21,\"evidenceId\":\"s2-ndvi-median-br-sfx-2026-05-14..2026-09-26\"}],\"confidence\":\"medium\",\"caveats\":[\"Alerts lag reality by about 1–2 weeks.\",\"Cannot distinguish legal from illegal clearing.\"]}"
+    }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+    "input_tokens": 3120,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 2480,
+    "service_tier": "standard"
+  }
+}

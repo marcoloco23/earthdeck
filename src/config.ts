@@ -1,5 +1,7 @@
 // Centralized environment configuration.
 
+import { readFileSync } from "node:fs";
+
 export const SERVER_NAME = "earthdeck";
 export const SERVER_VERSION = "0.3.1";
 
@@ -47,6 +49,41 @@ export function gfwApiKey(): string | null {
   return process.env.GFW_API_KEY ?? null;
 }
 
+export interface GeeCreds {
+  clientEmail: string;
+  privateKey: string; // PEM (PKCS#8) from the service-account JSON key
+  project: string; // Cloud project registered for Earth Engine
+}
+
+/**
+ * Google Earth Engine service account (gee_query), or null if not configured.
+ * `GEE_SERVICE_ACCOUNT_JSON` is a path to the JSON key file or the JSON itself (starts with
+ * `{`); `GEE_PROJECT` overrides the key's `project_id`. Throws on a present-but-broken key so
+ * a typo surfaces instead of silently reading as "not configured".
+ */
+export function geeCreds(env: NodeJS.ProcessEnv = process.env): GeeCreds | null {
+  const raw = env.GEE_SERVICE_ACCOUNT_JSON?.trim();
+  if (!raw) return null;
+  let key: { client_email?: string; private_key?: string; project_id?: string };
+  try {
+    key = JSON.parse(raw.startsWith("{") ? raw : readFileSync(raw, "utf8"));
+  } catch (err) {
+    throw new Error(
+      `GEE_SERVICE_ACCOUNT_JSON is neither JSON nor a readable path to it (${err instanceof Error ? err.message : String(err)})`,
+    );
+  }
+  const project = env.GEE_PROJECT?.trim() || key.project_id;
+  if (!key.client_email || !key.private_key || !project) {
+    throw new Error("GEE service-account JSON needs client_email + private_key, and GEE_PROJECT (or project_id in the key)");
+  }
+  return { clientEmail: key.client_email, privateKey: key.private_key, project };
+}
+
+/** Earth Engine REST base (override via EARTHDECK_GEE_API_BASE, e.g. for a test endpoint). */
+export function geeApiBase(): string {
+  return env("GEE_API_BASE") ?? "https://earthengine.googleapis.com/v1";
+}
+
 /**
  * Base URL of the open STAC API used by `stac_search`. Defaults to Earth Search (Element 84),
  * which is anonymous (no key). Override to swap in Planetary Computer or a self-hosted STAC.
@@ -74,4 +111,9 @@ export function climateTraceBase(): string {
 /** Directory holding the findings ledger (entries.jsonl, checkpoint, tiles, keys). */
 export function ledgerDir(): string {
   return env("LEDGER_DIR") ?? "data/ledger";
+}
+
+/** Claude API key for `earthdeck analyst` (narrate + review + publish), or null. */
+export function anthropicApiKey(): string | null {
+  return process.env.ANTHROPIC_API_KEY || null;
 }

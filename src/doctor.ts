@@ -5,7 +5,7 @@
 
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { cdseCreds, climateTraceBase, firmsMapKey, gfwApiKey, ledgerDir, overpassUrl, SERVER_VERSION, USER_AGENT } from "./config.js";
+import { cdseCreds, climateTraceBase, firmsMapKey, geeCreds, gfwApiKey, ledgerDir, overpassUrl, SERVER_VERSION, USER_AGENT } from "./config.js";
 import { Ledger } from "./ledger/store.js";
 import { readHeartbeat } from "./watch/journal.js";
 import { RULES } from "./watch/rules/index.js";
@@ -138,6 +138,19 @@ async function probeGfw(): Promise<{ ok: boolean; detail: string }> {
   }
 }
 
+/** Offline config check for gee_query (no token request — that would need a registered project). */
+export function geeDoctorLine(env: NodeJS.ProcessEnv = process.env): string {
+  const name = "Google Earth Engine (gee_query)";
+  try {
+    const c = geeCreds(env);
+    return c
+      ? `    ✓ ${name}  configured (${c.clientEmail}, project ${c.project})`
+      : `    · ${name}  not configured\n        → Cloud project registered for Earth Engine + service account key: see docs/research/2026-09-26_google-earth-engine.md`;
+  } catch (err) {
+    return `    ✗ ${name}  misconfigured: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
 function dirBytes(dir: string): number {
   let n = 0;
   for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -198,6 +211,8 @@ export function watchChecks(o: WatchCheckOptions = {}): { lines: string[]; faile
       missing.length ? `missing ${missing.join(", ")} — sweeps skip it` : `keys present (${rule.requires.join(", ") || "none needed"})`,
     );
   }
+
+  line(env.ANTHROPIC_API_KEY ? "✓" : "·", "Analyst (narrate/review/publish)", env.ANTHROPIC_API_KEY ? "ANTHROPIC_API_KEY present" : "missing ANTHROPIC_API_KEY — `earthdeck analyst` can't run");
 
   if (!existsSync(wlPath)) {
     line("·", "Watchlists", `none at ./${wlPath} — \`earthdeck watch\` needs --watchlist`);
@@ -268,6 +283,7 @@ export async function runDoctor(): Promise<void> {
       "        → free key: https://www.globalforestwatch.org/help/developers/guides/create-and-use-an-api-key/",
     );
   }
+  out(geeDoctorLine());
 
   out("");
   out("  Watch (earthdeck watch --once → findings ledger):");

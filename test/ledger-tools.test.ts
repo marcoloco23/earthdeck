@@ -57,7 +57,7 @@ async function setup(t: import("node:test").TestContext) {
   return { dir, call, size };
 }
 
-test("ledger tools: registered with never-publish wording", async (t) => {
+test("ledger tools: registered; descriptions state the publish policy", async (t) => {
   const server = new McpServer({ name: "t", version: "0" });
   registerLedgerTools(server);
   const [st, ct] = InMemoryTransport.createLinkedPair();
@@ -67,9 +67,13 @@ test("ledger tools: registered with never-publish wording", async (t) => {
   const { tools } = await client.listTools();
   const names = tools.map((x) => x.name).sort();
   assert.deepEqual(names, ["ledger_advance", "ledger_get", "ledger_list", "ledger_narrate", "ledger_propose_attribution", "ledger_review", "ledger_verify"]);
-  for (const n of ["ledger_advance", "ledger_propose_attribution"]) {
-    assert.match(tools.find((x) => x.name === n)!.description!, /NEVER publish/);
-  }
+  const desc = (n: string) => tools.find((x) => x.name === n)!.description!;
+  assert.match(desc("ledger_propose_attribution"), /NEVER publishes/);
+  assert.match(desc("ledger_advance"), /autonomous under policy 2026-09-26-autonomous/);
+  assert.match(desc("ledger_advance"), /DIFFERENT identity than the narrator/);
+  assert.match(desc("ledger_advance"), /tier 3 needs a human reviewer: actor/);
+  assert.match(desc("ledger_advance"), /72 h/);
+  assert.match(desc("ledger_review"), /publish \| hold \| reject/);
 });
 
 test("ledger_list / ledger_get / ledger_verify read the seeded ledger", async (t) => {
@@ -101,7 +105,9 @@ test("ledger_list / ledger_get / ledger_verify read the seeded ledger", async (t
   assert.equal(one.body.events.length, 2);
   assert.deepEqual(one.body.events.map((e: any) => e.index), [6, 7]);
   assert.deepEqual(one.body.next.legal, ["published", "expired", "false_positive"]);
-  assert.deepEqual(one.body.next.viaLedgerAdvance, ["expired", "false_positive"]);
+  assert.deepEqual(one.body.next.viaLedgerAdvance, ["published", "expired", "false_positive", "retracted"]);
+  assert.equal(one.body.next.publish.ok, false);
+  assert.deepEqual(one.body.next.publish.missing, ["no narrated event"]);
   const missing = await call("ledger_get", { findingId: "01994a2e-0000-7000-8000-00000000dfff" });
   assert.equal(missing.isError, true);
   assert.match(missing.body.error, /no such finding/);
@@ -115,14 +121,18 @@ test("ledger_list / ledger_get / ledger_verify read the seeded ledger", async (t
   assert.equal(size(), 8, "read tools never write");
 });
 
-test("ledger_advance: legal non-public moves only; publishing is refused", async (t) => {
+test("ledger_advance: legal moves only; publishing is gated by the ledger, not blanket-refused", async (t) => {
   const { call, size } = await setup(t);
 
   const pub = await call("ledger_advance", { findingId: CONFIRMED, to: "published", reason: "looks solid", actor: "model:claude-opus-5-5" });
   assert.equal(pub.isError, true);
-  assert.match(pub.body.error, /refused: "published" is a public status.*human act/);
-  const pubByReviewer = await call("ledger_advance", { findingId: PUBLISHED, to: "resolved", reason: "fixed", actor: "reviewer:ana" });
-  assert.equal(pubByReviewer.isError, true, "even a reviewer: actor cannot move into a public status through MCP");
+  assert.match(pub.body.error, /cannot publish: no narrated event/);
+  const forged = await call("ledger_advance", {
+    findingId: CONFIRMED, to: "published", reason: "trust me", actor: "model:claude-opus-5-5",
+    gates: { narratedBy: "model:claude-opus-5-5", reviewedBy: ["model:claude-fable-5-1"], policy: "2026-09-26-autonomous" },
+  });
+  assert.equal(forged.isError, true, "gates the ledger can't back are refused");
+  assert.match(forged.body.error, /cannot publish/);
   assert.equal(size(), 8);
 
   const illegal = await call("ledger_advance", { findingId: CANDIDATE, to: "confirmed", reason: "trust me", actor: "model:x" });
@@ -142,6 +152,40 @@ test("ledger_advance: legal non-public moves only; publishing is refused", async
   const again = await call("ledger_advance", { findingId: CANDIDATE, to: "expired", reason: "x", actor: "model:x" });
   assert.equal(again.isError, true);
   assert.match(again.body.error, /illegal transition false_positive → expired/);
+
+  // A public finding: a model may move it on with a reason, and may retract it.
+  const resolved = await call("ledger_advance", { findingId: PUBLISHED, to: "resolved", reason: "Embargo issued; later pass shows regrowth.", actor: "model:claude-opus-5-5" });
+  assert.equal(resolved.isError, false, JSON.stringify(resolved.body));
+  assert.equal(resolved.body.finding.status, "resolved");
+  const retracted = await call("ledger_advance", { findingId: PUBLISHED, to: "retracted", reason: "Re-check found a mapping error.", actor: "model:claude-opus-5-5" });
+  assert.equal(retracted.isError, false, JSON.stringify(retracted.body));
+  assert.equal(retracted.body.appended.kind, "retracted");
+  assert.equal(retracted.body.finding.status, "retracted");
+  assert.equal(size(), 11);
+  assert.equal((await call("ledger_verify", {})).body.ok, true);
+});
+
+test("ledger tools: the autonomous publish flow end to end (narrate → second model reviews → publish)", async (t) => {
+  const { dir, call } = await setup(t);
+  const narrator = "model:claude-opus-5-5";
+  const refs = ["s5p-ch4-2026-09-18..20-anomaly", "climatetrace-v7-asset-demo-0001"];
+  const n = await call("ledger_narrate", { findingId: CONFIRMED, model: { id: "claude-opus-5-5" }, prompt: "Narrate.", text: "S5P shows +38 ppb over three passes.", evidenceRefs: refs });
+  assert.equal(n.isError, false, JSON.stringify(n.body));
+
+  // The narrator reviewing its own narration doesn't open the gate.
+  await call("ledger_review", { findingId: CONFIRMED, reviewer: narrator, verdict: "publish" });
+  const self = await call("ledger_advance", { findingId: CONFIRMED, to: "published", reason: "self-reviewed", actor: narrator });
+  assert.equal(self.isError, true);
+  assert.match(self.body.error, /other than the narrator/);
+
+  const r = await call("ledger_review", { findingId: CONFIRMED, reviewer: "model:claude-fable-5-1", verdict: "publish", note: "Numbers match the evidence." });
+  assert.equal(r.isError, false, JSON.stringify(r.body));
+  const pub = await call("ledger_advance", { findingId: CONFIRMED, to: "published", reason: "Gates passed.", actor: narrator });
+  assert.equal(pub.isError, false, JSON.stringify(pub.body));
+  assert.equal(pub.body.finding.status, "published");
+  assert.equal(pub.body.finding.public, true);
+  const ev = Ledger.open(dir, { createKey: false }).eventsOf(CONFIRMED).at(-1)!;
+  assert.deepEqual(ev.kind === "status_changed" && ev.gates, { narratedBy: narrator, reviewedBy: ["model:claude-fable-5-1"], policy: "2026-09-26-autonomous" });
   assert.equal((await call("ledger_verify", {})).body.ok, true);
 });
 
@@ -167,20 +211,24 @@ test("ledger_narrate: cites held evidence only, length-capped, hashes the prompt
   assert.equal(f.narration?.reviewedBy, undefined, "the tool cannot claim a human reviewed the narration");
 });
 
-test("ledger_review: reviewer actors only; approvals never publish by themselves", async (t) => {
+test("ledger_review: verdict required; model or reviewer actors; reviews never publish by themselves", async (t) => {
   const { call } = await setup(t);
-  const model = await call("ledger_review", { findingId: CONFIRMED, reviewer: "model:x", decision: "approve" });
-  assert.equal(model.isError, true);
+  const noVerdict = await call("ledger_review", { findingId: CONFIRMED, reviewer: "model:x", decision: "approve" });
+  assert.equal(noVerdict.isError, true, "verdict is required");
+  const sys = await call("ledger_review", { findingId: CONFIRMED, reviewer: "system:x@1", verdict: "publish" });
+  assert.equal(sys.isError, true, "never a system: reviewer");
+  const contradict = await call("ledger_review", { findingId: CONFIRMED, reviewer: "model:x", verdict: "publish", decision: "reject" });
+  assert.match(contradict.body.error, /contradicts/);
 
-  const a = await call("ledger_review", { findingId: CONFIRMED, reviewer: "reviewer:ana", decision: "approve", note: "Plume matches the asset." });
+  const a = await call("ledger_review", { findingId: CONFIRMED, reviewer: "reviewer:ana", verdict: "publish", note: "Plume matches the asset." });
   assert.equal(a.isError, false, JSON.stringify(a.body));
-  const b = await call("ledger_review", { findingId: CONFIRMED, reviewer: "reviewer:ben", decision: "approve" });
+  const b = await call("ledger_review", { findingId: CONFIRMED, reviewer: "model:claude-fable-5-1", verdict: "hold" });
   assert.equal(b.body.finding.status, "confirmed");
   const got = await call("ledger_get", { findingId: CONFIRMED });
-  assert.deepEqual(got.body.finding.reviews.map((r: any) => [r.actor, r.tier]), [["reviewer:ana", 2], ["reviewer:ben", 2]]);
-  // Two approvals exist, and still the MCP surface refuses to publish.
-  const pub = await call("ledger_advance", { findingId: CONFIRMED, to: "published", reason: "approved twice", actor: "reviewer:ana" });
-  assert.equal(pub.isError, true);
+  assert.deepEqual(got.body.finding.reviews.map((r: any) => [r.actor, r.tier, r.verdict, r.decision]), [
+    ["reviewer:ana", 2, "publish", "approve"],
+    ["model:claude-fable-5-1", 2, "hold", "reject"],
+  ]);
 });
 
 test("ledger_propose_attribution: four-eyes rule for naming a party is the ledger's, not weakened", async (t) => {
@@ -195,7 +243,7 @@ test("ledger_propose_attribution: four-eyes rule for naming a party is the ledge
 
   const one = await call("ledger_propose_attribution", { findingId: CONFIRMED, actor, subject, party, reviewers: ["reviewer:ana"] });
   assert.equal(one.isError, true);
-  assert.match(one.body.error, /naming a party requires two distinct human reviewers/);
+  assert.match(one.body.error, /naming a party requires two distinct reviewers/);
   const twice = await call("ledger_propose_attribution", { findingId: CONFIRMED, actor, subject, party, reviewers: ["reviewer:ana", "reviewer:ana"] });
   assert.match(twice.body.error, /attribution reviewers must be distinct/);
   const lowTier = await call("ledger_propose_attribution", { findingId: CANDIDATE, actor, subject, party, reviewers: ["reviewer:ana", "reviewer:ben"] });
