@@ -273,10 +273,10 @@ export async function runDoctor(): Promise<void> {
   for (const l of watch.lines) out(l);
 
   out("");
-  const readyTools =17 + (cdse.ok ? 7 : 0) + (firms.ok ? 1 : 0) + (gfw.ok ? 1 : 0);
+  const keysOff = [cdse.ok ? null : "Copernicus", firms.ok ? null : "FIRMS", gfw.ok ? null : "GFW"].filter(Boolean);
   out(
     zeroKeyDown === 0
-      ? `  All zero-key sources reachable — ${readyTools}/26 tools ready to use.`
+      ? `  All zero-key sources reachable — ${keysOff.length === 0 ? "every tool ready to use." : `tools needing ${keysOff.join(", ")} keys are off.`}`
       : `  ⚠️ ${zeroKeyDown} zero-key source(s) unreachable (network/proxy?) — some tools will fail.`,
   );
   out("  Try it now:  npx -y earthdeck demo");
