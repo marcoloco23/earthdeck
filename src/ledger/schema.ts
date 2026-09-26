@@ -251,6 +251,8 @@ export const eventPayload = z.discriminatedUnion("kind", [
     publicAt: rfc3339,
     /** The party could not be reached through any channel — recorded instead of a 72 h notice. */
     unreachable: z.boolean().optional(),
+    /** Required with `unreachable`: the channels actually tried (≥ 2), so "unreachable" is a record, not a claim. */
+    attempts: z.array(z.object({ channel: z.string().min(1), at: rfc3339, note: z.string().max(500).optional() })).optional(),
   }),
   base.extend({
     kind: z.literal("replied"),
@@ -404,6 +406,7 @@ export function checkAppend(f: Finding | null, ev: FindingEvent): void {
     case "notified":
       if (!["confirmed", "published"].includes(f.status)) throw new Error(`cannot notify from status ${f.status}`);
       if (ev.unreachable && ev.to.kind !== "party") throw new Error("only a notice to a party can record it as unreachable");
+      if (ev.unreachable && (ev.attempts?.length ?? 0) < 2) throw new Error("an unreachable notice must list at least two attempted channels (attempts[])");
       return;
     case "replied":
       // A reply can only follow a notice — but it may arrive before publication (the

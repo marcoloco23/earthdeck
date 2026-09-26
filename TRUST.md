@@ -46,7 +46,9 @@ To name a responsible party (an operator, an owner):
 - **two different reviewers** (people or AI models, distinct from each other and from the
   AI that wrote the narration) must sign off on the attribution;
 - the party must have been **notified privately at least 72 hours before** publication —
-  or the notice records that the party could not be reached at all;
+  or the notice records that the party could not be reached — and "could not be reached"
+  is itself a record, not a claim: it must list at least two channels that were actually
+  tried, with timestamps;
 - for tier 3, the 30-day right-of-reply clock must also have run out.
 
 ## How to challenge a finding

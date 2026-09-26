@@ -363,7 +363,23 @@ test("naming a party: two reviewer identities (not the narrator) and a 72 h priv
     () => l2.append({ kind: "notified", findingId: id2, actor: A, to: { kind: "authority", name: "ANP" }, publicAt: T0, unreachable: true }),
     /only a notice to a party/,
   );
-  l2.append({ kind: "notified", findingId: id2, actor: A, to: { kind: "party", name: party.name }, publicAt: T0, unreachable: true });
+  // "Unreachable" is a record of attempts, never a bare claim: at least two channels tried.
+  assert.throws(
+    () => l2.append({ kind: "notified", findingId: id2, actor: A, to: { kind: "party", name: party.name }, publicAt: T0, unreachable: true }),
+    /at least two attempted channels/,
+  );
+  l2.append({
+    kind: "notified",
+    findingId: id2,
+    actor: A,
+    to: { kind: "party", name: party.name },
+    publicAt: T0,
+    unreachable: true,
+    attempts: [
+      { channel: "mailto:contact@example.org", at: T0, note: "bounced" },
+      { channel: "https://example.org/contact", at: T0, note: "form returned 404" },
+    ],
+  });
   const g2 = publishGates(l2.get(id2)!);
   assert.deepEqual(g2, { ok: true, missing: [], gates: { narratedBy: A, reviewedBy: ["reviewer:ana"], policy: PUBLISH_POLICY_VERSION } });
   l2.append({ kind: "status_changed", findingId: id2, actor: A, from: "confirmed", to: "published", reason: "Party unreachable; gates passed.", gates: g2.gates });
