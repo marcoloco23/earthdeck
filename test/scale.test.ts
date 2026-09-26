@@ -10,14 +10,14 @@ import { join } from "node:path";
 import { Ledger } from "../src/ledger/store.js";
 import { Journal } from "../src/watch/journal.js";
 import { parseShard, shardOf, sweep } from "../src/watch/kernel.js";
-import { capsFromEnv, costOf, isQuotaError, providersForRequires, QuotaExceeded, QuotaGovernor, type QuotaCaps } from "../src/watch/quota.js";
+import { capsFromEnv, costOf, isQuotaError, providersForRequires, QuotaExceeded, QuotaGovernor, ruleKey, type QuotaCaps } from "../src/watch/quota.js";
 import { RULES, ToolError, type ToolCall } from "../src/watch/rules/index.js";
 import { parseWatchlist, type Watchlist } from "../src/watch/watchlist.js";
 import { mockFetch } from "./helpers.js";
 
 const NOW = "2026-09-26T12:00:00Z";
 const DAY = "2026-09-26";
-const CAPS: QuotaCaps = { cdse: 60, gfw: 400, firms: 300, analystCases: 10, analystUsd: 3 };
+const CAPS: QuotaCaps = { cdse: 60, gfw: 400, firms: 300, analystCases: 10, analystUsd: 3, perRule: { METHANE_ANOMALY: { cdse: 10 } } };
 
 /** n quiet fire AOIs (one fires_in call each when quiet). */
 function fireList(n: number, prefix = "a"): Watchlist {
@@ -237,4 +237,70 @@ test("quota governor: a confirm-only provider defers confirmation, never the det
   assert.equal(r.confirmed.length, 0, "confirmation is deferred");
   assert.ok(!calls.some((c) => c.tool === "eo_compare"), "no Copernicus call was attempted");
   assert.equal(s.ledger.get(r.created[0]!)!.status, "candidate");
+});
+
+test("quota: per-rule sub-caps from EARTHDECK_MAX_<PROVIDER>_CALLS_<RULE>", () => {
+  assert.deepEqual(capsFromEnv({}).perRule, { METHANE_ANOMALY: { cdse: 10 } }, "methane defaults to 10 CDSE calls");
+  assert.deepEqual(capsFromEnv({ EARTHDECK_MAX_CDSE_CALLS_METHANE_ANOMALY: "4", EARTHDECK_MAX_FIRMS_CALLS_FLARING: "120", EARTHDECK_MAX_GFW_CALLS_FOREST_LOSS: "" }).perRule, {
+    METHANE_ANOMALY: { cdse: 4 },
+    FLARING: { firms: 120 },
+  });
+  assert.equal(ruleKey("methane-anomaly"), "METHANE_ANOMALY");
+  assert.equal(ruleKey("fires_in_protected"), "FIRES_IN_PROTECTED");
+  assert.throws(() => capsFromEnv({ EARTHDECK_MAX_CDSE_CALLS_METHANE_ANOMALY: "-1" }), /EARTHDECK_MAX_CDSE_CALLS_METHANE_ANOMALY/);
+  const q = new QuotaGovernor(null, { ...CAPS, perRule: { METHANE_ANOMALY: { cdse: 1 } } }, DAY);
+  assert.equal(q.blocked("cdse", 1, "methane_anomaly"), null);
+  q.chargeRule("methane_anomaly", "cdse", 1);
+  q.chargeRule("forest_loss", "cdse", 1); // no sub-cap → not counted per rule
+  assert.equal(q.blocked("cdse", 1, "methane_anomaly"), "quota:cdse");
+  assert.equal(q.blocked("cdse", 1, "forest_loss"), null);
+  assert.equal(q.blocked("cdse"), null, "the provider-wide cap is untouched by sub-caps");
+  assert.deepEqual(q.snapshot().rules, { METHANE_ANOMALY: { cdse: 1 } });
+});
+
+test("quota governor: methane's CDSE sub-cap leaves the rest of the budget to forest confirmations", async (t) => {
+  const s = setup();
+  t.after(s.restore);
+  const bbox = (i: number) => [10 + i, 0, 10.2 + i, 0.2];
+  const wl = parseWatchlist({
+    version: 1,
+    name: "t",
+    aois: [
+      ...Array.from({ length: 12 }, (_, i) => ({ id: `m-${i}`, name: `Basin ${i}`, bbox: bbox(i), rules: [{ name: "methane_anomaly", params: {} }] })),
+      ...Array.from({ length: 3 }, (_, i) => ({ id: `f-${i}`, name: `Forest ${i}`, bbox: bbox(20 + i), rules: [{ name: "forest_loss", params: { minAlerts: 10, minHa: 1 } }] })),
+    ],
+  });
+  // Global CDSE cap 13 = methane's 10 + the 3 forest confirmations. Without the sub-cap the
+  // 12 methane pairs (swept first) would spend 12 and starve two forest confirmations.
+  const q = new QuotaGovernor(s.journal.dir, { ...CAPS, cdse: 13, perRule: { METHANE_ANOMALY: { cdse: 10 } } }, DAY);
+  const { call: raw, calls } = recorder((tool) => {
+    if (tool === "methane_plumes") return {}; // no usable retrievals → quiet
+    if (tool === "forest_alerts") return { window: { from: "2026-06-28", to: "2026-09-26" }, alertCount: 900, areaHa: 60, byConfidence: { high: { alertCount: 900, areaHa: 60 } } };
+    if (tool === "eo_compare") return { validPctA: 95, validPctB: 95, delta: { meanChange: -0.3 } };
+    if (tool === "enso") return { phase: "Neutral", latest: { oni: 0 } };
+    if (tool === "events") return { events: [] };
+    throw new Error(`unexpected tool ${tool}`);
+  });
+  const r = await sweep({ watchlists: [wl], rules: RULES, ledger: s.ledger, journal: s.journal, call: q.wrap(raw), quota: q, now: NOW, hasKey: () => true });
+  assert.equal(calls.filter((c) => c.tool === "methane_plumes").length, 10);
+  assert.deepEqual(r.skipped, [
+    { aoi: "m-10", rule: "methane_anomaly", reason: "quota:cdse" },
+    { aoi: "m-11", rule: "methane_anomaly", reason: "quota:cdse" },
+  ]);
+  assert.equal(calls.filter((c) => c.tool === "eo_compare").length, 3);
+  assert.equal(r.confirmed.length, 3, "every forest confirmation still ran");
+  assert.equal(q.used("cdse"), 13);
+  assert.equal(q.ruleUsed("methane_anomaly", "cdse"), 10);
+  assert.deepEqual(JSON.parse(readFileSync(join(s.journal.dir, "quota.json"), "utf8"))[DAY].rules, { METHANE_ANOMALY: { cdse: 10 } });
+
+  // Mid-pair: the pair check passes (1 unit left) but a 12-unit flaring call would cross the
+  // rule's sub-cap — refused inside the kernel's call wrapper, before the provider (skip, not gap).
+  const q2 = new QuotaGovernor(null, { ...CAPS, perRule: { FLARING: { firms: 5 } } }, DAY);
+  const { call: raw2, calls: calls2 } = recorder();
+  const flare = parseWatchlist({ version: 1, name: "t", aois: [{ id: "fl-0", name: "Field 0", bbox: bbox(30), rules: [{ name: "flaring", params: {} }] }] });
+  const r2 = await sweep({ watchlists: [flare], rules: RULES, ledger: s.ledger, journal: s.journal, call: q2.wrap(raw2), quota: q2, now: NOW, hasKey: () => true });
+  assert.equal(calls2.length, 0);
+  assert.deepEqual(r2.skipped, [{ aoi: "fl-0", rule: "flaring", reason: "quota:firms" }]);
+  assert.equal(r2.gaps.length, 0);
+  assert.equal(q2.used("firms"), 0);
 });

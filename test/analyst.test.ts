@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { runAnalyst, select, type AnalystLedger } from "../src/analyst/analyst.js";
+import { novelty, runAnalyst, select, type AnalystLedger } from "../src/analyst/analyst.js";
 import { callJson, costUsd } from "../src/analyst/anthropic.js";
 import { canPublish, faithfulness, personalNames, type Narration } from "../src/analyst/checks.js";
 import { OverviewError } from "../src/errors.js";
@@ -175,7 +175,7 @@ test("analyst: happy path — narrate (Opus), review (Sonnet), publish with gate
   assert.match(nBody.messages[0]!.content, /"ratio": 1\.47/);
   assert.match((JSON.parse(rReq!.body!) as { messages: { content: string }[] }).messages[0]!.content, /Narration to review \(by model:claude-opus-5\)/);
 
-  assert.deepEqual(journalKinds(j), ["analyst_start", "analyst_call", "analyst_append", "analyst_call", "analyst_append", "analyst_end"]);
+  assert.deepEqual(journalKinds(j), ["analyst_start", "analyst_selection", "analyst_call", "analyst_append", "analyst_call", "analyst_append", "analyst_end"]);
   // Nothing left to do on a second run.
   assert.equal(select(l as unknown as AnalystLedger, 5).length, 0);
 });
@@ -351,4 +351,57 @@ test("analyst: daily USD cap stops the run and journals analyst_spend; the daily
   assert.equal(again.published.length, 0);
   const cases = await runAnalyst({ ledger: l as unknown as AnalystLedger, journal: j, apiKey: "sk-test", quota: new QuotaGovernor(j.dir, { ...caps, analystUsd: 100, analystCases: 2 }, "2026-09-26") });
   assert.equal(cases.selected, 0);
+});
+
+test("analyst select: round-robin across rules, most novel first within each rule, deterministic", () => {
+  const mk = (id: string, rule: string, o: { ratio?: number | null; values?: Record<string, number>; params?: Record<string, unknown>; observedAt?: string }) =>
+    ({
+      findingId: id,
+      status: "confirmed",
+      rule: { name: rule, version: "1.0", params: o.params ?? {} },
+      observedAt: o.observedAt ?? "2026-09-20T00:00:00Z",
+      createdAt: "2026-09-26T00:00:00Z",
+      evidence: [{ id: `ev-${id}`, values: o.values ?? {} }],
+      context: o.ratio === undefined ? {} : { baseline: { metric: "m", ringKm: 25, aoiValue: 1, regionalValue: 1, ratio: o.ratio } },
+      narration: null,
+      reviews: [],
+    }) as unknown as Finding;
+  // 12 confirmed findings; flaring (cheapest to confirm) is the plurality, as in production.
+  const findings = [
+    mk("fl-1", "flaring", { ratio: 3, values: { new_flare: 0 } }), // 3
+    mk("fl-2", "flaring", { ratio: 2, values: { new_flare: 1 }, observedAt: "2026-09-21T00:00:00Z" }), // 4 (no registry match ×2)
+    mk("fl-3", "flaring", { ratio: null, observedAt: "2026-09-10T00:00:00Z" }), // 1
+    mk("fl-4", "flaring", { observedAt: "2026-09-11T00:00:00Z" }), // 1 — same score as fl-3, newer
+    mk("fl-5", "flaring", { ratio: 5 }), // 5
+    mk("fo-1", "forest_loss", { ratio: 1, values: { ha: 50 }, params: { minHa: 5 } }), // 10
+    mk("fo-2", "forest_loss", { ratio: 1.5, values: { ha: 10 }, params: { minHa: 5 } }), // 3
+    mk("fo-3", "forest_loss", { ratio: 2, values: { ha: 20 }, params: { minHa: 10 } }), // 4, older than fl-2
+    mk("me-1", "methane_anomaly", { ratio: 1.5, values: { deltaPpb: 40 }, params: { minAnomalyPpb: 20 }, observedAt: "2026-09-22T00:00:00Z" }), // 3, newest of the 3s
+    mk("me-2", "methane_anomaly", { values: { deltaPpb: 20 } }), // 1 (default threshold 20)
+    mk("fi-1", "fires_in_protected", { ratio: 1, values: { detections: 10 }, params: { minDetections: 5 } }), // 2
+    mk("fi-2", "fires_in_protected", { ratio: 3, values: { detections: 5 } }), // 3 (default minDetections 5)
+  ];
+  const ledger = { list: () => findings, get: () => undefined, append: () => ({}) } as unknown as AnalystLedger;
+  const order = (max: number) => select(ledger, max).map((s) => `${s.finding.findingId}:${s.score}`);
+
+  assert.deepEqual(order(12), [
+    // round 1 — one per rule, ranked by novelty; tie at 3 → observedAt desc, then id
+    "fo-1:10", "fl-5:5", "me-1:3", "fi-2:3",
+    // round 2
+    "fl-2:4", "fo-3:4", "fi-1:2", "me-2:1",
+    // round 3 — methane and fires are exhausted
+    "fl-1:3", "fo-2:3",
+    // round 4 — only flaring left; tie → newer first
+    "fl-4:1", "fl-3:1",
+  ]);
+  // --max cuts mid-round: flaring gets 3 of 10 slots instead of crowding the rest out.
+  const ten = select(ledger, 10);
+  assert.equal(ten.length, 10);
+  assert.equal(ten.filter((s) => s.finding.rule.name === "flaring").length, 3);
+  assert.equal(new Set(ten.map((s) => s.finding.rule.name)).size, 4);
+  assert.deepEqual(order(3), ["fo-1:10", "fl-5:5", "me-1:3"]);
+  // Deterministic regardless of the ledger's list order.
+  const rev = { ...ledger, list: () => [...findings].reverse() } as unknown as AnalystLedger;
+  assert.deepEqual(select(rev, 12).map((s) => s.finding.findingId), select(ledger, 12).map((s) => s.finding.findingId));
+  assert.equal(novelty(mk("x", "unknown_rule", { ratio: null })), 1);
 });
