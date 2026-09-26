@@ -88,7 +88,8 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
   let enso: Context["enso"] | null | undefined;
   // One wrapper per rule: the rule's per-provider sub-cap (quota.caps.perRule) is enforced
   // here, since only the kernel knows which rule a tool call is spent for.
-  const callFor = (rule: string): ToolCall => async (tool, args) => {
+  const callFor = (rule: string): ToolCall => {
+    const wrapped: ToolCall & { base?: ToolCall } = async (tool, args) => {
     const t0 = Date.now();
     const cost = o.quota ? costOf(tool, args) : null;
     try {
@@ -103,6 +104,9 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
       o.journal.append({ t: new Date().toISOString(), sweepId, kind: "tool_call", tool, args, ms: Date.now() - t0, message: String(err) });
       throw err instanceof ToolError ? err : new ToolError(tool, err instanceof Error ? err.message : String(err));
     }
+    };
+    wrapped.base = o.call; // lets rules memoise per sweep across their per-rule wrappers
+    return wrapped;
   };
 
   // Housekeeping first: candidates past their TTL expire (GLAD's rule), regardless of watchlists.
@@ -250,7 +254,8 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
         tier: rule.tier,
         geometry: candidate.geometry ?? bboxPolygon(aoi.bbox),
         bbox: aoi.bbox,
-        aoi: { id: aoi.id, name: aoi.name, tags: aoi.control ? [...aoi.tags, "control"] : aoi.tags },
+        // Case tags = the AOI tags + what the rule learned about this candidate (e.g. new-flare, improvement).
+        aoi: { id: aoi.id, name: aoi.name, tags: [...(aoi.control ? [...aoi.tags, "control"] : aoi.tags), ...(candidate.tags ?? [])] },
         observedAt: candidate.observedAt,
         evidence: candidate.evidence,
         context,

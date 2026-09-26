@@ -51,8 +51,11 @@ function detectArgs(ctx: RuleContext) {
 // that function scopes the cache to one sweep (and to one test).
 const shared = new WeakMap<ToolCall, Map<string, Promise<unknown>>>();
 function sharedCall(call: ToolCall, tool: string, args: Record<string, unknown>): Promise<unknown> {
-  let m = shared.get(call);
-  if (!m) shared.set(call, (m = new Map()));
+  // The kernel wraps `call` per rule; the wrapper exposes the sweep-level function as `base`
+  // so both flaring rules still share one pull.
+  const scope = (call as ToolCall & { base?: ToolCall }).base ?? call;
+  let m = shared.get(scope);
+  if (!m) shared.set(scope, (m = new Map()));
   const key = `${tool} ${JSON.stringify(args)}`;
   let p = m.get(key);
   if (!p) {
