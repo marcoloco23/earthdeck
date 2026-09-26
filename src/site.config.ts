@@ -19,7 +19,7 @@ export const SITE = {
    * Public origin used for canonical URLs, og:url/og:image, JSON-LD and sitemap.xml when
    * `--base-url` isn’t passed. (Domain still being decided — change it here or pass --base-url.)
    */
-  baseUrl: "https://vital.marcsperzel.com",
+  baseUrl: "https://vitalearth.io",
   /** The publisher, for JSON-LD `Organization`. */
   organization: { name: "Vital Earth", url: "https://vital.marcsperzel.com" },
   /** Where issues (right of reply, false positives) are filed, and the footer credit link. */
