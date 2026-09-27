@@ -1197,11 +1197,12 @@ a.case-row > .case-top {
 }
 .reply-status {
   margin: 0;
+  min-height: 1.4em;
   font-size: var(--fs-13);
   color: var(--fg-2);
 }
-.reply-status:empty {
-  display: none;
+.reply-status:empty::before {
+  content: "\00a0"; /* keeps its one line reserved: an error appearing moves nothing */
 }
 .reply-status--error {
   color: var(--danger);

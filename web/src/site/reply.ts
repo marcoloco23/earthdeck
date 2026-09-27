@@ -5,13 +5,14 @@
 
 import { el } from "../ui";
 
+// "Someone else" first and preselected: a reply is never filed under a role nobody chose.
 const ROLES: [string, string][] = [
+  ["other", "Someone else"],
   ["resident", "I live nearby"],
   ["operator", "I work on site"],
   ["company", "I speak for a company"],
   ["official", "I am a public official"],
   ["researcher", "I research this"],
-  ["other", "Something else"],
 ];
 const MIN = 20;
 const MAX = 2000;
@@ -36,16 +37,19 @@ export function mountReplyForms(root: ParentNode): void {
     text.rows = 4;
     text.maxLength = MAX;
     text.placeholder = "What do you see there? What does the case get right or wrong?";
-    const rLabel = el("label", "reply-label", "You are");
+    const rLabel = el("label", "reply-label", "Which fits you best? (leave it if none does)");
     rLabel.htmlFor = rId;
     const role = el("select", "reply-role");
     role.id = rId;
+    role.name = "role";
+    role.autocomplete = "off"; // no restored choice from an earlier visit
     for (const [v, t] of ROLES) {
       const o = el("option", "", t);
       o.value = v;
       role.appendChild(o);
     }
     role.value = "other";
+    for (const o of role.options) o.defaultSelected = o.value === "other";
     // Honeypot: off-screen, not focusable, not announced.
     const trap = el("input", "reply-hp");
     trap.type = "text";
@@ -55,6 +59,8 @@ export function mountReplyForms(root: ParentNode): void {
     trap.setAttribute("aria-hidden", "true");
     const hint = el("p", "reply-hint", "No names, emails, phone numbers or links — they are turned away.");
     const status = el("p", "reply-status");
+    status.id = `reply-status-${caseId}`;
+    text.setAttribute("aria-describedby", status.id);
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
     const send = el("button", "btn reply-send", "Send reply");
@@ -66,8 +72,12 @@ export function mountReplyForms(root: ParentNode): void {
       e.preventDefault();
       const body = text.value.trim();
       status.className = "reply-status reply-status--error";
-      if (body.length < MIN) return void (status.textContent = `Please write at least ${MIN} characters.`);
-      if (body.length > MAX) return void (status.textContent = `Please keep it under ${MAX} characters.`);
+      const bad = body.length < MIN ? `Please write at least ${MIN} characters.` : body.length > MAX ? `Please keep it under ${MAX} characters.` : "";
+      text.toggleAttribute("aria-invalid", !!bad);
+      if (bad) {
+        status.textContent = bad;
+        return void text.focus({ preventScroll: true });
+      }
       send.disabled = true;
       status.className = "reply-status";
       status.textContent = "Sending…";
@@ -79,7 +89,7 @@ export function mountReplyForms(root: ParentNode): void {
         .then(async (r) => {
           const j = (await r.json().catch(() => ({}))) as { message?: string };
           if (r.status === 202) {
-            form.replaceChildren(el("p", "reply-status reply-status--ok", "Thanks — your reply is in. A second AI model reads it first; if it’s accepted it appears here within a few hours."));
+            form.replaceChildren(el("p", "reply-status reply-status--ok", "Thanks. Replies are reviewed a few times a day: a second AI model reads yours first, and if it’s accepted it appears here."));
             return;
           }
           status.className = "reply-status reply-status--error";

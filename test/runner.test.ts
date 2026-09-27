@@ -30,6 +30,7 @@ import {
   type ObjectStore,
   type RunnerConfig,
   type RunnerDeps,
+  sitePruneKeys,
 } from "../src/runner/core.js";
 
 test("parsePayload accepts the scheduled shapes (object or JSON string)", () => {
@@ -458,4 +459,26 @@ test("infra: reply wall — Function URL (auth NONE, CORS site origin only), lea
   assert.match(yaml, /ReplyUrl:\n\s+Condition: WithFunction/);
   const role = yaml.slice(yaml.indexOf("  ReplyRole:"), yaml.indexOf("  ReplyFunction:"));
   assert.ok(!/s3:DeleteObject|s3:ListBucket|GetParametersByPath|ledger/.test(role), "the public intake cannot read the ledger or other secrets");
+});
+
+test("export: deletes stale api/ and watch/ objects, never ledger/, other prefixes or assets", async () => {
+  const h = harness({
+    help: "earthdeck watch export --out DIR",
+    job: (_a, _dir, site) => {
+      mkdirSync(join(site, "api/replies"), { recursive: true });
+      writeFileSync(join(site, "index.html"), "<h1>hi</h1>");
+      writeFileSync(join(site, "api/replies/keep.json"), "{}");
+      return 0;
+    },
+  });
+  for (const k of ["api/replies/gone.json", "watch/case/old/index.html", "watch/assets/app-Old.js", "ledger/entries.jsonl", "og-old.png", "api/replies/keep.json"]) await h.store.put("site", k, Buffer.from("x"));
+  const r = await runPayload({ job: "export" }, h.cfg, h.deps);
+  assert.equal(r.ok, true);
+  assert.equal(r.steps[0]!.filesDeleted, 2);
+  const keys = [...h.store.objects.keys()];
+  assert.ok(!keys.includes("site/api/replies/gone.json") && !keys.includes("site/watch/case/old/index.html"));
+  for (const k of ["site/watch/assets/app-Old.js", "site/ledger/entries.jsonl", "site/og-old.png", "site/api/replies/keep.json"]) assert.ok(keys.includes(k), k);
+  assert.equal(h.counts().invalidations, 1);
+  assert.deepEqual(sitePruneKeys(["api/a", "apix/b", "watch/../ledger/x", "ledger/y"], new Set()), ["api/a"]);
+  h.cleanup();
 });

@@ -268,46 +268,75 @@ export function mountExplorer({ figure, data, hub }: Options): void {
     tip.hidden = false;
     tip.style.transform = `translate(${Math.round(e.point.x)}px, ${Math.round(e.point.y) - 14}px) translate(-50%, -100%)`;
   };
-  map.on("mousemove", "pt", (e) => {
-    const f = e.features?.[0];
-    if (!f || typeof f.id !== "number") return;
-    map.getCanvas().style.cursor = "pointer";
-    if (hovered?.id !== f.id) setHover({ src: "pt", id: f.id });
-    showTip(e, String(f.properties?.title ?? ""));
-    hub.emit("hot", { id: String(f.properties?.id ?? "") });
-  });
-  map.on("mousemove", "cl", (e) => {
-    const f = e.features?.[0];
-    if (!f || typeof f.id !== "number") return;
-    map.getCanvas().style.cursor = "pointer";
-    if (hovered?.id !== f.id) setHover({ src: "cl", id: f.id });
-    const n = Number(f.properties?.point_count ?? 0);
-    const pub = Number(f.properties?.pub ?? 0);
-    showTip(e, `${n} cases${pub ? ` · ${pub} published` : ""} — click to zoom in`);
-  });
-  for (const id of ["pt", "cl"]) {
-    map.on("mouseleave", id, () => {
-      map.getCanvas().style.cursor = "";
-      setHover(null);
-      tip.hidden = true;
-      hub.emit("hot", { id: null });
-    });
+  // Hit-testing in screen space. MapLibre's own circle hit-test on the globe shrinks toward the
+  // limb (a dot drawn 13 px wide took clicks only ~6 px from its centre at zoom 2), and the drawn
+  // dots are small anyway. So: the nearest visible dot within HIT_PX of the pointer wins, else a
+  // cluster whose drawn disc (+4 px) holds the pointer. Dots behind the globe are skipped.
+  const HIT_PX = 12;
+  const clusterR = (n: number) => (n >= 200 ? 25 : n >= 50 ? 20 : n >= 10 ? 16 : 13) + 4;
+  type MarkerHit = { kind: "pt" | "cl"; f: maplibregl.MapGeoJSONFeature };
+  function pick(pt: maplibregl.Point): MarkerHit | null {
+    if (!map.getLayer("pt")) return null;
+    let best: MarkerHit | null = null;
+    let bestD = Infinity;
+    const pad = 28;
+    for (const f of map.queryRenderedFeatures([[pt.x - pad, pt.y - pad], [pt.x + pad, pt.y + pad]], { layers: ["pt", "cl"] })) {
+      const [lon, lat] = (f.geometry as GeoJSON.Point).coordinates as [number, number];
+      const p = map.project([lon, lat]);
+      const back = map.unproject(p);
+      if (Math.abs(back.lat - lat) > 0.5 || Math.abs(((back.lng - lon + 540) % 360) - 180) > 0.5) continue; // far side
+      const d = Math.hypot(p.x - pt.x, p.y - pt.y);
+      const isCl = f.layer.id === "cl";
+      const reach = isCl ? clusterR(Number(f.properties?.point_count ?? 0)) : HIT_PX;
+      if (d > reach) continue;
+      // Dots beat clusters; nearer beats farther.
+      const score = isCl ? d + 1000 : d;
+      if (score < bestD) {
+        bestD = score;
+        best = { kind: isCl ? "cl" : "pt", f };
+      }
+    }
+    return best;
   }
-  map.on("click", "cl", (e) => {
-    const f = e.features?.[0];
-    const cid = f?.properties?.cluster_id;
-    if (!f || typeof cid !== "number") return;
-    void (map.getSource("cases") as GeoJSONSource)
-      .getClusterExpansionZoom(cid)
-      .then((z) => map.easeTo({ center: (f.geometry as GeoJSON.Point).coordinates as [number, number], zoom: z + 0.3, duration: reducedMotion() ? 0 : 700, easing: EASE_IN_OUT }))
-      .catch(() => {});
+  const clearHover = () => {
+    if (!hovered) return;
+    map.getCanvas().style.cursor = "";
+    setHover(null);
+    tip.hidden = true;
+    hub.emit("hot", { id: null });
+  };
+  map.on("mousemove", (e) => {
+    const h = pick(e.point);
+    const f = h?.f;
+    if (!h || !f || typeof f.id !== "number") return clearHover();
+    map.getCanvas().style.cursor = "pointer";
+    if (hovered?.id !== f.id) setHover({ src: h.kind, id: f.id });
+    if (h.kind === "pt") {
+      showTip(e, String(f.properties?.title ?? ""));
+      hub.emit("hot", { id: String(f.properties?.id ?? "") });
+    } else {
+      const n = Number(f.properties?.point_count ?? 0);
+      const pub = Number(f.properties?.pub ?? 0);
+      showTip(e, `${n} cases${pub ? ` · ${pub} published` : ""} — click to zoom in`);
+    }
   });
-  map.on("click", "pt", (e) => {
-    const id = String(e.features?.[0]?.properties?.id ?? "");
-    if (byId.has(id)) open(id);
-  });
+  map.getCanvas().addEventListener("mouseleave", clearHover);
   map.on("click", (e) => {
-    if (map.queryRenderedFeatures(e.point, { layers: ["pt", "cl"].filter((l) => map.getLayer(l)) }).length) return;
+    const h = pick(e.point);
+    if (h?.kind === "pt") {
+      const id = String(h.f.properties?.id ?? "");
+      if (byId.has(id)) open(id);
+      return;
+    }
+    if (h?.kind === "cl") {
+      const cid = h.f.properties?.cluster_id;
+      if (typeof cid !== "number") return;
+      void (map.getSource("cases") as GeoJSONSource)
+        .getClusterExpansionZoom(cid)
+        .then((z) => map.easeTo({ center: (h.f.geometry as GeoJSON.Point).coordinates as [number, number], zoom: Math.max(z + 0.3, map.getZoom() + 1.5), duration: reducedMotion() ? 0 : 700, easing: EASE_IN_OUT }))
+        .catch(() => {});
+      return;
+    }
     const v = hub.get();
     if (v.sel && !v.open) hub.set({ sel: null });
   });

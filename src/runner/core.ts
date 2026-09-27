@@ -453,6 +453,20 @@ async function syncReplies(cfg: RunnerConfig, deps: RunnerDeps, pulled: string[]
   return { put: put.length, removed: gone.length };
 }
 
+/** Site-bucket prefixes the export owns outright: anything there it no longer writes is stale. */
+export const SITE_PRUNE_PREFIXES = ["api/", "watch/"] as const;
+
+/**
+ * Pure: site-bucket keys to delete after an export — under api/ and watch/ only, absent from the
+ * new export. Never ledger/ (or anything else outside those prefixes), and never hashed bundles
+ * under an assets/ folder: a page cached a few minutes ago may still ask for the old one.
+ */
+export function sitePruneKeys(existing: readonly string[], exported: ReadonlySet<string>): string[] {
+  return existing
+    .filter((k) => SITE_PRUNE_PREFIXES.some((p) => k.startsWith(p)) && !exported.has(k) && !k.split("/").includes("assets") && !k.split("/").includes(".."))
+    .sort();
+}
+
 async function uploadDir(bucket: string, dir: string, keyOf: (rel: string) => string, rels: string[], deps: RunnerDeps): Promise<void> {
   for (const rel of rels) {
     const key = keyOf(rel);
@@ -501,13 +515,18 @@ export async function runStep(step: Step, cfg: RunnerConfig, deps: RunnerDeps, a
     const files = walk(cfg.siteDir);
     if (files.length === 0) return done({ ok: false, status: "failed", exitCode: 0, reason: `export wrote nothing to ${cfg.siteDir}`, outputTail });
     await uploadDir(cfg.siteBucket, cfg.siteDir, (rel) => rel, files, deps);
-    await deps.invalidateAll(cfg.distributionId);
+    // Mirror deletions too (e.g. a reply taken down → its api/replies/<case>.json goes away).
+    const exported = new Set(files);
+    const stale: string[] = [];
+    for (const p of SITE_PRUNE_PREFIXES) stale.push(...sitePruneKeys(await deps.store.list(cfg.siteBucket, p), exported));
+    if (stale.length) await deps.store.remove(cfg.siteBucket, stale);
+    await deps.invalidateAll(cfg.distributionId); // "/*": covers the deleted paths as well
     if (cfg.repliesDir && existsSync(join(cfg.siteDir, "api", "map.json"))) {
       // The intake (reply Lambda) takes replies only for cases in this index.
       const index = caseIndexFrom(readFileSync(join(cfg.siteDir, "api", "map.json"), "utf8"), PUBLIC_STATUSES);
       await deps.store.put(cfg.stateBucket, REPLY_CASE_INDEX_KEY, Buffer.from(JSON.stringify(index)), { contentType: "application/json; charset=utf-8" });
     }
-    return done({ ok: true, status: "ok", exitCode: 0, filesUploaded: files.length, outputTail });
+    return done({ ok: true, status: "ok", exitCode: 0, filesUploaded: files.length, filesDeleted: stale.length, outputTail });
   }
 
   if (!writing) {
