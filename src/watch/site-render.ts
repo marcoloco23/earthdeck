@@ -192,6 +192,10 @@ export function head(c: Ctx, h: HeadSpec): string {
     `<meta name="twitter:title" content="${esc(h.title)}" />`,
     `<meta name="twitter:description" content="${esc(desc)}" />`,
     image ? `<meta name="twitter:image" content="${esc(image)}" />` : "",
+    `<link rel="icon" href="${rel(c, "favicon.ico")}" sizes="48x48" />`,
+    `<link rel="icon" href="${rel(c, "favicon.svg")}" type="image/svg+xml" />`,
+    `<link rel="apple-touch-icon" href="${rel(c, "apple-touch-icon.png")}" />`,
+    `<link rel="manifest" href="${rel(c, "site.webmanifest")}" />`,
     `<link rel="alternate" type="application/geo+json" href="${rel(c, "feed.geojson")}" title="Published findings (GeoJSON)" />`,
     ...(h.jsonld ?? []).map(jsonLd),
   ];
@@ -200,7 +204,8 @@ export function head(c: Ctx, h: HeadSpec): string {
 
 // ---- chrome -----------------------------------------------------------------------------------------
 
-const BRAND_MARK = `<svg class="brand-mark" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.25" fill="none" stroke="currentColor" stroke-width="1.5"/><ellipse cx="10" cy="10" rx="3.6" ry="8.25" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.55"/><path d="M1.9 10h16.2" stroke="currentColor" stroke-width="1.2" opacity="0.55"/></svg>`;
+/** The mark (a ring — the limits — with a horizon across it); same drawing as web/site/public/favicon.svg. */
+const BRAND_MARK = `<svg class="brand-mark" viewBox="0 0 20 20" aria-hidden="true"><path d="M3.1 12.2a7.2 7.2 0 0 0 13.8 0z" fill="currentColor" opacity="0.3"/><circle cx="10" cy="10" r="7.2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1.2 12.2h17.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`;
 
 /** The shared header. On the landing, `line` (the one sentence) sits beside the wordmark as the page's h1. */
 export function siteTop(c: Ctx, current: "landing" | "cases" | "trust" | "developers" | null, line?: string): string {
@@ -330,6 +335,38 @@ export function renderMarkdown(md: string, headingOffset = 0): string {
   return html.join("\n");
 }
 
+// ---- the world map (static first paint; web/src/site/map upgrades it to MapLibre in place) --------------
+
+/**
+ * Plain links positioned over an equirectangular NASA image, so lon/lat → % is linear. It is the
+ * map for crawlers, no-JS readers and the first paint; `data-map` tells the site bundle it may
+ * swap in the interactive globe once the reader touches it (or the page goes idle).
+ */
+function worldFigure(cases: Finding[], caseBase: string, nPub: number): string {
+  const isPub = (f: Finding) => PUBLIC_STATUSES.includes(f.status);
+  const pct = (v: number) => Math.min(100, Math.max(0, v)).toFixed(2);
+  const pins = [...cases]
+    .sort((a, b) => Number(isPub(a)) - Number(isPub(b))) // published drawn last, on top
+    .map((f) => {
+      const [w, so, e, n] = f.bbox;
+      const x = (((w + e) / 2 + 180) / 360) * 100;
+      const y = ((90 - (so + n) / 2) / 180) * 100;
+      const cls = ["pin", isPub(f) ? "pin--pub" : "pin--open", y < 18 ? "pin--below" : "", x < 14 ? "pin--l" : x > 86 ? "pin--r" : ""].filter(Boolean).join(" ");
+      const title = plainTitle(f);
+      return `<a class="${cls}" href="${esc(caseBase)}case/${esc(f.findingId)}/" style="left:${pct(x)}%;top:${pct(y)}%" data-case="${esc(f.findingId)}" aria-label="${esc(`${PLAIN_STATUS[f.status] ?? words(f.status)}: ${title}`)}"><span class="pin-dot"></span><span class="pin-tip" aria-hidden="true">${esc(clip(title, 64))}</span></a>`;
+    })
+    .join("");
+  return `<figure class="world" data-map>
+            <div class="world-scroll">
+              <div class="world-in">
+                <img class="world-img" src="https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&amp;REQUEST=GetMap&amp;VERSION=1.1.1&amp;LAYERS=VIIRS_Black_Marble&amp;STYLES=&amp;SRS=EPSG:4326&amp;BBOX=-180,-90,180,90&amp;WIDTH=1440&amp;HEIGHT=720&amp;FORMAT=image/jpeg" width="1440" height="720" alt="The Earth at night with the places of ${nPub} published case${nPub === 1 ? "" : "s"} and ${cases.length - nPub} still being checked" decoding="async" fetchpriority="high" />
+                <div class="pins">${pins}</div>
+              </div>
+            </div>
+            <figcaption class="world-cap"><span class="legend"><span class="lg lg--pub"></span>Published<span class="lg lg--open"></span>Being checked</span><span class="world-hint">Earth at night · NASA</span></figcaption>
+          </figure>`;
+}
+
 // ---- landing -------------------------------------------------------------------------------------------------
 
 export function landingPage(c: Ctx, findings: Finding[]): { head: string; body: string } {
@@ -337,7 +374,7 @@ export function landingPage(c: Ctx, findings: Finding[]): { head: string; body: 
   const site = c.baseUrl ?? SITE.organization.url;
   const orgId = `${site}#org`;
   const ld = [
-    { "@context": "https://schema.org", "@type": "Organization", "@id": orgId, name: SITE.organization.name, url: c.baseUrl ?? SITE.organization.url },
+    { "@context": "https://schema.org", "@type": "Organization", "@id": orgId, name: SITE.organization.name, url: c.baseUrl ?? SITE.organization.url, ...(abs(c, SITE.logo) ? { logo: abs(c, SITE.logo) } : {}) },
     { "@context": "https://schema.org", "@type": "WebSite", name: SITE.fullName, alternateName: SITE.name, url: abs(c, "") ?? undefined, description: SITE.description, publisher: { "@id": orgId } },
     datasetLd(c, orgId),
   ];
@@ -347,25 +384,13 @@ export function landingPage(c: Ctx, findings: Finding[]): { head: string; body: 
   const latest = [...live].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 6);
   const nPub = live.filter(isPub).length;
 
-  // Markers: plain links positioned over an equirectangular image, so lon/lat → % is linear.
-  const pct = (v: number) => Math.min(100, Math.max(0, v)).toFixed(2);
-  const pins = [...live]
-    .sort((a, b) => Number(isPub(a)) - Number(isPub(b))) // published drawn last, on top
-    .map((f) => {
-      const [w, so, e, n] = f.bbox;
-      const x = (((w + e) / 2 + 180) / 360) * 100;
-      const y = ((90 - (so + n) / 2) / 180) * 100;
-      const cls = ["pin", isPub(f) ? "pin--pub" : "pin--open", y < 18 ? "pin--below" : "", x < 14 ? "pin--l" : x > 86 ? "pin--r" : ""].filter(Boolean).join(" ");
-      const title = plainTitle(f);
-      return `<a class="${cls}" href="watch/case/${esc(f.findingId)}/" style="left:${pct(x)}%;top:${pct(y)}%" data-case="${esc(f.findingId)}" aria-label="${esc(`${PLAIN_STATUS[f.status] ?? words(f.status)}: ${title}`)}"><span class="pin-dot"></span><span class="pin-tip" aria-hidden="true">${esc(clip(title, 64))}</span></a>`;
-    })
-    .join("");
   const rows = latest.length
     ? latest.map((f) => `<li>${caseRow(f, `watch/case/${f.findingId}/`, `live-row${isPub(f) ? "" : " is-unpublished"}`)}</li>`).join("")
     : `<li class="live-empty">No cases yet — the first check hasn’t found anything.</li>`;
 
   const fp = s.falsePositiveRate.overall;
-  const num = (v: string, k: string, title = "") => `<div class="num"${title ? ` title="${esc(title)}"` : ""}><dt>${esc(k)}</dt><dd>${v}</dd></div>`;
+  const num = (v: string, k: string, title = "", stat = "") =>
+    `<div class="num"${title ? ` title="${esc(title)}"` : ""}${stat ? ` data-stat="${stat}"` : ""}><dt>${esc(k)}</dt><dd>${v}</dd></div>`;
   const wrongTitle = fp.decided ? `${fp.falsePositives} of the ${fp.decided} cases we could settle were false alarms — caught by our own checks before anything was published. We keep them on the site.` : "No case has been settled yet.";
   const flow: [string, string][] = [
     ["Spot", "satellites flag a change"],
@@ -379,18 +404,10 @@ export function landingPage(c: Ctx, findings: Finding[]): { head: string; body: 
     <main class="land">
       <section class="live wrap wrap--wide" aria-label="What the watch has found">
         <div class="live-map">
-          <figure class="world">
-            <div class="world-scroll">
-              <div class="world-in">
-                <img class="world-img" src="https://gibs.earthdata.nasa.gov/wms/epsg4326/best/wms.cgi?SERVICE=WMS&amp;REQUEST=GetMap&amp;VERSION=1.1.1&amp;LAYERS=VIIRS_Black_Marble&amp;STYLES=&amp;SRS=EPSG:4326&amp;BBOX=-180,-90,180,90&amp;WIDTH=1440&amp;HEIGHT=720&amp;FORMAT=image/jpeg" width="1440" height="720" alt="The Earth at night with the places of ${nPub} published case${nPub === 1 ? "" : "s"} and ${live.length - nPub} still being checked" decoding="async" fetchpriority="high" />
-                <div class="pins">${pins}</div>
-              </div>
-            </div>
-            <figcaption class="world-cap"><span class="legend"><span class="lg lg--pub"></span>Published<span class="lg lg--open"></span>Being checked</span><span>Earth at night · NASA</span></figcaption>
-          </figure>
+          ${worldFigure(live, "watch/", nPub)}
           <dl class="nums" aria-label="So far">
-            ${num(String(s.cases.public), "Cases published")}
-            ${num(fp.decided ? `${fp.falsePositives}<span class="num-of"> of ${fp.decided}</span>` : "0", "False alarms we caught", wrongTitle)}
+            ${num(String(s.cases.public), "Cases published", "", "published")}
+            ${num(fp.decided ? `${fp.falsePositives}<span class="num-of"> of ${fp.decided}</span>` : "0", "False alarms we caught", wrongTitle, "fp")}
             ${num(s.lastSweep ? time(s.lastSweep.at, plainDate(s.lastSweep.at), "ago") : "—", "Last check", s.lastSweep ? `${s.lastSweep.at.replace("T", " ").slice(0, 16)} UTC` : "")}
           </dl>
         </div>
@@ -493,6 +510,7 @@ export function watchIndexPage(c: Ctx, findings: Finding[]): { head: string; bod
   const s = c.stats;
   const isPublic = (f: Finding) => PUBLIC_STATUSES.includes(f.status);
   const pub = findings.filter(isPublic);
+  const live = findings.filter((f) => isPublic(f) || f.status === "candidate" || f.status === "confirmed");
   const rows = findings.map((f) => `<li class="case-item${isPublic(f) ? "" : " is-unpublished"}">${caseRow(f, `case/${f.findingId}/`)}</li>`).join("");
   const orgId = `${c.baseUrl ?? SITE.organization.url}#org`;
   const crumbs = c.baseUrl
@@ -512,9 +530,10 @@ export function watchIndexPage(c: Ctx, findings: Finding[]): { head: string; bod
         <h1 class="page-h">Cases</h1>
         <p class="band-lede">Every published finding with its evidence, independent confirmation, review trail and a proof against the signed ledger. Unpublished findings — candidates, false positives, expired — stay in the ledger too.</p>
       </header>
+      <section class="cases-map" aria-label="Where the cases are">${worldFigure(live, "", live.filter(isPublic).length)}</section>
       <div class="watch-head">
         <div class="ledger-strip">
-          <div class="ledger-nums"><span class="ledger-num"><b>${pub.length}</b> published</span><span class="ledger-num"><b>${findings.length}</b> in ledger</span><span class="ledger-num"><b>${s.ledger.size}</b> entries</span></div>
+          <div class="ledger-nums"><span class="ledger-num" data-stat="published"><b>${pub.length}</b> <span class="stat-k">published</span></span><span class="ledger-num" data-stat="all"><b>${findings.length}</b> <span class="stat-k">in ledger</span></span><span class="ledger-num"><b>${s.ledger.size}</b> entries</span></div>
           ${s.ledger.root ? `<div class="ledger-root"><span class="ledger-root-k">Root</span><code class="hash" title="${esc(s.ledger.root)}">${esc(s.ledger.root.slice(0, 10))}…</code>${copyBtn(s.ledger.root)}</div>` : ""}
         </div>
         ${unpublished ? `<button class="vis-toggle" type="button" role="switch" aria-checked="false" aria-controls="case-list" hidden><span class="vis-knob"></span><span class="vis-label">Include ${unpublished} unpublished — candidates, false positives, expired</span></button>` : ""}
@@ -855,6 +874,30 @@ export function trustPage(c: Ctx, md: string): { head: string; body: string } {
     <main class="wrap wrap--narrow prose">${renderMarkdown(md)}</main>
     ${siteFoot(c)}`,
   };
+}
+
+// ---- web app manifest (icons for home screens; names from SITE) ------------------------------------------
+
+export function webManifest(): string {
+  return `${JSON.stringify(
+    {
+      name: SITE.fullName,
+      short_name: SITE.name,
+      description: SITE.byline,
+      start_url: "./",
+      scope: "./",
+      display: "browser",
+      background_color: SITE.themeColor,
+      theme_color: SITE.themeColor,
+      icons: [
+        { src: "icon-192.png", sizes: "192x192", type: "image/png" },
+        { src: "icon-512.png", sizes: "512x512", type: "image/png" },
+        { src: "favicon.svg", sizes: "any", type: "image/svg+xml" },
+      ],
+    },
+    null,
+    2,
+  )}\n`;
 }
 
 // ---- sitemap / robots ---------------------------------------------------------------------------------------------------

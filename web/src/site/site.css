@@ -406,8 +406,8 @@ a.case-row.is-unpublished {
     gap: var(--s-3);
   }
   .world-in {
-    width: max(100%, 80svh);
-    height: 40svh;
+    width: max(100%, 90svh);
+    height: 45svh;
     aspect-ratio: auto;
   }
   .num {

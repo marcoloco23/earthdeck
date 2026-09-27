@@ -1,4 +1,5 @@
 import maplibregl from "maplibre-gl";
+import { EASE_IN_OUT } from "./site/map/model";
 import type { BBox, Card, EventItem, FireItem, QuakeItem } from "./types";
 
 // NASA GIBS Blue Marble (static, no API key) as a reliable, beautiful basemap.
@@ -22,6 +23,8 @@ export function createMap(): boolean {
       container: "map",
       style: {
         version: 8,
+        // Same globe as the public site's map (web/src/site/map/explore.ts) — MapLibre ≥ 5.
+        projection: { type: "globe" },
         sources: {
           gibs: {
             type: "raster",
@@ -58,7 +61,7 @@ function fitBBox(bbox: BBox, maxZoom = 9): void {
       [w, s],
       [e, n],
     ],
-    { padding: 60, duration: 900, maxZoom },
+    { padding: 60, duration: 900, maxZoom, easing: EASE_IN_OUT },
   );
 }
 

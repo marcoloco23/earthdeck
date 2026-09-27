@@ -7,10 +7,13 @@
 //   api/ledger.json, api/ledger/<id>.json, feed.json, feed.geojson   — LedgerView's own bodies
 //   ledger/{checkpoint,pub,entries.jsonl,tile/**}                     — the verification surface
 //   api/stats.json                 counts + published false-positive rate per rule
+//   api/map.json                   the interactive map's cases + watched places (src/watch/map-data.ts)
 //   api/pulse.json                 world_pulse snapshot (fresh, else cached, else omitted)
 //   developers/index.html          verify-it-yourself commands, feeds, API, schema (kept off the landing)
 //   schema/finding-event.v1.json, trust.html (+ TRUST.md), sitemap.xml, robots.txt
-//   assets/**, og.png              the built site bundle (dist/site, `pnpm build`)
+//   assets/**, og.png, favicon.{ico,svg}, apple-touch-icon.png, icon-{192,512}.png
+//                                  the built site bundle (dist/site, `pnpm build`; icons: scripts/site-icons.mjs)
+//   site.webmanifest               name + icons for home screens, from SITE
 //
 // Every link is relative; absolute URLs appear only where the web demands them (canonical,
 // og:*, JSON-LD, sitemap), all from --base-url / SITE.baseUrl. The signing key (`ledger.key`)
@@ -24,7 +27,8 @@ import { PUBLIC_STATUSES, STATUSES, type Finding, type Status } from "../ledger/
 import { ledgerDir as defaultLedgerDir } from "../config.js";
 import { SITE } from "../site.config.js";
 import { readHeartbeat, type Heartbeat } from "./journal.js";
-import { casePage, developersPage, FALLBACK_TEMPLATE, fillTemplate, landingPage, robots, sitemap, trustPage, watchIndexPage, type CaseData, type Ctx } from "./site-render.js";
+import { mapData } from "./map-data.js";
+import { casePage, developersPage, FALLBACK_TEMPLATE, fillTemplate, landingPage, robots, sitemap, trustPage, watchIndexPage, webManifest, type CaseData, type Ctx } from "./site-render.js";
 
 const PKG_ROOT = fileURLToPath(new URL("../../", import.meta.url)); // dist/watch → root, src/watch → root
 const MARKER = ".earthdeck-site";
@@ -229,6 +233,7 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
     now,
   );
   write("api/stats.json", JSON.stringify(stats));
+  write("api/map.json", JSON.stringify(mapData(findings, now)));
 
   // ---- world pulse ----
   const pulse = await pulseSnapshot(opts.pulse ?? "auto", opts.pulseCache ?? join(dirname(resolve(lDir)), "pulse.json"), opts.pulseTimeoutMs ?? 45_000, log);
@@ -262,6 +267,8 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
     write("TRUST.md", md);
     write("trust.html", fillTemplate(tpl, 0, "trust", trustPage(ctx(0, "trust.html"), md)));
   }
+
+  write("site.webmanifest", webManifest());
 
   // ---- crawlers ----
   write("robots.txt", robots(baseUrl));

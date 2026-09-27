@@ -234,6 +234,24 @@ test("export writes a self-contained, relative, server-rendered site", async () 
   assert.equal(idx.match(/class="case-row/g)?.length, 4);
   assert.equal(idx.match(/is-unpublished/g)?.length, 3);
   assert.ok(idx.includes('src="../assets/index-abc.js"'));
+  // Icons + manifest on every page, relative to its depth; the logo is absolute in JSON-LD.
+  assert.ok(landing.includes('<link rel="icon" href="favicon.ico" sizes="48x48" />'));
+  assert.ok(landing.includes('<link rel="apple-touch-icon" href="apple-touch-icon.png" />'));
+  assert.ok(readFileSync(join(out, `watch/case/${PUB_ID}/index.html`), "utf8").includes('<link rel="icon" href="../../../favicon.svg" type="image/svg+xml" />'));
+  assert.ok(idx.includes('<link rel="manifest" href="../site.webmanifest" />'));
+  assert.equal(jsonLdOf(landing)[0]!.logo, `${BASE}/icon-512.png`);
+  const manifest = JSON.parse(readFileSync(join(out, "site.webmanifest"), "utf8"));
+  assert.equal(manifest.name, SITE.fullName);
+  assert.deepEqual(manifest.icons.map((i: { sizes: string }) => i.sizes), ["192x192", "512x512", "any"]);
+  // Both pages carry the static world map the site bundle upgrades in place; pins link relative to the page.
+  assert.ok(idx.includes('<figure class="world" data-map>') && landing.includes('<figure class="world" data-map>'));
+  assert.ok(idx.includes(`href="case/${PUB_ID}/"`));
+  // The map's data: every finding with a usable bbox, as data (the hostile title is only text inside JSON).
+  const md = JSON.parse(readFileSync(join(out, "api/map.json"), "utf8"));
+  assert.equal(md.v, 1);
+  assert.equal(md.cases.length, 4);
+  assert.deepEqual(new Set(md.cases.map((c: { group: string }) => c.group)), new Set(["published", "checking"]));
+  assert.ok(md.places.some((p: { name: string }) => p.name === "São Félix do Xingu"));
 
   // Hostile ledger content is inert.
   const evil = readFileSync(join(out, `watch/case/${EVIL_ID}/index.html`), "utf8");
