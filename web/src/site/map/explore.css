@@ -1,0 +1,314 @@
+/* The interactive map (lazy chunk, with MapLibre's own CSS). It sits over the static world image
+   in the same box — no layout shift — and uses the site's tokens (styles.css, landing.css). The
+   markers are map layers (clustered circles), not DOM. */
+
+.world.is-live .world-scroll {
+  visibility: hidden;
+}
+.world.is-live .world-cap {
+  display: none;
+}
+.xp {
+  position: absolute;
+  inset: 0;
+  outline: none;
+  opacity: 0;
+  animation: xp-in 320ms var(--ease-out) forwards;
+}
+.xp:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--accent-line);
+}
+@keyframes xp-in {
+  to {
+    opacity: 1;
+  }
+}
+.xp-map {
+  position: absolute;
+  inset: 0;
+  background: #04050b;
+}
+.xp .maplibregl-ctrl-attrib {
+  font-size: var(--fs-10);
+  background: rgb(7 9 13 / 0.7);
+  color: var(--fg-3);
+}
+.xp .maplibregl-ctrl-attrib a {
+  color: var(--fg-2);
+}
+.xp .maplibregl-ctrl-group {
+  background: var(--glass, rgb(12 16 22 / 0.88));
+  border: 1px solid var(--line-2);
+  box-shadow: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.xp .maplibregl-ctrl-group button + button {
+  border-top-color: var(--line-2);
+}
+.xp .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
+  filter: invert(0.85);
+}
+.xp .bm-caption {
+  padding: 2px 8px;
+  border-radius: var(--r-1);
+  background: rgb(7 9 13 / 0.6);
+  color: var(--fg-2);
+  font-size: var(--fs-11);
+}
+
+/* hover tip: the headline, over the marker */
+.xp-tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  max-width: 260px;
+  padding: 5px 9px;
+  border-radius: var(--r-2);
+  background: var(--bg-3);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--e-3);
+  color: var(--fg-1);
+  font-size: var(--fs-12);
+  line-height: 1.35;
+  pointer-events: none;
+}
+.xp-tip[hidden] {
+  display: none;
+}
+
+/* ---- toolbar: under the number chips, left of the panel */
+.xp-top {
+  position: absolute;
+  top: 54px;
+  left: 12px;
+  right: calc(var(--panel-w, 404px) + 28px);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-start;
+  pointer-events: none;
+}
+.xp-top > * {
+  pointer-events: auto;
+}
+.xp-search {
+  position: relative;
+  flex: 0 1 280px;
+  min-width: 0;
+}
+.xp-input {
+  width: 100%;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-line, var(--line-2));
+  background: var(--glass, rgb(12 16 22 / 0.88));
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  color: var(--fg-1);
+  font: inherit;
+  font-size: 16px; /* no zoom-on-focus on iOS */
+  outline: none;
+  transition: border-color var(--dur-hover) ease;
+}
+@media (min-width: 900px) {
+  .xp-input {
+    font-size: var(--fs-13);
+  }
+}
+.xp-input:focus-visible {
+  border-color: var(--accent-line);
+}
+.xp-input::placeholder {
+  color: var(--fg-3);
+}
+.xp-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border-radius: var(--r-3);
+  background: var(--bg-3);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--e-3);
+}
+.xp-hit {
+  display: grid;
+  gap: 1px;
+  padding: 6px 8px;
+  border-radius: var(--r-1);
+  cursor: pointer;
+}
+.xp-hit.is-active {
+  background: var(--bg-4);
+}
+.xp-hit--none {
+  color: var(--fg-3);
+  cursor: default;
+}
+.xp-hit-l {
+  color: var(--fg-1);
+  font-size: var(--fs-13);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xp-hit-s {
+  color: var(--fg-3);
+  font-size: var(--fs-11);
+}
+.xp-tools {
+  display: flex;
+  gap: 6px;
+}
+.xp-btn {
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-line, var(--line-2));
+  background: var(--glass, rgb(12 16 22 / 0.88));
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  color: var(--fg-2);
+  font: inherit;
+  font-size: var(--fs-12);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--dur-hover) ease, background-color var(--dur-hover) ease, transform var(--dur-press) var(--ease-out);
+}
+.xp-btn:active {
+  transform: scale(0.97);
+}
+@media (hover: hover) and (pointer: fine) {
+  .xp-btn:hover {
+    color: var(--fg-1);
+    background: var(--bg-3);
+  }
+}
+.xp-btn:focus-visible,
+.xp-seg-b:focus-visible,
+.xp-chip:focus-visible {
+  outline: 2px solid var(--accent-line);
+  outline-offset: 1px;
+}
+
+/* ---- time bar: bottom left, clear of the panel */
+.xp-time {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  width: min(600px, calc(100% - var(--panel-w, 404px) - 120px));
+  padding: 6px 8px;
+  border-radius: var(--r-3);
+  background: var(--glass, rgb(12 16 22 / 0.88));
+  border: 1px solid var(--glass-line, var(--line-2));
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+}
+.xp-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: var(--r-2);
+  background: rgb(7 9 13 / 0.55);
+}
+.xp-seg-b {
+  min-width: 36px;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-1);
+  background: none;
+  color: var(--fg-3);
+  font: inherit;
+  font-size: var(--fs-12);
+  cursor: pointer;
+  transition: color var(--dur-hover) ease, background-color var(--dur-hover) ease;
+}
+.xp-seg-b[aria-checked="true"] {
+  background: var(--bg-4);
+  color: var(--fg-1);
+}
+.xp-range {
+  flex: 1 1 120px;
+  min-width: 100px;
+  height: 24px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.xp-time .xp-btn {
+  height: 26px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.xp-time-l {
+  flex: 1 0 100%;
+  font-size: var(--fs-11);
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* overlay chips (they live in the panel's case view) */
+.xp-chip {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-2);
+  background: none;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: var(--fs-12);
+  cursor: pointer;
+  transition: color var(--dur-hover) ease, background-color var(--dur-hover) ease, border-color var(--dur-hover) ease, transform var(--dur-press) var(--ease-out);
+}
+.xp-chip:active {
+  transform: scale(0.97);
+}
+.xp-chip[aria-pressed="true"] {
+  color: var(--fg-1);
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+
+/* phone: the sheet owns the bottom; search under the chips; controls above the sheet */
+@media (max-width: 899px) {
+  .xp-top {
+    top: 44px;
+    left: 8px;
+    right: 8px;
+  }
+  .xp-search {
+    flex: 1 1 140px;
+  }
+  .xp-btn {
+    padding: 0 10px;
+  }
+  .xp-btn--share {
+    display: none; /* the address bar's share sheet does this on a phone; the hash is always current */
+  }
+  .xp-time {
+    display: none; /* the time window stays a desktop tool; filters live in the sheet */
+  }
+  .xp .maplibregl-ctrl-bottom-right {
+    bottom: calc(100% - var(--sheet-y, 52%) + 4px);
+  }
+  .xp .maplibregl-ctrl-group:not(:empty) {
+    display: none; /* pinch and two-finger drag instead */
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp {
+    animation-duration: 1ms;
+  }
+}

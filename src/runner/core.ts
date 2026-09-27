@@ -15,9 +15,9 @@ import { z } from "zod";
 // ── payload ──────────────────────────────────────────────────────────────────────────────
 
 /** The hand-written watchlists (`watchlists/<name>.json`). */
-export const WATCHLISTS = ["amazon", "congo-borneo", "controls", "methane", "flaring"] as const;
+export const WATCHLISTS = ["amazon", "congo-borneo", "controls", "methane", "flaring", "indicators", "weather", "good-news", "marine"] as const;
 /**
- * A sweep target: one hand-written list, `all-handwritten` (those five), `all-generated`
+ * A sweep target: one hand-written list, `all-handwritten` (all of those), `all-generated`
  * (every file in `watchlists/generated/`), or one generated list `generated/<name>`.
  */
 export type WatchlistName = (typeof WATCHLISTS)[number] | "all-handwritten" | "all-generated" | `generated/${string}`;
@@ -194,6 +194,7 @@ const TYPES: Record<string, string> = {
   md: "text/markdown; charset=utf-8",
   xml: "application/xml",
   svg: "image/svg+xml",
+  webmanifest: "application/manifest+json",
   png: "image/png",
   jpg: "image/jpeg",
   jpeg: "image/jpeg",

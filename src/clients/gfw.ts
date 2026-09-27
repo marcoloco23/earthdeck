@@ -50,8 +50,9 @@ export function bboxToPolygon(bbox: BBox): { type: "Polygon"; coordinates: numbe
  * SQL dialect rejects `IN` ("Unsupported filter operator") and numeric comparison against
  * encoded fields — string equality OR-chained is the form it accepts (verified live).
  */
-export function alertsWhere(dateFrom: string, minConfidence: GfwConfidence): string {
+export function alertsWhere(dateFrom: string, minConfidence: GfwConfidence, dateTo?: string): string {
   let where = `${DATE_FIELD} >= '${dateFrom}'`;
+  if (dateTo) where += ` AND ${DATE_FIELD} <= '${dateTo}'`;
   if (minConfidence !== "nominal") {
     const allowed = GFW_CONFIDENCES.slice(GFW_CONFIDENCES.indexOf(minConfidence));
     where += ` AND (${allowed.map((c) => `${CONF_FIELD} = '${c}'`).join(" OR ")})`;
@@ -63,18 +64,18 @@ export function alertsWhere(dateFrom: string, minConfidence: GfwConfidence): str
 // SUM(area__ha) as `area__ha` (verified live), so the SQL stays alias-free.
 
 /** Totals + area grouped by confidence level. */
-export function alertsSummarySql(dateFrom: string, minConfidence: GfwConfidence): string {
+export function alertsSummarySql(dateFrom: string, minConfidence: GfwConfidence, dateTo?: string): string {
   return (
     `SELECT ${CONF_FIELD}, COUNT(*), SUM(area__ha) FROM results ` +
-    `WHERE ${alertsWhere(dateFrom, minConfidence)} GROUP BY ${CONF_FIELD}`
+    `WHERE ${alertsWhere(dateFrom, minConfidence, dateTo)} GROUP BY ${CONF_FIELD}`
   );
 }
 
 /** Daily alert counts (drives the dashboard series chart). */
-export function alertsDailySql(dateFrom: string, minConfidence: GfwConfidence): string {
+export function alertsDailySql(dateFrom: string, minConfidence: GfwConfidence, dateTo?: string): string {
   return (
     `SELECT ${DATE_FIELD}, COUNT(*) FROM results ` +
-    `WHERE ${alertsWhere(dateFrom, minConfidence)} GROUP BY ${DATE_FIELD} ORDER BY ${DATE_FIELD}`
+    `WHERE ${alertsWhere(dateFrom, minConfidence, dateTo)} GROUP BY ${DATE_FIELD} ORDER BY ${DATE_FIELD}`
   );
 }
 
@@ -170,12 +171,14 @@ export async function integratedAlerts(
   bbox: BBox,
   dateFrom: string,
   minConfidence: GfwConfidence,
+  /** Inclusive last day (YYYY-MM-DD); omitted = up to the latest alert. */
+  dateTo?: string,
 ): Promise<{ summary: GfwAlertsSummary; daily: GfwDailyCount[] }> {
   assertBBox(bbox);
   const geometry = bboxToPolygon(bbox);
   const [summaryRows, dailyRows] = await Promise.all([
-    gfwQuery(apiKey, GFW_ALERTS_DATASET, alertsSummarySql(dateFrom, minConfidence), geometry),
-    gfwQuery(apiKey, GFW_ALERTS_DATASET, alertsDailySql(dateFrom, minConfidence), geometry),
+    gfwQuery(apiKey, GFW_ALERTS_DATASET, alertsSummarySql(dateFrom, minConfidence, dateTo), geometry),
+    gfwQuery(apiKey, GFW_ALERTS_DATASET, alertsDailySql(dateFrom, minConfidence, dateTo), geometry),
   ]);
   return { summary: parseSummaryRows(summaryRows), daily: parseDailyRows(dailyRows) };
 }

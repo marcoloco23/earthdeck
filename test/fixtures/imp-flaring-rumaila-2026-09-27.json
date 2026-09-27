@@ -1,0 +1,48 @@
+{
+ "_recorded": "flaring live 2026-09-27, Rumaila bbox, NOAA-21 only: registry = days 1 with VNF; yearAgo = 30 d to 2025-09-26, vnf false (clusters/sites dropped)",
+ "registry": {
+  "window": {
+   "from": "2026-09-27",
+   "to": "2026-09-27",
+   "days": 1
+  },
+  "counts": {
+   "detections": 0,
+   "nightDetections": 0,
+   "hotNightDetections": 0,
+   "clusters": 0,
+   "persistentClusters": 0
+  },
+  "vnf": {
+   "available": true,
+   "year": 2024,
+   "bcmTotal": 3.201,
+   "sitesInBbox": 25,
+   "previous": {
+    "available": true,
+    "year": 2023,
+    "sensor": "VIIRS S-NPP",
+    "file": "https://eogdata.mines.edu/global_flare_data/2023_flare_summary_v20240314_npp.kml",
+    "sitesInBbox": 23,
+    "bcmTotal": 2.869
+   }
+  }
+ },
+ "yearAgo": {
+  "window": {
+   "from": "2025-08-28",
+   "to": "2025-09-26",
+   "days": 30
+  },
+  "counts": {
+   "detections": 2474,
+   "nightDetections": 1787,
+   "hotNightDetections": 882,
+   "clusters": 22,
+   "persistentClusters": 15
+  },
+  "vnf": {
+   "available": false
+  }
+ }
+}

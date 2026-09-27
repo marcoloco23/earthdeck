@@ -1,0 +1,230 @@
+{
+  "version": 1,
+  "name": "Planetary indicators",
+  "description": "Zero-key indicators the repo already ingests, watched against published thresholds: polar sea ice below the 1981–2010 p10, marine heatwaves (OISST), high river flow (GloFAS), city PM2.5 above the WHO guideline (CAMS), ENSO events (ONI), M7+ earthquakes (USGS), and new annual values of world indicators (Our World in Data). Points were checked live to sit on a big-river cell / an ocean cell.",
+  "aois": [
+    {
+      "id": "seaice-arctic",
+      "name": "Arctic sea ice",
+      "bbox": [-180, 60, 180, 90],
+      "tags": ["sea-ice", "polar"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "sea_ice", "hemisphere": "arctic" } }]
+    },
+    {
+      "id": "seaice-antarctic",
+      "name": "Antarctic sea ice",
+      "bbox": [-180, -90, 180, -50],
+      "tags": ["sea-ice", "polar"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "sea_ice", "hemisphere": "antarctic" } }]
+    },
+    {
+      "id": "mhw-great-barrier-reef",
+      "name": "Great Barrier Reef (central, Australia)",
+      "bbox": [147.0, -19.0, 148.0, -18.0],
+      "tags": ["ocean", "marine-heatwave"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "marine_heatwave", "lat": -18.5, "lon": 147.5, "minAnomalyC": 1.5, "minDays": 5 } }]
+    },
+    {
+      "id": "mhw-florida-keys",
+      "name": "Florida Keys reef tract (USA)",
+      "bbox": [-81.5, 24.0, -80.5, 25.0],
+      "tags": ["ocean", "marine-heatwave"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "marine_heatwave", "lat": 24.5, "lon": -81.0, "minAnomalyC": 1.5, "minDays": 5 } }]
+    },
+    {
+      "id": "mhw-red-sea",
+      "name": "Central Red Sea",
+      "bbox": [37.5, 21.5, 38.5, 22.5],
+      "tags": ["ocean", "marine-heatwave"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "marine_heatwave", "lat": 22.0, "lon": 38.0, "minAnomalyC": 1.5, "minDays": 5 } }]
+    },
+    {
+      "id": "mhw-mediterranean",
+      "name": "Western Mediterranean (Balearic Sea)",
+      "bbox": [5.0, 38.0, 6.0, 39.0],
+      "tags": ["ocean", "marine-heatwave"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "marine_heatwave", "lat": 38.5, "lon": 5.5, "minAnomalyC": 1.5, "minDays": 5 } }]
+    },
+    {
+      "id": "mhw-galapagos",
+      "name": "Galápagos (west of Isabela, Ecuador)",
+      "bbox": [-92.5, -1.5, -91.5, -0.5],
+      "tags": ["ocean", "marine-heatwave"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "marine_heatwave", "lat": -1.0, "lon": -92.0, "minAnomalyC": 1.5, "minDays": 5 } }]
+    },
+    {
+      "id": "mhw-tasman-sea",
+      "name": "Tasman Sea",
+      "bbox": [156.5, -38.5, 157.5, -37.5],
+      "tags": ["ocean", "marine-heatwave"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "marine_heatwave", "lat": -38.0, "lon": 157.0, "minAnomalyC": 1.5, "minDays": 5 } }]
+    },
+    {
+      "id": "river-rio-negro-manaus",
+      "name": "Rio Negro at Manaus (Brazil)",
+      "bbox": [-60.5, -3.33, -60.0, -2.83],
+      "tags": ["river"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "river_discharge", "lat": -3.08, "lon": -60.25, "ratio": 2.0, "minSeasonalRatio": 1.5 } }]
+    },
+    {
+      "id": "river-ganges-patna",
+      "name": "Ganges at Patna (India)",
+      "bbox": [84.9, 25.37, 85.4, 25.87],
+      "tags": ["river"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "river_discharge", "lat": 25.62, "lon": 85.15, "ratio": 2.0, "minSeasonalRatio": 1.5 } }]
+    },
+    {
+      "id": "river-mekong-stung-treng",
+      "name": "Mekong near Stung Treng (Cambodia)",
+      "bbox": [105.7, 13.25, 106.2, 13.75],
+      "tags": ["river"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "river_discharge", "lat": 13.5, "lon": 105.95, "ratio": 2.0, "minSeasonalRatio": 1.5 } }]
+    },
+    {
+      "id": "river-rhine-duisburg",
+      "name": "Rhine near Duisburg (Germany)",
+      "bbox": [6.45, 51.15, 6.95, 51.65],
+      "tags": ["river"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "river_discharge", "lat": 51.4, "lon": 6.7, "ratio": 2.0, "minSeasonalRatio": 1.5 } }]
+    },
+    {
+      "id": "river-mississippi-vicksburg",
+      "name": "Mississippi at Vicksburg (USA)",
+      "bbox": [-91.2, 32.03, -90.7, 32.53],
+      "tags": ["river"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "river_discharge", "lat": 32.28, "lon": -90.95, "ratio": 2.0, "minSeasonalRatio": 1.5 } }]
+    },
+    {
+      "id": "air-delhi",
+      "name": "Delhi (India)",
+      "bbox": [76.96, 28.36, 77.46, 28.86],
+      "tags": ["air-quality", "city"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "air_quality", "lat": 28.61, "lon": 77.21, "minDays": 3 } }]
+    },
+    {
+      "id": "air-lahore",
+      "name": "Lahore (Pakistan)",
+      "bbox": [74.09, 31.3, 74.59, 31.8],
+      "tags": ["air-quality", "city"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "air_quality", "lat": 31.55, "lon": 74.34, "minDays": 3 } }]
+    },
+    {
+      "id": "air-jakarta",
+      "name": "Jakarta (Indonesia)",
+      "bbox": [106.6, -6.45, 107.1, -5.95],
+      "tags": ["air-quality", "city"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "air_quality", "lat": -6.2, "lon": 106.85, "minDays": 3 } }]
+    },
+    {
+      "id": "air-cairo",
+      "name": "Cairo (Egypt)",
+      "bbox": [30.99, 29.79, 31.49, 30.29],
+      "tags": ["air-quality", "city"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "air_quality", "lat": 30.04, "lon": 31.24, "minDays": 3 } }]
+    },
+    {
+      "id": "air-mexico-city",
+      "name": "Mexico City (Mexico)",
+      "bbox": [-99.38, 19.18, -98.88, 19.68],
+      "tags": ["air-quality", "city"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "air_quality", "lat": 19.43, "lon": -99.13, "minDays": 3 } }]
+    },
+    {
+      "id": "air-santiago",
+      "name": "Santiago (Chile)",
+      "bbox": [-70.92, -33.7, -70.42, -33.2],
+      "tags": ["air-quality", "city"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "air_quality", "lat": -33.45, "lon": -70.67, "minDays": 3 } }]
+    },
+    {
+      "id": "enso-global",
+      "name": "El Niño / La Niña (Niño3.4, tropical Pacific)",
+      "bbox": [-170, -5, -120, 5],
+      "tags": ["climate", "enso"],
+      "cooldownDays": 180,
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "enso" } }]
+    },
+    {
+      "id": "quake-japan",
+      "name": "Japan",
+      "bbox": [128, 30, 146, 46],
+      "tags": ["earthquake"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "quake", "minMagnitude": 7.0 } }]
+    },
+    {
+      "id": "quake-chile",
+      "name": "Chile",
+      "bbox": [-76, -45, -66, -17],
+      "tags": ["earthquake"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "quake", "minMagnitude": 7.0 } }]
+    },
+    {
+      "id": "quake-indonesia",
+      "name": "Indonesia",
+      "bbox": [94, -11, 141, 6],
+      "tags": ["earthquake"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "quake", "minMagnitude": 7.0 } }]
+    },
+    {
+      "id": "quake-turkey",
+      "name": "Türkiye",
+      "bbox": [26, 36, 45, 42],
+      "tags": ["earthquake"],
+      "rules": [{ "name": "indicator_threshold", "params": { "indicator": "quake", "minMagnitude": 7.0 } }]
+    },
+    {
+      "id": "wp-living-planet",
+      "name": "World: Living Planet Index",
+      "bbox": [-180, -90, 180, 90],
+      "tags": ["world-indicator"],
+      "cooldownDays": 1,
+      "notes": "One AOI per indicator: the kernel keys cases by rule + AOI, cooldownDays 1 lets each new year open its own case, and the rule never re-opens an indicator-year it already reported.",
+      "rules": [{ "name": "indicator_trend", "params": { "indicator": "global-living-planet-index" } }]
+    },
+    {
+      "id": "wp-red-list",
+      "name": "World: Red List Index",
+      "bbox": [-180, -90, 180, 90],
+      "tags": ["world-indicator"],
+      "cooldownDays": 1,
+      "notes": "One AOI per indicator: the kernel keys cases by rule + AOI, cooldownDays 1 lets each new year open its own case, and the rule never re-opens an indicator-year it already reported.",
+      "rules": [{ "name": "indicator_trend", "params": { "indicator": "red-list-index" } }]
+    },
+    {
+      "id": "wp-fish-stocks",
+      "name": "World: fish stocks within sustainable levels",
+      "bbox": [-180, -90, 180, 90],
+      "tags": ["world-indicator"],
+      "cooldownDays": 1,
+      "notes": "One AOI per indicator: the kernel keys cases by rule + AOI, cooldownDays 1 lets each new year open its own case, and the rule never re-opens an indicator-year it already reported.",
+      "rules": [{ "name": "indicator_trend", "params": { "indicator": "fish-stocks-within-sustainable-levels" } }]
+    },
+    {
+      "id": "wp-ocean-ph",
+      "name": "Ocean surface pH (Station ALOHA)",
+      "bbox": [-180, -90, 180, 90],
+      "tags": ["world-indicator"],
+      "cooldownDays": 1,
+      "notes": "One AOI per indicator: the kernel keys cases by rule + AOI, cooldownDays 1 lets each new year open its own case, and the rule never re-opens an indicator-year it already reported.",
+      "rules": [{ "name": "indicator_trend", "params": { "indicator": "seawater-ph" } }]
+    },
+    {
+      "id": "wp-tree-cover-loss",
+      "name": "World: tree cover loss",
+      "bbox": [-180, -90, 180, 90],
+      "tags": ["world-indicator"],
+      "cooldownDays": 1,
+      "notes": "One AOI per indicator: the kernel keys cases by rule + AOI, cooldownDays 1 lets each new year open its own case, and the rule never re-opens an indicator-year it already reported.",
+      "rules": [{ "name": "indicator_trend", "params": { "indicator": "tree-cover-loss" } }]
+    },
+    {
+      "id": "wp-marine-protected",
+      "name": "World: marine protected areas",
+      "bbox": [-180, -90, 180, 90],
+      "tags": ["world-indicator"],
+      "cooldownDays": 1,
+      "notes": "One AOI per indicator: the kernel keys cases by rule + AOI, cooldownDays 1 lets each new year open its own case, and the rule never re-opens an indicator-year it already reported.",
+      "rules": [{ "name": "indicator_trend", "params": { "indicator": "marine-protected-areas" } }]
+    }
+  ]
+}

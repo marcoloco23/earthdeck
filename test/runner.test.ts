@@ -63,7 +63,7 @@ test("stepsFor + cliArgs map payloads to CLI invocations", () => {
   delete process.env.EARTHDECK_SITE_URL;
   delete process.env.EARTHDECK_CONTACT;
   const all = stepsFor({ job: "all" });
-  assert.deepEqual(all.map((s) => s.watchlist ?? s.job), ["amazon", "congo-borneo", "controls", "methane", "flaring", "analyst", "export"]);
+  assert.deepEqual(all.map((s) => s.watchlist ?? s.job), ["amazon", "congo-borneo", "controls", "methane", "flaring", "indicators", "weather", "good-news", "marine", "analyst", "export"]);
   assert.ok(all.every((s) => !s.dryRun));
 });
 
@@ -339,9 +339,9 @@ test("parsePayload: generated lists, all-generated/all-handwritten, shard, timeB
 test("cliArgs: watchlist targets map to --watchlist paths; shard and budget pass through", () => {
   assert.deepEqual(watchlistPaths("all-generated"), ["watchlists/generated"]);
   assert.deepEqual(watchlistPaths("generated/methane-basins"), ["watchlists/generated/methane-basins.json"]);
-  assert.deepEqual(watchlistPaths("all-handwritten"), ["watchlists/amazon.json", "watchlists/congo-borneo.json", "watchlists/controls.json", "watchlists/methane.json", "watchlists/flaring.json"]);
+  assert.deepEqual(watchlistPaths("all-handwritten"), ["watchlists/amazon.json", "watchlists/congo-borneo.json", "watchlists/controls.json", "watchlists/methane.json", "watchlists/flaring.json", "watchlists/indicators.json", "watchlists/weather.json", "watchlists/good-news.json", "watchlists/marine.json"]);
   assert.deepEqual(cliArgs({ job: "sweep", watchlist: "all-generated", shard: "2/8", timeBudgetSec: 681, dryRun: false }, "/s"), ["watch", "--once", "--watchlist", "watchlists/generated", "--shard", "2/8", "--time-budget", "681"]);
-  assert.equal(cliArgs({ job: "sweep", watchlist: "all-handwritten", dryRun: true }, "/s").filter((a) => a === "--watchlist").length, 5);
+  assert.equal(cliArgs({ job: "sweep", watchlist: "all-handwritten", dryRun: true }, "/s").filter((a) => a === "--watchlist").length, 9);
   assert.deepEqual(stepsFor({ job: "sweep", watchlist: "all-generated", shard: "1/8", timeBudgetSec: 100 }), [{ job: "sweep", watchlist: "all-generated", shard: "1/8", timeBudgetSec: 100, dryRun: false }]);
 });
 
