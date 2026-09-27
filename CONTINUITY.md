@@ -107,7 +107,15 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
    is merged and deployed but UNPROVEN: GDELT answered 429 to the first call from Lambda and
    from the worker's Mac, so no real case has headlines yet; it fails soft (one 429 stops the
    export's lookups, cache 12 h). If it keeps failing or returns junk, add `--no-news` to the
-   runner's export args. Open with Marc: keep running after Mon 08:03 stop (session cron),
+   runner's export args. **Situation briefing** (LIVE 2026-09-27): `src/watch/situation.ts`
+   computes level quiet/watch/urgent by fixed rules (TRUST.md "The daily Situation"; the
+   3-in-a-region rule counts only acute rules, never flaring/good news, 5° box, 3 distinct
+   AOIs); analyst job writes one Opus briefing/day reviewed by Sonnet (≈$0.10), stored as
+   `situation/<date>.json` beside the ledger (not in the Merkle tree), fallback = rules-only
+   text; export → `api/situation.json`; site strip above the map + top of Planet mode.
+   Today: Watch (sea ice both poles p10, 50 confirmations/7 d). Known nits: attribution bar
+   overlaps the Replay button in Planet mode when the ocean-heat layer is on; old situation
+   files may not be deleted from S3. Open with Marc: keep running after Mon 08:03 stop (session cron),
    analyst cap 20, SNS email confirm, rotate aisstream key (was pasted in chat), hide Live
    toggles whose data file is missing, old `assets/` bundles never deleted.
 3c. **Queued by Marc 2026-09-26/27 (in this order, one at a time — "take it slowly")**:
