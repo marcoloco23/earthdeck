@@ -17,7 +17,7 @@ import { mockFetch } from "./helpers.js";
 
 const NOW = "2026-09-26T12:00:00Z";
 const DAY = "2026-09-26";
-const CAPS: QuotaCaps = { cdse: 60, gfw: 400, firms: 300, analystCases: 10, analystUsd: 3, perRule: { METHANE_ANOMALY: { cdse: 10 } } };
+const CAPS: QuotaCaps = { cdse: 60, gfw: 400, firms: 300, gfw_fishing: 200, analystCases: 10, analystUsd: 3, perRule: { METHANE_ANOMALY: { cdse: 10 } } };
 
 /** n quiet fire AOIs (one fires_in call each when quiet). */
 function fireList(n: number, prefix = "a"): Watchlist {

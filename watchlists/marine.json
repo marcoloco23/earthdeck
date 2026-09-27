@@ -1,0 +1,1533 @@
+{
+  "version": 1,
+  "name": "Marine protected areas — fishing inside no-take reserves",
+  "description": "16 large no-take or strictly protected marine reserves (WDPA ids from WDPA v202512 via the GFW data API; extents from the GFW public-mpa-all polygons), tiled to ≤ 25 deg² (antimeridian-crossing reserves split). Rule mpa_fishing@1.0: ≥ 50 h of Global Fishing Watch apparent fishing in 30 days in a tile, confirmed when the same bar is met inside the legal polygon or the fishing persists a week later. Left out: Chagos/BIOT (not in the current WDPA/GFW MPA list), Ross Sea (circumpolar extent → ~35 tiles at 25 deg²), Natural Park of the Coral Sea (IUCN VI, < 1% no-take). Thresholds are starting points to tune against real sweeps.",
+  "aois": [
+    {
+      "id": "mpa-papahanaumokuakea-1",
+      "name": "Papahānaumokuākea Marine National Monument — tile 1/13",
+      "bbox": [
+        -180,
+        27.61,
+        -175.2525,
+        31.8
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "usa",
+        "iucn-iv"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "220201",
+            "mpaName": "Papahānaumokuākea Marine National Monument",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted."
+          }
+        }
+      ],
+      "notes": "WDPA 220201 (v202512 via GFW): Marine National Monument, IUCN IV, no-take: Part, 1,508,825 km² marine. Tile 1/13 (≤ 25 deg²) of the polygon's extent, split at the antimeridian. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted. https://www.protectedplanet.net/220201"
+    },
+    {
+      "id": "mpa-papahanaumokuakea-2",
+      "name": "Papahānaumokuākea Marine National Monument — tile 2/13",
+      "bbox": [
+        -175.2525,
+        27.61,
+        -170.505,
+        31.8
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "usa",
+        "iucn-iv"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "220201",
+            "mpaName": "Papahānaumokuākea Marine National Monument",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted."
+          }
+        }
+      ],
+      "notes": "WDPA 220201 (v202512 via GFW): Marine National Monument, IUCN IV, no-take: Part, 1,508,825 km² marine. Tile 2/13 (≤ 25 deg²) of the polygon's extent, split at the antimeridian. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted. https://www.protectedplanet.net/220201"
+    },
+    {
+      "id": "mpa-papahanaumokuakea-3",
+      "name": "Papahānaumokuākea Marine National Monument — tile 3/13",
+      "bbox": [
+        -170.505,
+        27.61,
+        -165.7575,
+        31.8
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "usa",
+        "iucn-iv"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "220201",
+            "mpaName": "Papahānaumokuākea Marine National Monument",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted."
+          }
+        }
+      ],
+      "notes": "WDPA 220201 (v202512 via GFW): Marine National Monument, IUCN IV, no-take: Part, 1,508,825 km² marine. Tile 3/13 (≤ 25 deg²) of the polygon's extent, split at the antimeridian. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted. https://www.protectedplanet.net/220201"
+    },
+    {
+      "id": "mpa-papahanaumokuakea-4",
+      "name": "Papahānaumokuākea Marine National Monument — tile 4/13",
+      "bbox": [
+        -165.7575,
+        27.61,
+        -161.01,
+        31.8
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "usa",
+        "iucn-iv"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "220201",
+            "mpaName": "Papahānaumokuākea Marine National Monument",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted."
+          }
+        }
+      ],
+      "notes": "WDPA 220201 (v202512 via GFW): Marine National Monument, IUCN IV, no-take: Part, 1,508,825 km² marine. Tile 4/13 (≤ 25 deg²) of the polygon's extent, split at the antimeridian. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted. https://www.protectedplanet.net/220201"
+    },
+    {
+      "id": "mpa-papahanaumokuakea-5",
+      "name": "Papahānaumokuākea Marine National Monument — tile 5/13",
+      "bbox": [
+        -180,
+        23.42,
+        -175.2525,
+        27.61
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "usa",
+        "iucn-iv"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "220201",
+            "mpaName": "Papahānaumokuākea Marine National Monument",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted."
+          }
+        }
+      ],
+      "notes": "WDPA 220201 (v202512 via GFW): Marine National Monument, IUCN IV, no-take: Part, 1,508,825 km² marine. Tile 5/13 (≤ 25 deg²) of the polygon's extent, split at the antimeridian. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted. https://www.protectedplanet.net/220201"
+    },
+    {
+      "id": "mpa-papahanaumokuakea-6",
+      "name": "Papahānaumokuākea Marine National Monument — tile 6/13",
+      "bbox": [
+        -175.2525,
+        23.42,
+        -170.505,
+        27.61
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "usa",
+        "iucn-iv"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "220201",
+            "mpaName": "Papahānaumokuākea Marine National Monument",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted."
+          }
+        }
+      ],
+      "notes": "WDPA 220201 (v202512 via GFW): Marine National Monument, IUCN IV, no-take: Part, 1,508,825 km² marine. Tile 6/13 (≤ 25 deg²) of the polygon's extent, split at the antimeridian. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted. https://www.protectedplanet.net/220201"
+    },
+    {
+      "id": "mpa-papahanaumokuakea-7",
+      "name": "Papahānaumokuākea Marine National Monument — tile 7/13",
+      "bbox": [
+        -170.505,
+        23.42,
+        -165.7575,
+        27.61
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "usa",
+        "iucn-iv"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "220201",
+            "mpaName": "Papahānaumokuākea Marine National Monument",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted."
+          }
+        }
+      ],
+      "notes": "WDPA 220201 (v202512 via GFW): Marine National Monument, IUCN IV, no-take: Part, 1,508,825 km² marine. Tile 7/13 (≤ 25 deg²) of the polygon's extent, split at the antimeridian. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted. https://www.protectedplanet.net/220201"
+    },
+    {
+      "id": "mpa-papahanaumokuakea-8",
+      "name": "Papahānaumokuākea Marine National Monument — tile 8/13",
+      "bbox": [
+        -165.7575,
+        23.42,
+        -161.01,
+        27.61
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "usa",
+        "iucn-iv"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "220201",
+            "mpaName": "Papahānaumokuākea Marine National Monument",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted."
+          }
+        }
+      ],
+      "notes": "WDPA 220201 (v202512 via GFW): Marine National Monument, IUCN IV, no-take: Part, 1,508,825 km² marine. Tile 8/13 (≤ 25 deg²) of the polygon's extent, split at the antimeridian. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted. https://www.protectedplanet.net/220201"
+    },
+    {
+      "id": "mpa-papahanaumokuakea-9",
+      "name": "Papahānaumokuākea Marine National Monument — tile 9/13",
+      "bbox": [
+        -180,
+        19.23,
+        -175.2525,
+        23.42
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "usa",
+        "iucn-iv"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "220201",
+            "mpaName": "Papahānaumokuākea Marine National Monument",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted."
+          }
+        }
+      ],
+      "notes": "WDPA 220201 (v202512 via GFW): Marine National Monument, IUCN IV, no-take: Part, 1,508,825 km² marine. Tile 9/13 (≤ 25 deg²) of the polygon's extent, split at the antimeridian. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted. https://www.protectedplanet.net/220201"
+    },
+    {
+      "id": "mpa-papahanaumokuakea-10",
+      "name": "Papahānaumokuākea Marine National Monument — tile 10/13",
+      "bbox": [
+        -175.2525,
+        19.23,
+        -170.505,
+        23.42
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "usa",
+        "iucn-iv"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "220201",
+            "mpaName": "Papahānaumokuākea Marine National Monument",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted."
+          }
+        }
+      ],
+      "notes": "WDPA 220201 (v202512 via GFW): Marine National Monument, IUCN IV, no-take: Part, 1,508,825 km² marine. Tile 10/13 (≤ 25 deg²) of the polygon's extent, split at the antimeridian. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted. https://www.protectedplanet.net/220201"
+    },
+    {
+      "id": "mpa-papahanaumokuakea-11",
+      "name": "Papahānaumokuākea Marine National Monument — tile 11/13",
+      "bbox": [
+        -170.505,
+        19.23,
+        -165.7575,
+        23.42
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "usa",
+        "iucn-iv"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "220201",
+            "mpaName": "Papahānaumokuākea Marine National Monument",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted."
+          }
+        }
+      ],
+      "notes": "WDPA 220201 (v202512 via GFW): Marine National Monument, IUCN IV, no-take: Part, 1,508,825 km² marine. Tile 11/13 (≤ 25 deg²) of the polygon's extent, split at the antimeridian. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted. https://www.protectedplanet.net/220201"
+    },
+    {
+      "id": "mpa-papahanaumokuakea-12",
+      "name": "Papahānaumokuākea Marine National Monument — tile 12/13",
+      "bbox": [
+        -165.7575,
+        19.23,
+        -161.01,
+        23.42
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "usa",
+        "iucn-iv"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "220201",
+            "mpaName": "Papahānaumokuākea Marine National Monument",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted."
+          }
+        }
+      ],
+      "notes": "WDPA 220201 (v202512 via GFW): Marine National Monument, IUCN IV, no-take: Part, 1,508,825 km² marine. Tile 12/13 (≤ 25 deg²) of the polygon's extent, split at the antimeridian. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted. https://www.protectedplanet.net/220201"
+    },
+    {
+      "id": "mpa-papahanaumokuakea-13",
+      "name": "Papahānaumokuākea Marine National Monument — tile 13/13",
+      "bbox": [
+        177.84,
+        25.38,
+        180,
+        31.47
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "usa",
+        "iucn-iv"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "220201",
+            "mpaName": "Papahānaumokuākea Marine National Monument",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted."
+          }
+        }
+      ],
+      "notes": "WDPA 220201 (v202512 via GFW): Marine National Monument, IUCN IV, no-take: Part, 1,508,825 km² marine. Tile 13/13 (≤ 25 deg²) of the polygon's extent, split at the antimeridian. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Commercial fishing is prohibited throughout the monument; limited non-commercial and Native Hawaiian practice fishing may be permitted. https://www.protectedplanet.net/220201"
+    },
+    {
+      "id": "mpa-phoenix-islands-1",
+      "name": "Phoenix Islands Protected Area — tile 1/2",
+      "bbox": [
+        -175.84,
+        -6.48,
+        -172.77,
+        -0.98
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "kir",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "309888",
+            "mpaName": "Phoenix Islands Protected Area",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Closed to commercial fishing 2015; Kiribati announced a reopening in 2021 — fishing here may be licensed."
+          }
+        }
+      ],
+      "notes": "WDPA 309888 (v202512 via GFW): Protected Area, IUCN Not Reported, no-take: Not Reported, 397,407 km² marine. Tile 1/2 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Closed to commercial fishing 2015; Kiribati announced a reopening in 2021 — fishing here may be licensed. https://www.protectedplanet.net/309888"
+    },
+    {
+      "id": "mpa-phoenix-islands-2",
+      "name": "Phoenix Islands Protected Area — tile 2/2",
+      "bbox": [
+        -172.77,
+        -6.48,
+        -169.7,
+        -0.98
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "kir",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "309888",
+            "mpaName": "Phoenix Islands Protected Area",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Closed to commercial fishing 2015; Kiribati announced a reopening in 2021 — fishing here may be licensed."
+          }
+        }
+      ],
+      "notes": "WDPA 309888 (v202512 via GFW): Protected Area, IUCN Not Reported, no-take: Not Reported, 397,407 km² marine. Tile 2/2 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Closed to commercial fishing 2015; Kiribati announced a reopening in 2021 — fishing here may be licensed. https://www.protectedplanet.net/309888"
+    },
+    {
+      "id": "mpa-galapagos",
+      "name": "Galápagos Marine Reserve",
+      "bbox": [
+        -92.68,
+        -2.09,
+        -88.57,
+        2.36
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "ecu",
+        "iucn-v"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "11753",
+            "mpaName": "Galápagos Marine Reserve",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Industrial fishing is banned, but licensed local artisanal fishing is legal in zones — Ecuador-flagged effort here may be lawful."
+          }
+        }
+      ],
+      "notes": "WDPA 11753 (v202512 via GFW): Marine Reserve, IUCN V, no-take: Not Reported, 138,653 km² marine. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Industrial fishing is banned, but licensed local artisanal fishing is legal in zones — Ecuador-flagged effort here may be lawful. https://www.protectedplanet.net/11753"
+    },
+    {
+      "id": "mpa-revillagigedo",
+      "name": "Revillagigedo National Park",
+      "bbox": [
+        -115.48,
+        17.65,
+        -110.07,
+        20.01
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "mex",
+        "iucn-ia"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555629385",
+            "mpaName": "Revillagigedo National Park",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555629385 (v202512 via GFW): National Park, IUCN Ia, no-take: Not Reported, 147,915 km² marine. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555629385"
+    },
+    {
+      "id": "mpa-pitcairn-1",
+      "name": "Pitcairn Islands Marine Protected Area — tile 1/4",
+      "bbox": [
+        -133.43,
+        -24.495,
+        -127.27,
+        -20.56
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "pcn",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555624172",
+            "mpaName": "Pitcairn Islands Marine Protected Area",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Islanders may fish in a small coastal zone."
+          }
+        }
+      ],
+      "notes": "WDPA 555624172 (v202512 via GFW): Marine Protected Area, IUCN Not Reported, no-take: Part (99%), 841,907 km² marine. Tile 1/4 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Islanders may fish in a small coastal zone. https://www.protectedplanet.net/555624172"
+    },
+    {
+      "id": "mpa-pitcairn-2",
+      "name": "Pitcairn Islands Marine Protected Area — tile 2/4",
+      "bbox": [
+        -127.27,
+        -24.495,
+        -121.11,
+        -20.56
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "pcn",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555624172",
+            "mpaName": "Pitcairn Islands Marine Protected Area",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Islanders may fish in a small coastal zone."
+          }
+        }
+      ],
+      "notes": "WDPA 555624172 (v202512 via GFW): Marine Protected Area, IUCN Not Reported, no-take: Part (99%), 841,907 km² marine. Tile 2/4 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Islanders may fish in a small coastal zone. https://www.protectedplanet.net/555624172"
+    },
+    {
+      "id": "mpa-pitcairn-3",
+      "name": "Pitcairn Islands Marine Protected Area — tile 3/4",
+      "bbox": [
+        -133.43,
+        -28.43,
+        -127.27,
+        -24.495
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "pcn",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555624172",
+            "mpaName": "Pitcairn Islands Marine Protected Area",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Islanders may fish in a small coastal zone."
+          }
+        }
+      ],
+      "notes": "WDPA 555624172 (v202512 via GFW): Marine Protected Area, IUCN Not Reported, no-take: Part (99%), 841,907 km² marine. Tile 3/4 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Islanders may fish in a small coastal zone. https://www.protectedplanet.net/555624172"
+    },
+    {
+      "id": "mpa-pitcairn-4",
+      "name": "Pitcairn Islands Marine Protected Area — tile 4/4",
+      "bbox": [
+        -127.27,
+        -28.43,
+        -121.11,
+        -24.495
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "pcn",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555624172",
+            "mpaName": "Pitcairn Islands Marine Protected Area",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Islanders may fish in a small coastal zone."
+          }
+        }
+      ],
+      "notes": "WDPA 555624172 (v202512 via GFW): Marine Protected Area, IUCN Not Reported, no-take: Part (99%), 841,907 km² marine. Tile 4/4 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Islanders may fish in a small coastal zone. https://www.protectedplanet.net/555624172"
+    },
+    {
+      "id": "mpa-ascension-1",
+      "name": "Ascension Island Marine Protected Area — tile 1/2",
+      "bbox": [
+        -17.79,
+        -11.35,
+        -14.36,
+        -4.53
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "shn",
+        "iucn-not-assigned"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555651558",
+            "mpaName": "Ascension Island Marine Protected Area",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Recreational and local fishing is allowed within 12 nm of the island."
+          }
+        }
+      ],
+      "notes": "WDPA 555651558 (v202512 via GFW): Marine Protected Area, IUCN Not Assigned, no-take: Part (~99%), 446,005 km² marine. Tile 1/2 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Recreational and local fishing is allowed within 12 nm of the island. https://www.protectedplanet.net/555651558"
+    },
+    {
+      "id": "mpa-ascension-2",
+      "name": "Ascension Island Marine Protected Area — tile 2/2",
+      "bbox": [
+        -14.36,
+        -11.35,
+        -10.93,
+        -4.53
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "shn",
+        "iucn-not-assigned"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555651558",
+            "mpaName": "Ascension Island Marine Protected Area",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "Recreational and local fishing is allowed within 12 nm of the island."
+          }
+        }
+      ],
+      "notes": "WDPA 555651558 (v202512 via GFW): Marine Protected Area, IUCN Not Assigned, no-take: Part (~99%), 446,005 km² marine. Tile 2/2 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). Recreational and local fishing is allowed within 12 nm of the island. https://www.protectedplanet.net/555651558"
+    },
+    {
+      "id": "mpa-coral-sea-1",
+      "name": "Coral Sea Marine Park (National Park Zones) — tile 1/9",
+      "bbox": [
+        145,
+        -15.6467,
+        149.59,
+        -11.22
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "aus",
+        "iucn-ii"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555556875_1",
+            "mpaName": "Coral Sea Marine Park (National Park Zones)",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555556875_1 (v202512 via GFW): Australian Marine Park — National Park Zone, IUCN II, no-take: All, 238,293 km² marine. Tile 1/9 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555556875"
+    },
+    {
+      "id": "mpa-coral-sea-2",
+      "name": "Coral Sea Marine Park (National Park Zones) — tile 2/9",
+      "bbox": [
+        149.59,
+        -15.6467,
+        154.18,
+        -11.22
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "aus",
+        "iucn-ii"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555556875_1",
+            "mpaName": "Coral Sea Marine Park (National Park Zones)",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555556875_1 (v202512 via GFW): Australian Marine Park — National Park Zone, IUCN II, no-take: All, 238,293 km² marine. Tile 2/9 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555556875"
+    },
+    {
+      "id": "mpa-coral-sea-3",
+      "name": "Coral Sea Marine Park (National Park Zones) — tile 3/9",
+      "bbox": [
+        154.18,
+        -15.6467,
+        158.77,
+        -11.22
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "aus",
+        "iucn-ii"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555556875_1",
+            "mpaName": "Coral Sea Marine Park (National Park Zones)",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555556875_1 (v202512 via GFW): Australian Marine Park — National Park Zone, IUCN II, no-take: All, 238,293 km² marine. Tile 3/9 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555556875"
+    },
+    {
+      "id": "mpa-coral-sea-4",
+      "name": "Coral Sea Marine Park (National Park Zones) — tile 4/9",
+      "bbox": [
+        145,
+        -20.0733,
+        149.59,
+        -15.6467
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "aus",
+        "iucn-ii"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555556875_1",
+            "mpaName": "Coral Sea Marine Park (National Park Zones)",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555556875_1 (v202512 via GFW): Australian Marine Park — National Park Zone, IUCN II, no-take: All, 238,293 km² marine. Tile 4/9 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555556875"
+    },
+    {
+      "id": "mpa-coral-sea-5",
+      "name": "Coral Sea Marine Park (National Park Zones) — tile 5/9",
+      "bbox": [
+        149.59,
+        -20.0733,
+        154.18,
+        -15.6467
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "aus",
+        "iucn-ii"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555556875_1",
+            "mpaName": "Coral Sea Marine Park (National Park Zones)",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555556875_1 (v202512 via GFW): Australian Marine Park — National Park Zone, IUCN II, no-take: All, 238,293 km² marine. Tile 5/9 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555556875"
+    },
+    {
+      "id": "mpa-coral-sea-6",
+      "name": "Coral Sea Marine Park (National Park Zones) — tile 6/9",
+      "bbox": [
+        154.18,
+        -20.0733,
+        158.77,
+        -15.6467
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "aus",
+        "iucn-ii"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555556875_1",
+            "mpaName": "Coral Sea Marine Park (National Park Zones)",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555556875_1 (v202512 via GFW): Australian Marine Park — National Park Zone, IUCN II, no-take: All, 238,293 km² marine. Tile 6/9 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555556875"
+    },
+    {
+      "id": "mpa-coral-sea-7",
+      "name": "Coral Sea Marine Park (National Park Zones) — tile 7/9",
+      "bbox": [
+        145,
+        -24.5,
+        149.59,
+        -20.0733
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "aus",
+        "iucn-ii"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555556875_1",
+            "mpaName": "Coral Sea Marine Park (National Park Zones)",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555556875_1 (v202512 via GFW): Australian Marine Park — National Park Zone, IUCN II, no-take: All, 238,293 km² marine. Tile 7/9 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555556875"
+    },
+    {
+      "id": "mpa-coral-sea-8",
+      "name": "Coral Sea Marine Park (National Park Zones) — tile 8/9",
+      "bbox": [
+        149.59,
+        -24.5,
+        154.18,
+        -20.0733
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "aus",
+        "iucn-ii"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555556875_1",
+            "mpaName": "Coral Sea Marine Park (National Park Zones)",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555556875_1 (v202512 via GFW): Australian Marine Park — National Park Zone, IUCN II, no-take: All, 238,293 km² marine. Tile 8/9 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555556875"
+    },
+    {
+      "id": "mpa-coral-sea-9",
+      "name": "Coral Sea Marine Park (National Park Zones) — tile 9/9",
+      "bbox": [
+        154.18,
+        -24.5,
+        158.77,
+        -20.0733
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "aus",
+        "iucn-ii"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555556875_1",
+            "mpaName": "Coral Sea Marine Park (National Park Zones)",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555556875_1 (v202512 via GFW): Australian Marine Park — National Park Zone, IUCN II, no-take: All, 238,293 km² marine. Tile 9/9 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555556875"
+    },
+    {
+      "id": "mpa-palau-1",
+      "name": "Palau National Marine Sanctuary — tile 1/4",
+      "bbox": [
+        129.48,
+        6.545,
+        133.23,
+        11.45
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "plw",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555622118",
+            "mpaName": "Palau National Marine Sanctuary",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "About 20% of Palau's EEZ is a domestic fishing zone, so part of the box is legally fished."
+          }
+        }
+      ],
+      "notes": "WDPA 555622118 (v202512 via GFW): Marine Sanctuary, IUCN Not Reported, no-take: Part (80%), 502,540 km² marine. Tile 1/4 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). About 20% of Palau's EEZ is a domestic fishing zone, so part of the box is legally fished. https://www.protectedplanet.net/555622118"
+    },
+    {
+      "id": "mpa-palau-2",
+      "name": "Palau National Marine Sanctuary — tile 2/4",
+      "bbox": [
+        133.23,
+        6.545,
+        136.98,
+        11.45
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "plw",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555622118",
+            "mpaName": "Palau National Marine Sanctuary",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "About 20% of Palau's EEZ is a domestic fishing zone, so part of the box is legally fished."
+          }
+        }
+      ],
+      "notes": "WDPA 555622118 (v202512 via GFW): Marine Sanctuary, IUCN Not Reported, no-take: Part (80%), 502,540 km² marine. Tile 2/4 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). About 20% of Palau's EEZ is a domestic fishing zone, so part of the box is legally fished. https://www.protectedplanet.net/555622118"
+    },
+    {
+      "id": "mpa-palau-3",
+      "name": "Palau National Marine Sanctuary — tile 3/4",
+      "bbox": [
+        129.48,
+        1.64,
+        133.23,
+        6.545
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "plw",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555622118",
+            "mpaName": "Palau National Marine Sanctuary",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "About 20% of Palau's EEZ is a domestic fishing zone, so part of the box is legally fished."
+          }
+        }
+      ],
+      "notes": "WDPA 555622118 (v202512 via GFW): Marine Sanctuary, IUCN Not Reported, no-take: Part (80%), 502,540 km² marine. Tile 3/4 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). About 20% of Palau's EEZ is a domestic fishing zone, so part of the box is legally fished. https://www.protectedplanet.net/555622118"
+    },
+    {
+      "id": "mpa-palau-4",
+      "name": "Palau National Marine Sanctuary — tile 4/4",
+      "bbox": [
+        133.23,
+        1.64,
+        136.98,
+        6.545
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "plw",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555622118",
+            "mpaName": "Palau National Marine Sanctuary",
+            "days": 30,
+            "minHours": 50,
+            "legalNote": "About 20% of Palau's EEZ is a domestic fishing zone, so part of the box is legally fished."
+          }
+        }
+      ],
+      "notes": "WDPA 555622118 (v202512 via GFW): Marine Sanctuary, IUCN Not Reported, no-take: Part (80%), 502,540 km² marine. Tile 4/4 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). About 20% of Palau's EEZ is a domestic fishing zone, so part of the box is legally fished. https://www.protectedplanet.net/555622118"
+    },
+    {
+      "id": "mpa-isla-del-coco",
+      "name": "Cocos Island National Park",
+      "bbox": [
+        -88.99,
+        4.52,
+        -86.36,
+        6.24
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "cri",
+        "iucn-ii"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "170",
+            "mpaName": "Cocos Island National Park",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 170 (v202512 via GFW): National Park, IUCN II, no-take: Not Reported, 54,844 km² marine. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/170"
+    },
+    {
+      "id": "mpa-malpelo",
+      "name": "Malpelo Fauna and Flora Sanctuary",
+      "bbox": [
+        -82.11,
+        3.27,
+        -79.86,
+        5
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "col",
+        "iucn-ib"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "303552",
+            "mpaName": "Malpelo Fauna and Flora Sanctuary",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 303552 (v202512 via GFW): Fauna and Flora Sanctuary, IUCN Ib, no-take: All, 47,287 km² marine. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/303552"
+    },
+    {
+      "id": "mpa-kermadec",
+      "name": "Kermadec Islands Marine Reserve",
+      "bbox": [
+        -179.15,
+        -31.56,
+        -177.62,
+        -29.03
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "nzl",
+        "iucn-ia"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "313615",
+            "mpaName": "Kermadec Islands Marine Reserve",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 313615 (v202512 via GFW): Marine Reserve, IUCN Ia, no-take: All, 7,551 km² marine. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/313615"
+    },
+    {
+      "id": "mpa-nazca-desventuradas-1",
+      "name": "Nazca-Desventuradas Marine Park — tile 1/2",
+      "bbox": [
+        -83.77,
+        -29.37,
+        -79.975,
+        -22.95
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "chl",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555790085",
+            "mpaName": "Nazca-Desventuradas Marine Park",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555790085 (v202512 via GFW): National Park, IUCN Not Reported, no-take: All, 299,004 km² marine. Tile 1/2 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555790085"
+    },
+    {
+      "id": "mpa-nazca-desventuradas-2",
+      "name": "Nazca-Desventuradas Marine Park — tile 2/2",
+      "bbox": [
+        -79.975,
+        -29.37,
+        -76.18,
+        -22.95
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "chl",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555790085",
+            "mpaName": "Nazca-Desventuradas Marine Park",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555790085 (v202512 via GFW): National Park, IUCN Not Reported, no-take: All, 299,004 km² marine. Tile 2/2 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555790085"
+    },
+    {
+      "id": "mpa-motu-motiro-hiva",
+      "name": "Motu Motiro Hiva Marine Park",
+      "bbox": [
+        -106.06,
+        -29.42,
+        -101.78,
+        -24.85
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "chl",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555790084",
+            "mpaName": "Motu Motiro Hiva Marine Park",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555790084 (v202512 via GFW): National Park, IUCN Not Reported, no-take: All, 150,133 km² marine. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555790084"
+    },
+    {
+      "id": "mpa-tristan-da-cunha-1",
+      "name": "Tristan da Cunha Marine Protection Zone — tile 1/6",
+      "bbox": [
+        -16.89,
+        -38.715,
+        -13.0967,
+        -33.72
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "shn",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555720256",
+            "mpaName": "Tristan da Cunha Marine Protection Zone",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555720256 (v202512 via GFW): Marine Protection Zone, IUCN Not Reported, no-take: All, 687,222 km² marine. Tile 1/6 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555720256"
+    },
+    {
+      "id": "mpa-tristan-da-cunha-2",
+      "name": "Tristan da Cunha Marine Protection Zone — tile 2/6",
+      "bbox": [
+        -13.0967,
+        -38.715,
+        -9.3033,
+        -33.72
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "shn",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555720256",
+            "mpaName": "Tristan da Cunha Marine Protection Zone",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555720256 (v202512 via GFW): Marine Protection Zone, IUCN Not Reported, no-take: All, 687,222 km² marine. Tile 2/6 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555720256"
+    },
+    {
+      "id": "mpa-tristan-da-cunha-3",
+      "name": "Tristan da Cunha Marine Protection Zone — tile 3/6",
+      "bbox": [
+        -9.3033,
+        -38.715,
+        -5.51,
+        -33.72
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "shn",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555720256",
+            "mpaName": "Tristan da Cunha Marine Protection Zone",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555720256 (v202512 via GFW): Marine Protection Zone, IUCN Not Reported, no-take: All, 687,222 km² marine. Tile 3/6 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555720256"
+    },
+    {
+      "id": "mpa-tristan-da-cunha-4",
+      "name": "Tristan da Cunha Marine Protection Zone — tile 4/6",
+      "bbox": [
+        -16.89,
+        -43.71,
+        -13.0967,
+        -38.715
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "shn",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555720256",
+            "mpaName": "Tristan da Cunha Marine Protection Zone",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555720256 (v202512 via GFW): Marine Protection Zone, IUCN Not Reported, no-take: All, 687,222 km² marine. Tile 4/6 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555720256"
+    },
+    {
+      "id": "mpa-tristan-da-cunha-5",
+      "name": "Tristan da Cunha Marine Protection Zone — tile 5/6",
+      "bbox": [
+        -13.0967,
+        -43.71,
+        -9.3033,
+        -38.715
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "shn",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555720256",
+            "mpaName": "Tristan da Cunha Marine Protection Zone",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555720256 (v202512 via GFW): Marine Protection Zone, IUCN Not Reported, no-take: All, 687,222 km² marine. Tile 5/6 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555720256"
+    },
+    {
+      "id": "mpa-tristan-da-cunha-6",
+      "name": "Tristan da Cunha Marine Protection Zone — tile 6/6",
+      "bbox": [
+        -9.3033,
+        -43.71,
+        -5.51,
+        -38.715
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "shn",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555720256",
+            "mpaName": "Tristan da Cunha Marine Protection Zone",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555720256 (v202512 via GFW): Marine Protection Zone, IUCN Not Reported, no-take: All, 687,222 km² marine. Tile 6/6 (≤ 25 deg²) of the polygon's extent. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555720256"
+    },
+    {
+      "id": "mpa-niue-moana-mahu",
+      "name": "Niue Moana Mahu Marine Protected Area",
+      "bbox": [
+        -170.25,
+        -22.46,
+        -166.3,
+        -18.23
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "niu",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555705568",
+            "mpaName": "Niue Moana Mahu Marine Protected Area",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555705568 (v202512 via GFW): Marine Protected Area, IUCN Not Reported, no-take: All, 129,425 km² marine. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555705568"
+    },
+    {
+      "id": "mpa-aldabra",
+      "name": "Aldabra Group Marine National Park",
+      "bbox": [
+        43.19,
+        -11.14,
+        50.17,
+        -8
+      ],
+      "tags": [
+        "marine",
+        "marine-protected-area",
+        "fishing",
+        "syc",
+        "iucn-not-reported"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "mpa_fishing",
+          "params": {
+            "mpaId": "555643548",
+            "mpaName": "Aldabra Group Marine National Park",
+            "days": 30,
+            "minHours": 50
+          }
+        }
+      ],
+      "notes": "WDPA 555643548 (v202512 via GFW): Marine National Park, IUCN Not Reported, no-take: All, 195,294 km² marine. The box is a watch window around the reserve, not its legal boundary (the rule checks the polygon via GFW). https://www.protectedplanet.net/555643548"
+    }
+  ]
+}
