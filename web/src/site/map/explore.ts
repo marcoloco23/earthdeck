@@ -2,8 +2,9 @@
 // web/src/site/main.ts once the reader touches the static world image or the page goes idle,
 // then swapped in over that image without moving the layout.
 //
-// Keyless only: NASA GIBS Blue Marble + OSM-derived GIBS labels (OpenFreeMap if GIBS is down);
-// per-case evidence overlays from GFW (forest alerts) and GIBS HLS (Sentinel-2/Landsat 30 m
+// Keyless only: the shared zoom-dependent basemap (web/src/layers/basemap.ts — NASA GIBS daily
+// true colour → EOX Sentinel-2 cloudless mosaic, OpenFreeMap names + roads; OpenFreeMap's own style
+// if GIBS is down); per-case evidence overlays from GFW (forest alerts) and GIBS HLS (Sentinel-2/Landsat 30 m
 // before/after). Every overlay is decoration: when a source fails, the map just shows less.
 // Ledger text is public input — everything below is built with textContent, never innerHTML.
 
@@ -11,6 +12,7 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./explore.css";
 import { el, reducedMotion } from "../../ui";
+import { BASEMAP_LABELS_BELOW, basemapStyle, mountBasemapCaption } from "../../layers/basemap";
 import {
   CASE_ID,
   DEFAULT_VIEW,
@@ -40,8 +42,6 @@ import {
 } from "./model";
 
 const GIBS = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best";
-const BASEMAP = `${GIBS}/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg`;
-const LABELS = `${GIBS}/Reference_Labels_15m/default/default/GoogleMapsCompatible_Level13/{z}/{y}/{x}.png`;
 const HLS = (day: string) => `${GIBS}/HLS_S30_Nadir_BRDF_Adjusted_Reflectance/default/${day}/GoogleMapsCompatible_Level12/{z}/{y}/{x}.png`;
 const GFW = (from: string, to: string) =>
   `https://tiles.globalforestwatch.org/gfw_integrated_alerts/latest/dynamic/{z}/{x}/{y}.png?render_type=true_color&start_date=${from}&end_date=${to}`;
@@ -97,19 +97,7 @@ export function mountExplorer({ figure, data, root }: Options): void {
   try {
     map = new maplibregl.Map({
       container: mapBox,
-      style: {
-        version: 8,
-        projection: { type: "globe" },
-        sky: { "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 0.9, 4, 0.5, 7, 0] },
-        sources: {
-          base: { type: "raster", tiles: [BASEMAP], tileSize: 256, maxzoom: 8, attribution: "NASA EOSDIS GIBS" },
-          labels: { type: "raster", tiles: [LABELS], tileSize: 256, maxzoom: 13, attribution: "Labels © OpenStreetMap contributors via NASA GIBS" },
-        },
-        layers: [
-          { id: "base", type: "raster", source: "base" },
-          { id: "labels", type: "raster", source: "labels", minzoom: 3, paint: { "raster-opacity": 0.85 } },
-        ],
-      },
+      style: { ...basemapStyle(), sky: { "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 0.9, 4, 0.5, 7, 0] } },
       center: view.center,
       zoom: view.zoom,
       pitch: view.pitch,
@@ -125,18 +113,20 @@ export function mountExplorer({ figure, data, root }: Options): void {
     return;
   }
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
+  const caption = mountBasemapCaption(map);
 
   // Basemap fallback: GIBS failing before any tile arrives → OpenFreeMap (keyless vector).
   let baseLoaded = false;
   let baseErrors = 0;
   let fellBack = false;
   map.on("sourcedata", (e) => {
-    if (e.sourceId === "base" && e.isSourceLoaded) baseLoaded = true;
+    if (e.sourceId === "bm-gibs" && e.isSourceLoaded) baseLoaded = true;
   });
   map.on("error", (e) => {
     const src = (e as unknown as { sourceId?: string }).sourceId;
-    if (src === "base" && !baseLoaded && !fellBack && ++baseErrors >= 4) {
+    if (src === "bm-gibs" && !baseLoaded && !fellBack && ++baseErrors >= 4) {
       fellBack = true;
+      map.removeControl(caption); // the fallback style is a drawn map, not imagery
       map.setStyle(FALLBACK_STYLE);
       map.once("style.load", () => {
         try {
@@ -643,7 +633,7 @@ export function mountExplorer({ figure, data, root }: Options): void {
   function addRaster(id: string, tiles: string, bounds: [number, number, number, number], maxzoom: number, opacity: number, attribution: string): void {
     if (!map.getStyle()) return;
     map.addSource(id, { type: "raster", tiles: [tiles], tileSize: 256, minzoom: 5, maxzoom, bounds, attribution });
-    map.addLayer({ id, type: "raster", source: id, minzoom: 5, paint: { "raster-opacity": opacity, "raster-fade-duration": 200 } }, map.getLayer("labels") ? "labels" : undefined);
+    map.addLayer({ id, type: "raster", source: id, minzoom: 5, paint: { "raster-opacity": opacity, "raster-fade-duration": 200 } }, map.getLayer(BASEMAP_LABELS_BELOW) ? BASEMAP_LABELS_BELOW : undefined);
     ovLayers.push(id);
   }
   function drawOverlays(): void {

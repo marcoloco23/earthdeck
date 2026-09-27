@@ -1,11 +1,8 @@
 import maplibregl from "maplibre-gl";
 import { EASE_IN_OUT } from "./site/map/model";
 import { WEATHER_LAYERS, addLayer, mountLayerToggles, stormsLayer, type LayerHandle } from "./layers/weather";
+import { basemapStyle, mountBasemapCaption } from "./layers/basemap";
 import type { BBox, Card, EventItem, FireItem, QuakeItem } from "./types";
-
-// NASA GIBS Blue Marble (static, no API key) as a reliable, beautiful basemap.
-const GIBS_BASEMAP =
-  "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg";
 
 let map: maplibregl.Map | null = null;
 const overlayIds: string[] = [];
@@ -22,26 +19,14 @@ export function createMap(): boolean {
   try {
     map = new maplibregl.Map({
       container: "map",
-      style: {
-        version: 8,
-        // Same globe as the public site's map (web/src/site/map/explore.ts) — MapLibre ≥ 5.
-        projection: { type: "globe" },
-        sources: {
-          gibs: {
-            type: "raster",
-            tiles: [GIBS_BASEMAP],
-            tileSize: 256,
-            maxzoom: 8,
-            attribution: "NASA EOSDIS GIBS",
-          },
-        },
-        layers: [{ id: "gibs", type: "raster", source: "gibs" }],
-      },
+      // Same globe + zoom-dependent imagery stack as the public site's map (web/src/layers/basemap.ts).
+      style: basemapStyle(),
       center: [0, 20],
       zoom: 1.4,
       attributionControl: { compact: true },
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+    mountBasemapCaption(map);
     // Keyless weather overlays (local dashboard = personal use, so RainViewer radar is allowed here).
     const m = map;
     const container = document.getElementById("map");

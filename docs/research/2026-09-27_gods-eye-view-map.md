@@ -88,7 +88,11 @@ Their product is a live-feed toy: things move, and the fun is following them. Ou
   and CSS transitions for free.
 - **NC or share-alike datasets.** We avoid them. Our sources are NASA GIBS (public domain) and
   GFW integrated alerts (CC BY 4.0), whose tiles are keyless and CORS-open, plus OSM labels via
-  GIBS and OpenFreeMap as a fallback basemap (ODbL, with attribution).
+  GIBS and OpenFreeMap as a fallback basemap (ODbL, with attribution). **One exception, for the
+  basemap only:** the zoomed-in EOxCloudless 2025 mosaic is CC BY-NC-SA 4.0 (free for
+  non-commercial use with EOX's attribution). It is display imagery, never evidence, and the
+  site must stay non-commercial while it is used. If that changes, switch to the 2016 layer
+  (CC BY 4.0) or a keyed provider.
 
 ## The interactions we adopted
 
@@ -96,7 +100,11 @@ Their product is a live-feed toy: things move, and the fun is following them. Ou
    pins, which works for crawlers, no-JS readers and the first paint. The MapLibre chunk and
    `api/map.json` load on hover, tap or focus, or after the page has been idle on a connection
    that isn't in save-data mode. A `#map:` link upgrades at once.
-2. **Globe projection**, Blue Marble basemap and OSM labels via GIBS. If GIBS fails, the map
+2. **Globe projection** with a zoom-dependent basemap (`web/src/layers/basemap.ts`, shared with
+   the dashboard). At z0–7 it shows NASA GIBS VIIRS daily true colour (yesterday, so it has
+   the clouds and smoke). Over z6–8 it crossfades to the EOxCloudless Sentinel-2 2025 mosaic
+   (10 m, sharp to about z14). OpenFreeMap place names and roads sit on top. A corner caption
+   says which imagery you see, so the mosaic is never taken for today. If GIBS fails, the map
    falls back to OpenFreeMap.
 3. **Layer toggles.** Status (Published / Being checked / Wrong or dropped) and case type
    (forest loss, fires, new flaring, flaring stopped, methane), with counts.

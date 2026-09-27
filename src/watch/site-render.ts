@@ -232,7 +232,9 @@ export function siteFoot(c: Ctx): string {
         <ul class="attrib">
           <li><b>Global Forest Watch</b> — integrated deforestation alerts, World Resources Institute. CC BY 4.0.</li>
           <li><b>Copernicus</b> — contains modified Copernicus Sentinel data, processed via the Copernicus Data Space Ecosystem; CAMS, ERA5 and GloFAS information from the Copernicus services.</li>
-          <li><b>NASA FIRMS</b> — we acknowledge the use of data and imagery from LANCE FIRMS operated by NASA’s Earth Science Data and Information System (ESDIS). Imagery: NASA GIBS (Blue Marble, Black Marble).</li>
+          <li><b>NASA FIRMS</b> — we acknowledge the use of data and imagery from LANCE FIRMS operated by NASA’s Earth Science Data and Information System (ESDIS). Imagery: NASA GIBS (Blue Marble, Black Marble, VIIRS daily true colour).</li>
+          <li><b>EOX</b> — map imagery when zoomed in: EOxCloudless https://cloudless.eox.at by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2025). CC BY-NC-SA 4.0.</li>
+          <li><b>OpenStreetMap</b> — map place names and roads: © OpenStreetMap contributors, ODbL; tiles by OpenFreeMap, OpenMapTiles schema.</li>
           <li><b>Climate TRACE</b> — asset-level emissions inventory. CC BY 4.0.</li>
           <li><b>Our World in Data</b> — world pulse indicators. CC BY 4.0; upstream licences per indicator.</li>
           <li><b>GBIF</b> — GBIF.org occurrence data; licence per dataset (CC0, CC BY or CC BY-NC).</li>
