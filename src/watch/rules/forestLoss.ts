@@ -4,7 +4,7 @@
 // provider). Baseline: alert density in a neighbourhood ring, so a quiet AOI next to a
 // loud region — or the reverse — is visible in the finding itself.
 
-import { livingValueForFinding } from "../../clients/naturalvalue.js";
+import { MAPBIOMAS_YEAR, geeStatus, insideMapBiomasBrazil, livingValueForFinding, mapbiomasConvertedPct } from "../../clients/naturalvalue.js";
 import type { Evidence } from "../../ledger/schema.js";
 import type { BBox } from "../../types.js";
 import { addDays, isoDate } from "../../util.js";
@@ -71,7 +71,13 @@ export const forestLoss = defineRule({
     const observedAt = dayStart(r.window.to);
     // What the cleared area was doing alive (benefit transfer; GFW alerts are tropical-only).
     const living = livingValueForFinding(r.areaHa, "tropical_forest");
-    const livingValues = { living_value_usd_yr: living.annualUsd, living_value_100y_usd: living.horizonUsd, living_value_100y_npv2_usd: living.npvUsd };
+    const converted = await watchAreaConverted(ctx);
+    const livingValues = {
+      living_value_usd_yr: living.annualUsd,
+      living_value_100y_usd: living.horizonUsd,
+      living_value_100y_npv2_usd: living.npvUsd,
+      ...(converted ? { watch_area_converted_pct: converted.pct } : {}),
+    };
     const evidence: Evidence[] = [
       {
         id: `gfw-integrated-${ctx.aoi.id}-${r.window.from}..${r.window.to}`,
@@ -111,7 +117,7 @@ export const forestLoss = defineRule({
       values: { alerts: r.alertCount, ha: r.areaHa, ...livingValues },
       geometry: bboxPolygon(ctx.aoi.bbox),
       baseline,
-      notes: [living.note],
+      notes: [living.note, ...(converted ? [`The watch area is ${converted.pct} % converted land (MapBiomas ${converted.year}: pasture, crops, mosaic, urban, mining).`] : [])],
     };
   },
 
@@ -139,6 +145,22 @@ export const forestLoss = defineRule({
     };
   },
 });
+
+/**
+ * Context only: how much of the watch area MapBiomas already calls converted. Brazil AOIs with
+ * Earth Engine configured; any failure → null (never blocks the finding). The lost area itself
+ * is still valued as forest — it was forest before the alert.
+ */
+async function watchAreaConverted(ctx: RuleContext): Promise<{ pct: number; year: number } | null> {
+  if (geeStatus() !== true || !insideMapBiomasBrazil(ctx.aoi.bbox)) return null;
+  try {
+    const r = (await ctx.call("gee_query", { query: "land_cover", dataset: "mapbiomas", year: MAPBIOMAS_YEAR, bbox: ctx.aoi.bbox })) as { classes?: { code: number; sharePct: number }[] };
+    const pct = mapbiomasConvertedPct(r.classes ?? []);
+    return pct === null ? null : { pct, year: MAPBIOMAS_YEAR };
+  } catch {
+    return null;
+  }
+}
 
 /** Largest ring ≤ ringKm whose bbox stays under the GFW area cap; null if the AOI itself is too big. */
 function fitRing(bbox: BBox, km: number): { bbox: BBox; km: number } | null {

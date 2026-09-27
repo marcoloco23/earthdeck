@@ -8,6 +8,9 @@
 // sourced it is absent, never estimated here.
 
 import { getCopernicus } from "./copernicus.js";
+import { DW_CLASSES, GEE_SOURCES, MAPBIOMAS_CLASSES, geeClient, landCoverExpression, pickScale, type GeeClient } from "./gee.js";
+import { bboxAreaKm2 } from "./protected.js";
+import { geeCreds } from "../config.js";
 import { OverviewError } from "../errors.js";
 import type { BBox } from "../types.js";
 import { round } from "../series.js";
@@ -447,4 +450,198 @@ export function assumeBiome(lat: number): { biome: BiomeId; assumption: string }
     biome,
     assumption: `ASSUMPTION: no land-cover measurement; the whole box is treated as ${BIOMES[biome]?.label ?? biome} from its latitude (${round(lat, 2)}°). This overstates value wherever the land is already cleared, farmed or built on — pass \`biome\` or enable CDSE land cover.`,
   };
+}
+
+// ---- land USE via Earth Engine (MapBiomas / Dynamic World) -----------------------------------
+//
+// Provider order when GEE is configured: MapBiomas (Brazil) → Dynamic World → CLMS/CDSE → assumed.
+// Each class is either NATURAL (valued with a registry biome, or explicitly unvalued) or CONVERTED
+// (pasture, crops, mosaic, urban, mining, bare). Converted land is never in the living natural
+// value; where the registry has a sourced value for it (Costanza 2014 cropland / urban) that value
+// is reported separately as a reference, never summed.
+
+export type LandCoverProvider = "mapbiomas-ee" | "dynamicworld-ee" | "clms-cdse" | "assumed";
+export type GeeLandCoverDataset = "mapbiomas" | "dynamic-world";
+
+/** "forest" resolves to tropical/temperate/boreal by latitude (forestBiome). */
+export interface ClassValuation {
+  use: "natural" | "converted";
+  biome: BiomeId | "forest" | null;
+  basis: string;
+}
+
+const B_FOREST = "Costanza 2014 forest unit value, tropical/temperate/boreal by latitude";
+const B_GRASS = "Costanza 2014 grass/rangelands — natural herbaceous/shrub/savanna vegetation (Costanza has no savanna or shrubland biome; same approximation the CLMS path uses for shrubland)";
+const B_WATER = "Costanza 2014 lakes/rivers (all water, as on the CLMS path)";
+const B_NATURAL_NONE = "natural, but no sourced unit value → excluded (0)";
+const B_PASTURE = "no sourced ESV for planted pasture → excluded (0). Costanza's grass/rangelands value is for rangeland and is not transferred to pasture sown on cleared forest";
+const B_CROP = "converted → excluded; Costanza 2014 cropland value shown as a separate reference only";
+const B_URBAN = "converted → excluded; Costanza 2014 urban value shown as a separate reference only";
+const B_CONV_NONE = "converted, no sourced value → excluded (0)";
+
+const nat = (biome: ClassValuation["biome"], basis: string): ClassValuation => ({ use: "natural", biome, basis });
+const conv = (biome: "cropland" | "urban" | null, basis: string): ClassValuation => ({ use: "converted", biome, basis });
+
+/** MapBiomas Brazil Collection 10 legend → valuation. Codes 0 (no data) and 27 (not observed) are dropped. */
+export const MAPBIOMAS_VALUATION: Record<number, ClassValuation> = {
+  3: nat("forest", B_FOREST),
+  6: nat("forest", `${B_FOREST}; floodable (várzea/igapó) forest valued as forest, not wetland — the conservative choice`),
+  49: nat("forest", `${B_FOREST} (wooded restinga)`),
+  4: nat("grassland", B_GRASS),
+  12: nat("grassland", B_GRASS),
+  13: nat("grassland", B_GRASS),
+  50: nat("grassland", B_GRASS),
+  5: nat("mangrove", "Costanza 2014 tidal marsh/mangroves"),
+  11: nat("wetland", "Costanza 2014 swamps/floodplains"),
+  33: nat("lakes_rivers", B_WATER),
+  32: nat(null, B_NATURAL_NONE),
+  29: nat(null, B_NATURAL_NONE),
+  23: nat(null, B_NATURAL_NONE),
+  15: conv(null, B_PASTURE),
+  21: conv(null, "mosaic of pasture and agriculture — no sourced value → excluded (0)"),
+  9: conv(null, `${B_CONV_NONE} (Costanza has no plantation biome)`),
+  19: conv("cropland", B_CROP), 39: conv("cropland", B_CROP), 20: conv("cropland", B_CROP), 40: conv("cropland", B_CROP),
+  62: conv("cropland", B_CROP), 41: conv("cropland", B_CROP), 36: conv("cropland", B_CROP), 46: conv("cropland", B_CROP),
+  47: conv("cropland", B_CROP), 35: conv("cropland", B_CROP), 48: conv("cropland", B_CROP),
+  24: conv("urban", B_URBAN),
+  30: conv(null, B_CONV_NONE),
+  75: conv(null, B_CONV_NONE),
+  25: conv(null, B_CONV_NONE),
+  31: conv(null, B_CONV_NONE),
+};
+
+/** Dynamic World V1 labels → valuation. */
+export const DW_VALUATION: Record<number, ClassValuation> = {
+  0: nat("lakes_rivers", B_WATER),
+  1: nat("forest", `${B_FOREST}; DW 'trees' also includes plantations and orchards`),
+  2: nat("grassland", `${B_GRASS}; DW 'grass' also includes PASTURE, parks and lawns — it cannot separate them`),
+  3: nat("wetland", "Costanza 2014 swamps/floodplains"),
+  5: nat("grassland", B_GRASS),
+  8: nat(null, B_NATURAL_NONE),
+  4: conv("cropland", B_CROP),
+  6: conv("urban", B_URBAN),
+  7: conv(null, B_CONV_NONE),
+};
+
+const GEE_DROP: Record<GeeLandCoverDataset, number[]> = { mapbiomas: [0, 27], "dynamic-world": [] };
+
+/**
+ * MapBiomas Brazil coverage extent (Brazil incl. offshore islands). Inside it we try MapBiomas;
+ * because the rectangle also holds parts of neighbouring countries, the classified-pixel
+ * coverage check in geeLandCoverFromResult is what really decides.
+ */
+export const MAPBIOMAS_BRAZIL_BBOX: BBox = [-74.0, -33.8, -28.8, 5.3];
+export const MAPBIOMAS_YEAR = 2024; // last year of Collection 10
+export const DW_WINDOW_DAYS = 182;
+const MIN_COVERAGE: Record<GeeLandCoverDataset, number> = { mapbiomas: 0.9, "dynamic-world": 0.5 };
+
+export function insideMapBiomasBrazil([w, s, e, n]: BBox): boolean {
+  const [W, S, E, N] = MAPBIOMAS_BRAZIL_BBOX;
+  return w >= W && s >= S && e <= E && n <= N;
+}
+
+/** Earth Engine datasets to try, in order, for this box. */
+export function geeDatasetsFor(bbox: BBox): GeeLandCoverDataset[] {
+  return insideMapBiomasBrazil(bbox) ? ["mapbiomas", "dynamic-world"] : ["dynamic-world"];
+}
+
+/** Is Earth Engine usable? null = not configured (behaviour unchanged); string = configured but broken. */
+export function geeStatus(): true | null | string {
+  try {
+    return geeCreds() ? true : null;
+  } catch (err) {
+    return err instanceof Error ? err.message : String(err);
+  }
+}
+
+export interface GeeLandCover {
+  provider: "mapbiomas-ee" | "dynamicworld-ee";
+  source: string;
+  year?: number;
+  window?: { from: string; to: string };
+  scaleM: number;
+  coveragePct: number;
+  classes: { code: number; name: string; sharePct: number; ha: number; use: "natural" | "converted" | "unmapped"; biome: BiomeId | null; basis: string }[];
+  naturalHa: number;
+  convertedHa: number;
+  unmappedHa: number;
+  /** Valued natural biomes as shares of the WHOLE area (converted/unvalued = 0). */
+  mix: BiomeShare[];
+  /** Converted classes with a sourced registry value (cropland/urban), as shares of the whole area — reference only. */
+  convertedReferenceMix: BiomeShare[];
+}
+
+/** Pure: a reduceRegion frequencyHistogram → natural/converted split + valued biome mix. */
+export function geeLandCoverFromResult(
+  result: unknown,
+  dataset: GeeLandCoverDataset,
+  bbox: BBox,
+  scaleM: number,
+  meta: { year?: number; window?: { from: string; to: string } } = {},
+): GeeLandCover {
+  const band = dataset === "mapbiomas" ? "classification" : "label";
+  const table = dataset === "mapbiomas" ? MAPBIOMAS_VALUATION : DW_VALUATION;
+  const names = dataset === "mapbiomas" ? MAPBIOMAS_CLASSES : DW_CLASSES;
+  const hist = (result as Record<string, unknown> | null)?.[band];
+  const entries = Object.entries((hist && typeof hist === "object" ? hist : {}) as Record<string, unknown>)
+    .map(([c, v]) => [Number(c), Number(v)] as const)
+    .filter(([c, v]) => Number.isFinite(c) && Number.isFinite(v) && v > 0 && !GEE_DROP[dataset].includes(c));
+  const total = entries.reduce((a, [, v]) => a + v, 0);
+  const areaHa = bboxAreaKm2(bbox) * 100;
+  const coverage = (total * scaleM * scaleM) / 1e4 / areaHa;
+  if (total === 0 || coverage < MIN_COVERAGE[dataset]) {
+    throw new OverviewError(`${dataset}: classified pixels cover ${Math.round(coverage * 100)} % of the box (need ≥ ${MIN_COVERAGE[dataset] * 100} %) — outside coverage or no scenes`);
+  }
+  const lat = (bbox[1] + bbox[3]) / 2;
+  const mix = new Map<BiomeId, number>();
+  const ref = new Map<BiomeId, number>();
+  const ha = { natural: 0, converted: 0, unmapped: 0 };
+  const classes: GeeLandCover["classes"] = [];
+  for (const [code, n] of [...entries].sort((a, b) => b[1] - a[1])) {
+    const share = n / total;
+    const v = table[code];
+    const biome = v?.biome === "forest" ? forestBiome(lat) : (v?.biome ?? null);
+    const use = v?.use ?? "unmapped";
+    ha[use] += share * areaHa;
+    if (biome) {
+      const into = use === "natural" ? mix : ref;
+      into.set(biome, (into.get(biome) ?? 0) + share);
+    }
+    classes.push({ code, name: names[code]?.name ?? `class_${code}`, sharePct: round(share * 100, 1), ha: Math.round(share * areaHa), use, biome, basis: v?.basis ?? "not in the legend → excluded" });
+  }
+  const toMix = (m: Map<BiomeId, number>) => [...m.entries()].map(([biome, share]) => ({ biome, share }));
+  return {
+    provider: dataset === "mapbiomas" ? "mapbiomas-ee" : "dynamicworld-ee",
+    source: GEE_SOURCES[dataset],
+    ...meta,
+    scaleM,
+    coveragePct: round(coverage * 100, 1),
+    classes,
+    naturalHa: Math.round(ha.natural),
+    convertedHa: Math.round(ha.converted),
+    unmappedHa: Math.round(ha.unmapped),
+    mix: toMix(mix),
+    convertedReferenceMix: toMix(ref),
+  };
+}
+
+/** Land use of a bbox from Earth Engine (needs GEE creds). `now` fixes the Dynamic World window. */
+export async function fetchGeeLandCover(bbox: BBox, dataset: GeeLandCoverDataset, client: GeeClient = geeClient(), now = new Date()): Promise<GeeLandCover> {
+  const scaleM = pickScale(bbox, dataset === "mapbiomas" ? 30 : 10);
+  if (dataset === "mapbiomas") {
+    const result = await client.computeValue(landCoverExpression(bbox, dataset, { year: MAPBIOMAS_YEAR }, scaleM));
+    return geeLandCoverFromResult(result, dataset, bbox, scaleM, { year: MAPBIOMAS_YEAR });
+  }
+  const to = now.toISOString().slice(0, 10);
+  const from = new Date(now.getTime() - DW_WINDOW_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const result = await client.computeValue(landCoverExpression(bbox, dataset, { dateFrom: from, dateTo: to }, scaleM));
+  return geeLandCoverFromResult(result, dataset, bbox, scaleM, { window: { from, to } });
+}
+
+/** Pure: % of the classified area that MapBiomas calls converted (pasture, crops, urban, …), from gee_query classes. */
+export function mapbiomasConvertedPct(classes: { code: number; sharePct: number }[]): number | null {
+  const kept = classes.filter((c) => !GEE_DROP.mapbiomas.includes(c.code));
+  const total = kept.reduce((a, c) => a + c.sharePct, 0);
+  if (total <= 0) return null;
+  return round((kept.filter((c) => MAPBIOMAS_VALUATION[c.code]?.use === "converted").reduce((a, c) => a + c.sharePct, 0) / total) * 100, 1);
 }
