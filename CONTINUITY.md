@@ -52,6 +52,21 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
    (new stack + migrate state, or keep internal names); domain (registration only after
    trademark check + Marc's explicit OK on the exact name + price); README/CLAUDE/VISION;
    `checkpoint` signer name stays "earthdeck" unless the key is rotated. Do it in one PR.
+2a. **2026-09-27 state**: interactive MapLibre globe on the public site (click-to-case, URL
+   share links, time scrubber + replay, Whole-Earth mode, offline search, GFW-alert and
+   before/after overlays, weather layers: clouds, satellite rain, wind, cyclone cones);
+   favicon/og/manifest set. New rules live on AWS: `indicator_threshold` (sea ice, marine
+   heatwave, rivers w/ seasonal gate, PM2.5, ENSO, M7+ quakes), `indicator_trend` (annual
+   LPI/RLI/fish/pH/tree-loss/MPA, one case per indicator-year), `weather_extreme` (heat,
+   cyclone cone via NHC+GDACS→EONET, extreme rain); watchlists `indicators.json` (30) and
+   `weather.json` (18) in the scheduled hand-written sweep. First real sweep opened 14 cases.
+   `natural_value` now uses MapBiomas (Brazil) / Dynamic World via **Earth Engine** (project
+   mystic-hull-373410, service account terrakeep-ee, key `~/.config/vital/gee-key.json`,
+   Community tier, non-commercial until 2028-03-27) — pasture = converted, São Félix
+   $1.98bn → $1.02bn/yr. **Keys added to .env** (not yet in SSM/Lambda): GEE_*, GFW_FISHING_TOKEN
+   (Global Fishing Watch, non-commercial), AISSTREAM_KEY — the GEE path on Lambda needs the key
+   content in SSM (deploy.sh + runner change) before forest findings get the MapBiomas note there.
+   Next queued: ships (aisstream) + fishing effort (GFW) as map layers and an MPA-fishing rule.
 2b. **Scale-out state (2026-09-26 late)**: `earthdeck discover` generates 549 AOIs
    (`watchlists/generated/`, 19 API calls, 53 s; re-run every ~14 days — doctor warns when
    stale). Runner sweeps `all-generated` in 8 shards per 6-h window (13.5-min budget each),
@@ -62,7 +77,14 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
    when spent — detection always runs. TODO: measure Copernicus PU per `eo_compare`/S5P
    call (free tier 10k PU/month) and set the cap from data. Name: **TerraKeep**, slogan
    "Keeping Earth within its limits." — package/repo/stack rename still pending (3b).
-3c. **Queued by Marc 2026-09-26 (in this order, one at a time — "take it slowly")**:
+3c. **Queued by Marc 2026-09-26/27 (in this order, one at a time — "take it slowly")**:
+   -1. **Indicator-threshold rule** (2026-09-27, top of queue, in progress): one generic rule
+      `indicator_threshold@1` over the existing zero-key indicator tools — sea ice below
+      p10 (NSIDC), marine heatwave at a reef/coast point (OISST), river discharge > 2× mean
+      (GloFAS), PM2.5 > WHO for N days in watched cities (CAMS), ENSO phase declared (ONI),
+      M7+ quake in a watched region (USGS) — case type "threshold crossed", second signal =
+      persistence (next window) or a second dataset. Plus a **trend rule** for annual
+      indices (LPI, RLI, fish stocks, ocean pH): one case per year per indicator.
    1. **Backtest harness** — `earthdeck backtest --event <file>`: replay rules with the clock
       set to a past date for 8–10 documented events (2019 Amazon fires, 2020 Black Summer,
       2023 Canada, 2023 Maui, Rumaila flaring 2024, São Félix 2025 loss, Permian methane

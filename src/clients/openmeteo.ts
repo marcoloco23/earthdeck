@@ -12,7 +12,7 @@ const FLOOD_BASE = "https://flood-api.open-meteo.com/v1/flood";
 
 export const OPEN_METEO_ATTRIBUTION = "Open-Meteo.com (CC-BY 4.0)";
 
-interface OmDaily {
+export interface OmDaily {
   daily?: { time?: string[] } & Record<string, unknown>;
   hourly?: { time?: string[] } & Record<string, unknown>;
   daily_units?: Record<string, string>;
@@ -21,7 +21,7 @@ interface OmDaily {
   reason?: string;
 }
 
-async function omFetch(base: string, params: Record<string, string>): Promise<OmDaily> {
+export async function omFetch(base: string, params: Record<string, string>): Promise<OmDaily> {
   const url = `${base}?${new URLSearchParams(params).toString()}`;
   const res = await fetch(url, { headers: { "user-agent": USER_AGENT } });
   const json = (await res.json().catch(() => null)) as OmDaily | null;
@@ -114,7 +114,7 @@ export async function airQuality(
     latitude: String(lat),
     longitude: String(lon),
     hourly: AIR_VARS.join(","),
-    past_days: String(Math.max(1, Math.min(7, pastDays))),
+    past_days: String(Math.max(1, Math.min(16, pastDays))),
     forecast_days: "1",
     timezone: "UTC",
   });

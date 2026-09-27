@@ -710,6 +710,7 @@
                 "sensor",
                 "provider",
                 "revisit",
+                "method",
                 "human"
               ]
             }

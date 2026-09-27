@@ -20,6 +20,8 @@ export interface PulseRow {
   status: "ok" | "unavailable";
   error?: string;
   latest?: { t: string; v: number | null } | null;
+  /** The valid point before `latest` (year-over-year comparisons), or null. */
+  previous?: { t: string; v: number | null } | null;
   direction?: Assessment["direction"];
   pace?: Assessment["pace"];
   pctPerDecade?: number | null;
@@ -40,6 +42,7 @@ export function pulseRow(ind: Indicator, points: { t: string; v: number | null }
     licence: ind.licence,
     status: "ok",
     latest: a.latest,
+    previous: points.filter((p) => p.v !== null).at(-2) ?? null,
     direction: a.direction,
     pace: a.pace,
     pctPerDecade: a.pctPerDecade,

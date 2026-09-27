@@ -1,0 +1,605 @@
+{
+ "recorded": "2026-09-27, before the GEE land-cover change (commit 5961df3)",
+ "clms": {
+  "area": {
+   "bbox": [
+    -52.4,
+    -6.9,
+    -51.9,
+    -6.4
+   ],
+   "place": null,
+   "ha": 307028
+  },
+  "landCover": {
+   "source": "CLMS Global Land Cover 2020 (raster 10 m, v1) via CDSE Sentinel Hub",
+   "licence": "Copernicus full, free and open access (Reg. (EU) 1159/2013) — attribute the source, state modifications",
+   "doi": "10.2909/602507b2-96c7-47bb-b79d-7ba25e97d0a9",
+   "legend": "ESA WorldCover's 11 LCCS classes, but numbered differently (e.g. 50 = herbaceous wetland, 90 = built-up, 100 = water)",
+   "pixels": 4096,
+   "classes": [
+    {
+     "code": 10,
+     "label": "Tree cover",
+     "pct": 48.5,
+     "biome": "tropical_forest"
+    },
+    {
+     "code": 30,
+     "label": "Grassland",
+     "pct": 45.6,
+     "biome": "grassland"
+    },
+    {
+     "code": 100,
+     "label": "Permanent water bodies",
+     "pct": 4.8,
+     "biome": "lakes_rivers"
+    },
+    {
+     "code": 20,
+     "label": "Shrubland",
+     "pct": 0.6,
+     "biome": "grassland"
+    },
+    {
+     "code": 90,
+     "label": "Built-up",
+     "pct": 0.3,
+     "biome": "urban"
+    },
+    {
+     "code": 40,
+     "label": "Cropland",
+     "pct": 0.2,
+     "biome": "cropland"
+    },
+    {
+     "code": 50,
+     "label": "Herbaceous wetland",
+     "pct": 0,
+     "biome": "wetland"
+    }
+   ]
+  },
+  "byBiome": [
+   {
+    "biome": "tropical_forest",
+    "label": "Tropical forest",
+    "sharePct": 48.5,
+    "ha": 148867,
+    "annualUsd": {
+     "low": 293713824,
+     "mid": 1000085895,
+     "high": 3874551292
+    },
+    "source": "Costanza R. et al. (2014) Changes in the global value of ecosystem services. Global Environmental Change 26:152–158, Table 3 (2011 unit values)"
+   },
+   {
+    "biome": "grassland",
+    "label": "Grassland & rangeland",
+    "sharePct": 46.1,
+    "ha": 141671,
+    "annualUsd": {
+     "low": 21958950,
+     "mid": 736687339,
+     "high": 1048646093
+    },
+    "source": "Costanza R. et al. (2014) Changes in the global value of ecosystem services. Global Environmental Change 26:152–158, Table 3 (2011 unit values)"
+   },
+   {
+    "biome": "lakes_rivers",
+    "label": "Lakes & rivers",
+    "sharePct": 4.8,
+    "ha": 14767,
+    "annualUsd": {
+     "low": 26653945,
+     "mid": 230626763,
+     "high": 230626763
+    },
+    "source": "Costanza R. et al. (2014) Changes in the global value of ecosystem services. Global Environmental Change 26:152–158, Table 3 (2011 unit values)"
+   },
+   {
+    "biome": "urban",
+    "label": "Urban",
+    "sharePct": 0.3,
+    "ha": 1049,
+    "annualUsd": {
+     "low": 8724813,
+     "mid": 8724813,
+     "high": 8724813
+    },
+    "source": "Costanza R. et al. (2014) Changes in the global value of ecosystem services. Global Environmental Change 26:152–158, Table 3 (2011 unit values)"
+   },
+   {
+    "biome": "cropland",
+    "label": "Cropland",
+    "sharePct": 0.2,
+    "ha": 600,
+    "annualUsd": {
+     "low": 4167066,
+     "mid": 4167066,
+     "high": 4167066
+    },
+    "source": "Costanza R. et al. (2014) Changes in the global value of ecosystem services. Global Environmental Change 26:152–158, Table 3 (2011 unit values)"
+   },
+   {
+    "biome": "wetland",
+    "label": "Inland wetland (swamps, floodplains)",
+    "sharePct": 0,
+    "ha": 75,
+    "annualUsd": {
+     "low": 282367,
+     "mid": 2402854,
+     "high": 9817251
+    },
+    "source": "Costanza R. et al. (2014) Changes in the global value of ecosystem services. Global Environmental Change 26:152–158, Table 3 (2011 unit values)"
+   }
+  ],
+  "annualUsd": {
+   "low": 355500964,
+   "mid": 1982694729,
+   "high": 5176533277
+  },
+  "horizon": {
+   "years": 100,
+   "discountRate": 0.02,
+   "undiscountedUsd": {
+    "low": 35550096400,
+    "mid": 198269472900,
+    "high": 517653327700
+   },
+   "npvUsd": {
+    "low": 15321505555,
+    "mid": 85450874625,
+    "high": 223100051449
+   },
+   "annuityFactor": 43.1,
+   "sensitivity": [
+    {
+     "discountRate": 0,
+     "npvUsdMid": 198269472900
+    },
+    {
+     "discountRate": 0.014,
+     "npvUsdMid": 106356991678
+    },
+    {
+     "discountRate": 0.02,
+     "npvUsdMid": 85450874625
+    },
+    {
+     "discountRate": 0.03,
+     "npvUsdMid": 62650983056
+    },
+    {
+     "discountRate": 0.07,
+     "npvUsdMid": 28291568168
+    }
+   ]
+  },
+  "clearedComparator": {
+   "line": "A hectare of tropical forest here does ~$6,718/yr of work alive (band $1,973–$26,027), every year — vs ~$1,900–$6,800 once as cleared land (southern Pará, 2023).",
+   "biome": "tropical_forest",
+   "usdPerHaOnce": {
+    "low": 1900,
+    "high": 6800
+   },
+   "dollarYear": 2023,
+   "what": "sale price of cleared land in southern Pará, once (R$10,000–35,000/ha), per a regional land dealer",
+   "source": {
+    "cite": "Mongabay (Feb 2023) The $20m flip: the story of the largest land grab in the Brazilian Amazon",
+    "url": "https://news.mongabay.com/2023/02/the-20m-flip-the-story-of-the-largest-land-grab-in-the-brazilian-amazon/"
+   },
+   "quality": "journalistic quote, not a peer-reviewed land-price series"
+  },
+  "services": [
+   {
+    "service": "provisioning",
+    "label": "Food, water & raw materials",
+    "annualUsd": 785768617
+   },
+   {
+    "service": "climate",
+    "label": "Climate & air regulation",
+    "annualUsd": 388433361
+   },
+   {
+    "service": "cultural",
+    "label": "Recreation & cultural",
+    "annualUsd": 331679028
+   },
+   {
+    "service": "habitat",
+    "label": "Habitat, nursery & genetic diversity",
+    "annualUsd": 319101755
+   },
+   {
+    "service": "regulating",
+    "label": "Other regulating (not split further by the source)",
+    "annualUsd": 141846171
+   },
+   {
+    "service": "unsplit",
+    "label": "Not split by service in the source",
+    "annualUsd": 12891879
+   },
+   {
+    "service": "erosion",
+    "label": "Erosion control, soil & nutrients",
+    "annualUsd": 2900249
+   }
+  ],
+  "summary": "307,028 ha: living ecosystems worth ~$2.0B/yr (band $356M–$5.2B), ~$198B over 100 yr undiscounted or $85B NPV at 2.0 %; largest share Tropical forest (49 %). Benefit transfer, order of magnitude — not a price for sale.",
+  "references": {
+   "organisms": [
+    {
+     "id": "great_whale",
+     "label": "Great whale (one individual)",
+     "usd": {
+      "low": 2000000,
+      "mid": 2000000,
+      "high": 2000000
+     },
+     "unit": "USD per whale, lifetime present value (published as 'more than $2 million')",
+     "dollarYear": 2019,
+     "source": {
+      "cite": "Chami R., Cosimano T., Fullenkamp C., Oztosun S. (2019) Nature's Solution to Climate Change. IMF Finance & Development 56(4)",
+      "url": "https://www.elibrary.imf.org/view/journals/022/0056/004/article-A011-en.xml"
+     },
+     "method": "present value of lifetime carbon sequestration (~33 t CO₂ per whale) at market carbon prices + fishery enhancement + ecotourism",
+     "caveat": "A lower bound as published; >$1 trillion for the current stock (~1.3 M great whales vs 4–5 M before whaling). Carbon-price dependent."
+    },
+    {
+     "id": "forest_elephant",
+     "label": "African forest elephant (one individual)",
+     "usd": {
+      "low": 1750000,
+      "mid": 1750000,
+      "high": 3750000
+     },
+     "unit": "USD per elephant, present value of carbon-capture services",
+     "dollarYear": 2020,
+     "source": {
+      "cite": "Chami R., Fullenkamp C., Cosimano T., Berzaghi F. (2020) The Secret Work of Elephants. IMF Finance & Development 57(4)",
+      "url": "https://www.imf.org/en/publications/fandd/issues/2020/09/how-african-elephants-fight-climate-change-ralph-chami"
+     },
+     "method": "elephants thin small trees, raising forest carbon stock; the extra carbon valued at a carbon price over the elephant's lifetime",
+     "caveat": "High = the paper's scenario if poaching ended ($375 bn for the population vs $176 bn today). Carbon only — no tourism, cultural or intrinsic value."
+    },
+    {
+     "id": "street_tree_yr",
+     "label": "Street tree (California average), per year",
+     "usd": {
+      "low": 110.63,
+      "mid": 110.63,
+      "high": 110.63
+     },
+     "unit": "USD per tree per year",
+     "dollarYear": 2016,
+     "source": {
+      "cite": "McPherson E.G., van Doorn N., de Goede J. (2016) Structure, function and value of street trees in California, USA. Urban Forestry & Urban Greening 17:104–115 (i-Tree Streets)",
+      "url": "https://research.fs.usda.gov/treesearch/50951"
+     },
+     "method": "i-Tree Streets: energy, CO₂, air quality, stormwater and aesthetic/property value of 9.1 M street trees ($1.0 bn/yr); management costs $19/tree/yr",
+     "caveat": "Urban street trees in California; aesthetics/property value dominates (~$839 M of $1.0 bn). Not transferable to a forest tree."
+    },
+    {
+     "id": "street_tree_100y",
+     "label": "Street tree over 100 years (derived)",
+     "usd": {
+      "low": 4768,
+      "mid": 11063,
+      "high": 11063
+     },
+     "unit": "USD per tree over 100 years — low = NPV at 2 %, mid/high = undiscounted",
+     "dollarYear": 2016,
+     "source": {
+      "cite": "Derived from McPherson et al. (2016): $110.63/tree/yr × 100 years (annuity factor 43.10 at 2 %)",
+      "url": "https://research.fs.usda.gov/treesearch/50951"
+     },
+     "method": "derived: constant annual benefit × horizon; a real tree's benefits grow with its canopy",
+     "caveat": "Assumes the tree lives and is maintained for 100 years at today's average benefit."
+    },
+    {
+     "id": "coral_reefs_flood_protection",
+     "label": "All coral reefs — flood protection, per year",
+     "usd": {
+      "low": 4300000000,
+      "mid": 4300000000,
+      "high": 4300000000
+     },
+     "unit": "USD per year of flood damage averted worldwide",
+     "dollarYear": 2018,
+     "source": {
+      "cite": "Beck M.W. et al. (2018) The global flood protection savings provided by coral reefs. Nature Communications 9:2186",
+      "url": "https://doi.org/10.1038/s41467-018-04568-z"
+     },
+     "method": "expected annual flood damage with vs without the top 1 m of reef (damage rises from $3.7 bn to $8 bn/yr)",
+     "caveat": "One service only; dollar-year given as the publication year (the paper's price base is UNCONFIRMED)."
+    }
+   ],
+   "globalNatureValue": {
+    "usdPerYear": {
+     "low": 125000000000000,
+     "high": 145000000000000
+    },
+    "dollarYear": 2007,
+    "usdPerYear2020": {
+     "low": 156029048624977,
+     "high": 180993696404973
+    },
+    "note": "$125 T/yr with 2011 biome areas, $145 T/yr at 1997 areas; loss from land-use change 1997–2011: $4.3–20.2 T/yr (2007 US$). Global GDP 2011: $75.2 T in the same dollars.",
+    "source": {
+     "cite": "Costanza R. et al. (2014) Changes in the global value of ecosystem services. Global Environmental Change 26:152–158, Table 3 (2011 unit values)",
+     "url": "https://doi.org/10.1016/j.gloenvcha.2014.04.002"
+    }
+   }
+  },
+  "method": {
+   "unit": "2020 US dollars",
+   "formula": "annual = Σ_biome area_ha × unit value (USD/ha/yr, low/mid/high); horizon undiscounted = annual × T; NPV = annual × (1 − (1+r)^−T) / r (flows at year-end, constant real value)",
+   "transfer": "benefit transfer: global per-biome mean unit values (Costanza et al. 2014, Table 2; de Groot et al. 2012) moved to this place without local calibration; 2007 → 2020 USD via US CPI-U",
+   "band": "low/high = the per-biome band stated in the registry entry (see byBiome[].source); treat the mid as an order of magnitude",
+   "discountRate": "0.02 — a low social rate because these are life-support flows to future people, not a private investment. The Stern Review used ~1.4 %; the Nov 2023 US OMB Circular A-4 used 2.0 % (rescinded in 2025 by OMB M-25-15, which reinstated 3 % / 7 %). Over 100 years a constant flow is worth 100× annual undiscounted, ~53.6× at 1.4 %, ~43.1× at 2 %, ~31.6× at 3 %, ~14.3× at 7 % — see horizon.sensitivity.",
+   "assumptions": [],
+   "blindSpots": [
+    "Benefit transfer: a global average hectare of 'tropical forest' is not this hectare — no local calibration, condition, degradation or fragmentation is accounted for.",
+    "The unit values are means of a skewed literature (few studies, many regions missing); the true local value can be an order of magnitude off either way.",
+    "Land cover is a 2020 snapshot at 10 m sampled at ≤256 px; recent clearing, cloud-era errors and mixed pixels shift the mix. Water is valued as lakes/rivers even where it is sea.",
+    "Pasture is not grassland: the land-cover map cannot tell cattle pasture on cleared forest from natural grassland, and both get Costanza's grass/rangeland value (~$5,200/ha/yr) — in deforestation frontiers this overstates the 'alive' total and understates the gap between forest and cleared land.",
+    "Plural values are not captured: sacred, relational and intrinsic values (IPBES 2022) and Indigenous stewardship have no dollar column here — the number is a floor for one kind of value, not the worth of the place.",
+    "Distribution: who benefits (downstream towns, the global climate) is not who pays or who owns the land; the total hides that.",
+    "Not a market price: nobody will pay this for the land, and clearing does not remove all of it at once (some services persist, some are lost for decades).",
+    "Double counting between services and between biomes, and non-linear effects (tipping points), are not modelled."
+   ]
+  },
+  "dashboard": "card pushed"
+ },
+ "assumed": {
+  "area": {
+   "bbox": [
+    -52.4,
+    -6.9,
+    -51.9,
+    -6.4
+   ],
+   "place": null,
+   "ha": 307028
+  },
+  "landCover": {
+   "source": "assumption",
+   "note": "land cover unavailable (Copernicus Statistics failed (500)) — ASSUMPTION: no land-cover measurement; the whole box is treated as Tropical forest from its latitude (-6.65°). This overstates value wherever the land is already cleared, farmed or built on — pass `biome` or enable CDSE land cover."
+  },
+  "byBiome": [
+   {
+    "biome": "tropical_forest",
+    "label": "Tropical forest",
+    "sharePct": 100,
+    "ha": 307028,
+    "annualUsd": {
+     "low": 605766276,
+     "mid": 2062614212,
+     "high": 7991018173
+    },
+    "source": "Costanza R. et al. (2014) Changes in the global value of ecosystem services. Global Environmental Change 26:152–158, Table 3 (2011 unit values)"
+   }
+  ],
+  "annualUsd": {
+   "low": 605766276,
+   "mid": 2062614212,
+   "high": 7991018173
+  },
+  "horizon": {
+   "years": 100,
+   "discountRate": 0.02,
+   "undiscountedUsd": {
+    "low": 60576627600,
+    "mid": 206261421200,
+    "high": 799101817300
+   },
+   "npvUsd": {
+    "low": 26107527975,
+    "mid": 88895272607,
+    "high": 344399711182
+   },
+   "annuityFactor": 43.1,
+   "sensitivity": [
+    {
+     "discountRate": 0,
+     "npvUsdMid": 206261421200
+    },
+    {
+     "discountRate": 0.014,
+     "npvUsdMid": 110644084222
+    },
+    {
+     "discountRate": 0.02,
+     "npvUsdMid": 88895272607
+    },
+    {
+     "discountRate": 0.03,
+     "npvUsdMid": 65176351234
+    },
+    {
+     "discountRate": 0.07,
+     "npvUsdMid": 29431959307
+    }
+   ]
+  },
+  "clearedComparator": {
+   "line": "A hectare of tropical forest here does ~$6,718/yr of work alive (band $1,973–$26,027), every year — vs ~$1,900–$6,800 once as cleared land (southern Pará, 2023).",
+   "biome": "tropical_forest",
+   "usdPerHaOnce": {
+    "low": 1900,
+    "high": 6800
+   },
+   "dollarYear": 2023,
+   "what": "sale price of cleared land in southern Pará, once (R$10,000–35,000/ha), per a regional land dealer",
+   "source": {
+    "cite": "Mongabay (Feb 2023) The $20m flip: the story of the largest land grab in the Brazilian Amazon",
+    "url": "https://news.mongabay.com/2023/02/the-20m-flip-the-story-of-the-largest-land-grab-in-the-brazilian-amazon/"
+   },
+   "quality": "journalistic quote, not a peer-reviewed land-price series"
+  },
+  "services": [
+   {
+    "service": "climate",
+    "label": "Climate & air regulation",
+    "annualUsd": 801119360
+   },
+   {
+    "service": "provisioning",
+    "label": "Food, water & raw materials",
+    "annualUsd": 716345916
+   },
+   {
+    "service": "cultural",
+    "label": "Recreation & cultural",
+    "annualUsd": 339712561
+   },
+   {
+    "service": "regulating",
+    "label": "Other regulating (not split further by the source)",
+    "annualUsd": 184191449
+   },
+   {
+    "service": "habitat",
+    "label": "Habitat, nursery & genetic diversity",
+    "annualUsd": 15263345
+   },
+   {
+    "service": "erosion",
+    "label": "Erosion control, soil & nutrients",
+    "annualUsd": 5981581
+   }
+  ],
+  "summary": "307,028 ha: living ecosystems worth ~$2.1B/yr (band $606M–$8.0B), ~$206B over 100 yr undiscounted or $89B NPV at 2.0 %; largest share Tropical forest (100 %). Benefit transfer, order of magnitude — not a price for sale.",
+  "references": {
+   "organisms": [
+    {
+     "id": "great_whale",
+     "label": "Great whale (one individual)",
+     "usd": {
+      "low": 2000000,
+      "mid": 2000000,
+      "high": 2000000
+     },
+     "unit": "USD per whale, lifetime present value (published as 'more than $2 million')",
+     "dollarYear": 2019,
+     "source": {
+      "cite": "Chami R., Cosimano T., Fullenkamp C., Oztosun S. (2019) Nature's Solution to Climate Change. IMF Finance & Development 56(4)",
+      "url": "https://www.elibrary.imf.org/view/journals/022/0056/004/article-A011-en.xml"
+     },
+     "method": "present value of lifetime carbon sequestration (~33 t CO₂ per whale) at market carbon prices + fishery enhancement + ecotourism",
+     "caveat": "A lower bound as published; >$1 trillion for the current stock (~1.3 M great whales vs 4–5 M before whaling). Carbon-price dependent."
+    },
+    {
+     "id": "forest_elephant",
+     "label": "African forest elephant (one individual)",
+     "usd": {
+      "low": 1750000,
+      "mid": 1750000,
+      "high": 3750000
+     },
+     "unit": "USD per elephant, present value of carbon-capture services",
+     "dollarYear": 2020,
+     "source": {
+      "cite": "Chami R., Fullenkamp C., Cosimano T., Berzaghi F. (2020) The Secret Work of Elephants. IMF Finance & Development 57(4)",
+      "url": "https://www.imf.org/en/publications/fandd/issues/2020/09/how-african-elephants-fight-climate-change-ralph-chami"
+     },
+     "method": "elephants thin small trees, raising forest carbon stock; the extra carbon valued at a carbon price over the elephant's lifetime",
+     "caveat": "High = the paper's scenario if poaching ended ($375 bn for the population vs $176 bn today). Carbon only — no tourism, cultural or intrinsic value."
+    },
+    {
+     "id": "street_tree_yr",
+     "label": "Street tree (California average), per year",
+     "usd": {
+      "low": 110.63,
+      "mid": 110.63,
+      "high": 110.63
+     },
+     "unit": "USD per tree per year",
+     "dollarYear": 2016,
+     "source": {
+      "cite": "McPherson E.G., van Doorn N., de Goede J. (2016) Structure, function and value of street trees in California, USA. Urban Forestry & Urban Greening 17:104–115 (i-Tree Streets)",
+      "url": "https://research.fs.usda.gov/treesearch/50951"
+     },
+     "method": "i-Tree Streets: energy, CO₂, air quality, stormwater and aesthetic/property value of 9.1 M street trees ($1.0 bn/yr); management costs $19/tree/yr",
+     "caveat": "Urban street trees in California; aesthetics/property value dominates (~$839 M of $1.0 bn). Not transferable to a forest tree."
+    },
+    {
+     "id": "street_tree_100y",
+     "label": "Street tree over 100 years (derived)",
+     "usd": {
+      "low": 4768,
+      "mid": 11063,
+      "high": 11063
+     },
+     "unit": "USD per tree over 100 years — low = NPV at 2 %, mid/high = undiscounted",
+     "dollarYear": 2016,
+     "source": {
+      "cite": "Derived from McPherson et al. (2016): $110.63/tree/yr × 100 years (annuity factor 43.10 at 2 %)",
+      "url": "https://research.fs.usda.gov/treesearch/50951"
+     },
+     "method": "derived: constant annual benefit × horizon; a real tree's benefits grow with its canopy",
+     "caveat": "Assumes the tree lives and is maintained for 100 years at today's average benefit."
+    },
+    {
+     "id": "coral_reefs_flood_protection",
+     "label": "All coral reefs — flood protection, per year",
+     "usd": {
+      "low": 4300000000,
+      "mid": 4300000000,
+      "high": 4300000000
+     },
+     "unit": "USD per year of flood damage averted worldwide",
+     "dollarYear": 2018,
+     "source": {
+      "cite": "Beck M.W. et al. (2018) The global flood protection savings provided by coral reefs. Nature Communications 9:2186",
+      "url": "https://doi.org/10.1038/s41467-018-04568-z"
+     },
+     "method": "expected annual flood damage with vs without the top 1 m of reef (damage rises from $3.7 bn to $8 bn/yr)",
+     "caveat": "One service only; dollar-year given as the publication year (the paper's price base is UNCONFIRMED)."
+    }
+   ],
+   "globalNatureValue": {
+    "usdPerYear": {
+     "low": 125000000000000,
+     "high": 145000000000000
+    },
+    "dollarYear": 2007,
+    "usdPerYear2020": {
+     "low": 156029048624977,
+     "high": 180993696404973
+    },
+    "note": "$125 T/yr with 2011 biome areas, $145 T/yr at 1997 areas; loss from land-use change 1997–2011: $4.3–20.2 T/yr (2007 US$). Global GDP 2011: $75.2 T in the same dollars.",
+    "source": {
+     "cite": "Costanza R. et al. (2014) Changes in the global value of ecosystem services. Global Environmental Change 26:152–158, Table 3 (2011 unit values)",
+     "url": "https://doi.org/10.1016/j.gloenvcha.2014.04.002"
+    }
+   }
+  },
+  "method": {
+   "unit": "2020 US dollars",
+   "formula": "annual = Σ_biome area_ha × unit value (USD/ha/yr, low/mid/high); horizon undiscounted = annual × T; NPV = annual × (1 − (1+r)^−T) / r (flows at year-end, constant real value)",
+   "transfer": "benefit transfer: global per-biome mean unit values (Costanza et al. 2014, Table 2; de Groot et al. 2012) moved to this place without local calibration; 2007 → 2020 USD via US CPI-U",
+   "band": "low/high = the per-biome band stated in the registry entry (see byBiome[].source); treat the mid as an order of magnitude",
+   "discountRate": "0.02 — a low social rate because these are life-support flows to future people, not a private investment. The Stern Review used ~1.4 %; the Nov 2023 US OMB Circular A-4 used 2.0 % (rescinded in 2025 by OMB M-25-15, which reinstated 3 % / 7 %). Over 100 years a constant flow is worth 100× annual undiscounted, ~53.6× at 1.4 %, ~43.1× at 2 %, ~31.6× at 3 %, ~14.3× at 7 % — see horizon.sensitivity.",
+   "assumptions": [
+    "land cover unavailable (Copernicus Statistics failed (500)) — ASSUMPTION: no land-cover measurement; the whole box is treated as Tropical forest from its latitude (-6.65°). This overstates value wherever the land is already cleared, farmed or built on — pass `biome` or enable CDSE land cover."
+   ],
+   "blindSpots": [
+    "Benefit transfer: a global average hectare of 'tropical forest' is not this hectare — no local calibration, condition, degradation or fragmentation is accounted for.",
+    "The unit values are means of a skewed literature (few studies, many regions missing); the true local value can be an order of magnitude off either way.",
+    "Land cover is a 2020 snapshot at 10 m sampled at ≤256 px; recent clearing, cloud-era errors and mixed pixels shift the mix. Water is valued as lakes/rivers even where it is sea.",
+    "Pasture is not grassland: the land-cover map cannot tell cattle pasture on cleared forest from natural grassland, and both get Costanza's grass/rangeland value (~$5,200/ha/yr) — in deforestation frontiers this overstates the 'alive' total and understates the gap between forest and cleared land.",
+    "Plural values are not captured: sacred, relational and intrinsic values (IPBES 2022) and Indigenous stewardship have no dollar column here — the number is a floor for one kind of value, not the worth of the place.",
+    "Distribution: who benefits (downstream towns, the global climate) is not who pays or who owns the land; the total hides that.",
+    "Not a market price: nobody will pay this for the land, and clearing does not remove all of it at once (some services persist, some are lost for decades).",
+    "Double counting between services and between biomes, and non-linear effects (tipping points), are not modelled."
+   ]
+  },
+  "dashboard": "card pushed"
+ }
+}

@@ -7,10 +7,17 @@
 //   api/ledger.json, api/ledger/<id>.json, feed.json, feed.geojson   — LedgerView's own bodies
 //   ledger/{checkpoint,pub,entries.jsonl,tile/**}                     — the verification surface
 //   api/stats.json                 counts + published false-positive rate per rule
+//   api/map.json                   the interactive map's cases + watched places (src/watch/map-data.ts)
+//   api/metrics.json               the landing's Metrics mode: totals, timeline, stakes (src/watch/metrics.ts)
 //   api/pulse.json                 world_pulse snapshot (fresh, else cached, else omitted)
+//   api/storms.json                active tropical cyclones as GeoJSON (live exports only, best-effort)
+//   api/marine/{fishing,ships}.json  GFW fishing-effort grid / AIS ship density — only when the
+//                                  runner has GFW_FISHING_TOKEN / AISSTREAM_KEY (src/watch/marine-export.ts)
 //   developers/index.html          verify-it-yourself commands, feeds, API, schema (kept off the landing)
 //   schema/finding-event.v1.json, trust.html (+ TRUST.md), sitemap.xml, robots.txt
-//   assets/**, og.png              the built site bundle (dist/site, `pnpm build`)
+//   assets/**, og.png, favicon.{ico,svg}, apple-touch-icon.png, icon-{192,512}.png
+//                                  the built site bundle (dist/site, `pnpm build`; icons: scripts/site-icons.mjs)
+//   site.webmanifest               name + icons for home screens, from SITE
 //
 // Every link is relative; absolute URLs appear only where the web demands them (canonical,
 // og:*, JSON-LD, sitemap), all from --base-url / SITE.baseUrl. The signing key (`ledger.key`)
@@ -24,7 +31,10 @@ import { PUBLIC_STATUSES, STATUSES, type Finding, type Status } from "../ledger/
 import { ledgerDir as defaultLedgerDir } from "../config.js";
 import { SITE } from "../site.config.js";
 import { readHeartbeat, type Heartbeat } from "./journal.js";
-import { casePage, developersPage, FALLBACK_TEMPLATE, fillTemplate, landingPage, robots, sitemap, trustPage, watchIndexPage, type CaseData, type Ctx } from "./site-render.js";
+import { mapData } from "./map-data.js";
+import { computeMetrics } from "./metrics.js";
+import { marineSnapshots } from "./marine-export.js";
+import { casePage, developersPage, FALLBACK_TEMPLATE, fillTemplate, landingPage, robots, sitemap, trustPage, watchIndexPage, webManifest, type CaseData, type Ctx } from "./site-render.js";
 
 const PKG_ROOT = fileURLToPath(new URL("../../", import.meta.url)); // dist/watch → root, src/watch → root
 const MARKER = ".earthdeck-site";
@@ -156,6 +166,9 @@ export interface ExportOptions {
   pulse?: "auto" | "cache" | "off";
   pulseCache?: string;
   pulseTimeoutMs?: number;
+  /** Marine layers (needs GFW_FISHING_TOKEN / AISSTREAM_KEY): "auto" refreshes stale caches, "cache" reads them, "off" (default here; the CLI passes "auto") omits. */
+  marine?: "auto" | "cache" | "off";
+  marineCacheDir?: string;
   trustFile?: string;
   /** Overwrite a non-empty directory that was not written by a previous export. */
   force?: boolean;
@@ -168,6 +181,7 @@ export interface ExportReport {
   findings: number;
   publicFindings: number;
   pulse: "fresh" | "cached" | "none";
+  marine: { fishing: boolean; ships: boolean };
   web: boolean;
   trust: boolean;
   sitemap: boolean;
@@ -229,10 +243,28 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
     now,
   );
   write("api/stats.json", JSON.stringify(stats));
+  write("api/map.json", JSON.stringify(mapData(findings, now)));
+  write("api/metrics.json", JSON.stringify(computeMetrics(findings, stats, now)));
 
   // ---- world pulse ----
   const pulse = await pulseSnapshot(opts.pulse ?? "auto", opts.pulseCache ?? join(dirname(resolve(lDir)), "pulse.json"), opts.pulseTimeoutMs ?? 45_000, log);
   if (pulse.json) write("api/pulse.json", pulse.json);
+  // Active tropical cyclones for the map's Live layers — live exports only, best-effort.
+  if ((opts.pulse ?? "auto") === "auto") {
+    const storms = await stormsSnapshot(now, Math.min(opts.pulseTimeoutMs ?? 45_000, 20_000), log);
+    if (storms) write("api/storms.json", storms);
+  }
+
+  // ---- marine layers (server-side keys; each file only if the runner could produce it) ----
+  const marine = await marineSnapshots({
+    mode: opts.marine ?? "off",
+    cacheDir: opts.marineCacheDir ?? join(dirname(resolve(lDir)), "marine"),
+    watchlist: join(PKG_ROOT, "watchlists", "marine.json"),
+    now,
+    log,
+  });
+  if (marine.fishing) write("api/marine/fishing.json", marine.fishing);
+  if (marine.ships) write("api/marine/ships.json", marine.ships);
 
   const schemaFile = join(PKG_ROOT, "schema", "finding-event.v1.json");
   if (existsSync(schemaFile)) write("schema/finding-event.v1.json", readFileSync(schemaFile));
@@ -263,6 +295,8 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
     write("trust.html", fillTemplate(tpl, 0, "trust", trustPage(ctx(0, "trust.html"), md)));
   }
 
+  write("site.webmanifest", webManifest());
+
   // ---- crawlers ----
   write("robots.txt", robots(baseUrl));
   if (baseUrl) {
@@ -282,6 +316,7 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
     findings: findings.length,
     publicFindings: stats.cases.public,
     pulse: pulse.kind,
+    marine: { fishing: Boolean(marine.fishing), ships: Boolean(marine.ships) },
     web,
     trust,
     sitemap: baseUrl !== null,
@@ -344,6 +379,23 @@ async function pulseSnapshot(
   return { kind: "none" };
 }
 
+async function stormsSnapshot(now: Date, timeoutMs: number, log: (s: string) => void): Promise<string | null> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    const [{ activeStorms }, { stormsGeoJson }] = await Promise.all([import("../clients/storms.js"), import("../tools/weather.js")]);
+    const timeout = new Promise<never>((_, rej) => {
+      timer = setTimeout(() => rej(new Error(`timed out after ${timeoutMs} ms`)), timeoutMs);
+    });
+    const r = await Promise.race([activeStorms(now.toISOString().slice(0, 10)), timeout]);
+    return JSON.stringify({ generatedAt: now.toISOString(), ...stormsGeoJson(r.storms) });
+  } catch (e) {
+    log(`  storms: ${(e as Error).message} — the cyclone layer is left out`);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function listFiles(root: string, rel = ""): string[] {
   const out: string[] = [];
   for (const e of readdirSync(join(root, rel), { withFileTypes: true })) {
@@ -366,7 +418,7 @@ export async function runExportCli(args: string[]): Promise<void> {
     process.stdout.write(
       [
         "usage: earthdeck watch export --out <dir> [--base-url https://…]",
-        "                              [--no-pulse | --pulse-cache <file>] [--trust TRUST.md] [--force]",
+        "                              [--no-pulse | --pulse-cache <file>] [--no-marine] [--trust TRUST.md] [--force]",
         `Writes the public ${SITE.name} site (landing + case pages + ledger + feeds) as static files.`,
         `--base-url defaults to ${SITE.baseUrl} (src/site.config.ts); it drives canonical URLs, og:*, JSON-LD and sitemap.xml.`,
         "",
@@ -381,13 +433,14 @@ export async function runExportCli(args: string[]): Promise<void> {
     contact: opt("--contact"),
     pulse: args.includes("--no-pulse") ? "off" : "auto",
     pulseCache: opt("--pulse-cache"),
+    marine: args.includes("--no-marine") ? "off" : "auto",
     trustFile: opt("--trust"),
     force: args.includes("--force"),
     log: (s) => process.stdout.write(`${s}\n`),
   });
   process.stdout.write(
     `exported ${report.findings} findings (${report.publicFindings} public) → ${report.out}\n` +
-      `  ${report.files.length} files · world pulse: ${report.pulse} · web bundle: ${report.web ? "yes" : "MISSING"} · TRUST.md: ${report.trust ? "rendered" : "not found"} · sitemap: ${report.sitemap ? "yes" : "no"}\n` +
+      `  ${report.files.length} files · world pulse: ${report.pulse} · marine: fishing ${report.marine.fishing ? "yes" : "no"}, ships ${report.marine.ships ? "yes" : "no"} · web bundle: ${report.web ? "yes" : "MISSING"} · TRUST.md: ${report.trust ? "rendered" : "not found"} · sitemap: ${report.sitemap ? "yes" : "no"}\n` +
       `  preview: npx -y serve ${report.out}\n`,
   );
 }
