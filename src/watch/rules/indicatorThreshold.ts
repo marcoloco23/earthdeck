@@ -627,6 +627,28 @@ const DETECT: Record<IndicatorKind, (ctx: RuleContext, p: P) => Promise<Candidat
   quake: detectQuake,
 };
 
+/** Blind-spot line prefix per indicator ("All:" lines apply to every indicator). */
+const BLIND_PREFIX: Record<IndicatorKind, string> = {
+  sea_ice: "Sea ice:",
+  marine_heatwave: "Marine heatwave:",
+  river_discharge: "River:",
+  air_quality: "Air quality:",
+  enso: "ENSO:",
+  quake: "Earthquakes:",
+};
+
+/**
+ * Pure: the blind spots that apply to one indicator — its own lines plus the "All:" lines. Also
+ * used render-side for older ledger entries, which carry the full list for every indicator.
+ * Unknown/missing indicator → the list unchanged (never hide a caveat we cannot attribute).
+ */
+export function indicatorBlindSpots(spots: readonly string[], indicator: unknown): string[] {
+  const own = typeof indicator === "string" ? BLIND_PREFIX[indicator as IndicatorKind] : undefined;
+  if (!own) return [...spots];
+  const known = Object.values(BLIND_PREFIX);
+  return spots.filter((s) => s.startsWith(own) || !known.some((k) => s.startsWith(k)));
+}
+
 export const indicatorThreshold = defineRule({
   name: "indicator_threshold",
   version: "1.0",
@@ -646,6 +668,9 @@ export const indicatorThreshold = defineRule({
     "Earthquakes: a sweep more than 30 days late misses older events; only the strongest quake per region per case window leads the case.",
     "All: global zero-key feeds can go stale or be revised; a threshold crossing is a signal to look, not a verdict on cause or impact.",
   ],
+  blindSpotsFor(params) {
+    return indicatorBlindSpots(this.blindSpots, params.indicator);
+  },
   requires: [],
   ringKm: 0,
   defaults: {},

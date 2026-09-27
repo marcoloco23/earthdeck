@@ -13,7 +13,7 @@ import { dailyMeans } from "../src/tools/climate.js";
 import { Journal } from "../src/watch/journal.js";
 import { sweep } from "../src/watch/kernel.js";
 import { costOf } from "../src/watch/quota.js";
-import { indicatorParams, pm25Streak, sstAnomalies } from "../src/watch/rules/indicatorThreshold.js";
+import { indicatorBlindSpots, indicatorParams, indicatorThreshold, pm25Streak, sstAnomalies } from "../src/watch/rules/indicatorThreshold.js";
 import { fmtValue } from "../src/watch/rules/indicatorTrend.js";
 import { RULES, ToolError, type ToolCall } from "../src/watch/rules/index.js";
 import { loadWatchlists, parseWatchlist, type Watchlist } from "../src/watch/watchlist.js";
@@ -87,6 +87,7 @@ test("sea_ice: below p10 opens a candidate; a later day still below confirms it 
   assert.deepEqual(f.evidence[0]!.values, { extent_mkm2: 5.169, p10_mkm2: 5.329, anomaly_mkm2: -1.371, below_p10_mkm2: 0.16 });
   assert.ok(f.context?.notes?.some((n) => n.includes("NSIDC Sea Ice Index")));
   assert.ok(f.blindSpots?.some((b) => b.startsWith("Sea ice:")));
+  assert.ok(f.blindSpots?.every((b) => b.startsWith("Sea ice:") || b.startsWith("All:")), "only this indicator's blind spots (+ All)");
 
   // Next sweep, data has not moved on → still unconfirmed.
   const r2 = await run(s, wl, call, "2026-09-27T18:00:00Z");
@@ -477,4 +478,14 @@ test("indicator rules: registered, tier 1, zero-key, blind spots fit the ledger 
     assert.ok(r.blindSpots.length <= 20 && r.blindSpots.every((b) => b.length <= 300));
   }
   for (const tool of ["sea_ice", "ocean_temp", "river_discharge", "air_quality", "enso", "quakes", "world_pulse", "events", "ledger_list"]) assert.equal(costOf(tool, {}), null, tool);
+});
+
+test("indicatorBlindSpots: filters the generic list to one indicator, keeps All, fails open", () => {
+  const all = indicatorThreshold.blindSpots;
+  const sst = indicatorBlindSpots(all, "marine_heatwave");
+  assert.ok(sst.length >= 3 && sst.every((b) => b.startsWith("Marine heatwave:") || b.startsWith("All:")));
+  assert.ok(!sst.some((b) => b.startsWith("Sea ice:")));
+  assert.ok(indicatorBlindSpots(all, "air_quality").some((b) => b.startsWith("Air quality:")));
+  assert.deepEqual(indicatorBlindSpots(all, undefined), [...all], "unknown indicator → nothing hidden");
+  assert.deepEqual(indicatorBlindSpots(all, "nope"), [...all]);
 });

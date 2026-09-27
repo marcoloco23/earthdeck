@@ -7,7 +7,7 @@
 
 export type Group = "published" | "checking" | "dropped";
 export type Kind = "forest" | "fire" | "flaring" | "flaring-stopped" | "methane" | "other";
-export type Topic = "forest" | "fire" | "flaring" | "methane" | "ocean" | "ice" | "air" | "weather" | "trend" | "other";
+export type Topic = "forest" | "fire" | "flaring" | "methane" | "ocean" | "ice" | "air" | "weather" | "trend" | "good" | "quake" | "other";
 export type Overlay = "alerts" | "imagery" | "weather";
 export type Mode = "cases" | "planet" | "live" | "metrics" | "about";
 /** Days back from the window's end; 0 = everything up to the end. */
@@ -93,7 +93,7 @@ export interface View {
 
 export const GROUPS: readonly Group[] = ["published", "checking", "dropped"];
 export const KINDS: readonly Kind[] = ["forest", "fire", "flaring", "flaring-stopped", "methane", "other"];
-export const TOPICS: readonly Topic[] = ["forest", "fire", "flaring", "methane", "ocean", "ice", "air", "weather", "trend", "other"];
+export const TOPICS: readonly Topic[] = ["forest", "fire", "flaring", "methane", "ocean", "ice", "air", "weather", "trend", "good", "quake", "other"];
 export const MODES: readonly Mode[] = ["cases", "planet", "live", "metrics", "about"];
 export const OVERLAYS: readonly Overlay[] = ["alerts", "imagery", "weather"];
 export const WINDOWS: readonly Win[] = [30, 90, 365, 0];
@@ -117,6 +117,8 @@ export const TOPIC_LABEL: Record<Topic, string> = {
   air: "Air",
   weather: "Weather",
   trend: "Nature trends",
+  good: "Good news",
+  quake: "Earthquakes",
   other: "Other",
 };
 
@@ -143,7 +145,7 @@ export const DEFAULT_VIEW: View = {
 /** The topic a case is filed under (older data without `topic`: from its case type). */
 export function topicOfCase(c: Pick<MapCase, "topic" | "kind">): Topic {
   if (c.topic && (TOPICS as readonly string[]).includes(c.topic)) return c.topic;
-  return c.kind === "flaring-stopped" ? "flaring" : c.kind === "other" ? "other" : c.kind;
+  return c.kind === "flaring-stopped" ? "good" : c.kind === "other" ? "other" : c.kind;
 }
 
 /** Planet-wide (world trend, sea ice, ENSO): lives in the Planet panel, never a map marker. */
@@ -156,7 +158,7 @@ export function isGlobal(c: Pick<MapCase, "global" | "bbox">): boolean {
 export function defaultOverlays(c: Pick<MapCase, "kind" | "topic">): Overlay[] {
   const t = topicOfCase(c);
   if (t === "forest") return ["alerts"];
-  if (t === "flaring") return ["imagery"];
+  if (t === "flaring" || c.kind === "flaring-stopped") return ["imagery"];
   if (t === "weather") return ["weather"];
   return [];
 }
@@ -170,7 +172,7 @@ export function defaultOverlays(c: Pick<MapCase, "kind" | "topic">): Overlay[] {
 // `#challenge`) is not ours → null.
 
 const G_TOK: Record<Group, string> = { published: "p", checking: "c", dropped: "d" };
-const T_TOK: Record<Topic, string> = { forest: "f", fire: "r", flaring: "l", methane: "m", ocean: "o", ice: "i", air: "a", weather: "w", trend: "t", other: "x" };
+const T_TOK: Record<Topic, string> = { forest: "f", fire: "r", flaring: "l", methane: "m", ocean: "o", ice: "i", air: "a", weather: "w", trend: "t", good: "g", quake: "q", other: "x" };
 const O_TOK: Record<Overlay, string> = { alerts: "a", imagery: "i", weather: "w" };
 const M_TOK: Record<Mode, string> = { cases: "c", planet: "p", live: "l", metrics: "x", about: "a" };
 const PREFIX = "#map:";

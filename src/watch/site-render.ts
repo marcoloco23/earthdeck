@@ -11,6 +11,7 @@ import { PUBLIC_STATUSES, TERMINAL_STATUSES, type Evidence, type Finding, type F
 import { SITE } from "../site.config.js";
 import { livingValueOf, type SiteStats, type RateCell } from "./export.js";
 import { indicatorOf, isGlobalCase } from "./map-data.js";
+import { indicatorBlindSpots } from "./rules/indicatorThreshold.js";
 
 // TODO: import { GLOBAL_NATURE_VALUE } from "../clients/naturalvalue.js" once natural_value
 // (a3ab7a9) is on main — these are its figures (2007 US$, 2011 vs 1997 biome areas).
@@ -658,7 +659,9 @@ export function casePage(c: Ctx, d: CaseData): { head: string; body: string } {
       return `<li><b>${esc(sourceName(x.source))}</b>${x.summary ? ` — ${esc(x.summary)}` : ""} <span class="seen-when">(${esc(plainDate(x.datetime))})</span>${href ? ` <a class="link" href="${esc(href)}" rel="noopener nofollow">See the source ↗</a>` : ""}</li>`;
     }),
   ];
-  const doubts = [...(nar?.caveats ?? []), ...(f.blindSpots ?? [])];
+  // Older indicator_threshold entries carry every indicator's blind spots; show only this case's.
+  const spots = f.rule.name === "indicator_threshold" ? indicatorBlindSpots(f.blindSpots ?? [], indicatorOf(f)) : (f.blindSpots ?? []);
+  const doubts = [...(nar?.caveats ?? []), ...spots];
   const replies = rightOfReplyHtml(f);
 
   // Technical details (collapsed).

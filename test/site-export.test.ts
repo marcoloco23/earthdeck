@@ -262,6 +262,7 @@ test("export writes a self-contained, relative, server-rendered site", async () 
   const md = JSON.parse(readFileSync(join(out, "api/map.json"), "utf8"));
   assert.equal(md.v, 1);
   assert.equal(md.cases.length, 4);
+  for (const c of md.cases as { id: string; topic: string }[]) assert.notEqual(c.topic, "other", `case ${c.id} would show under an "Other" topic`);
   assert.deepEqual(new Set(md.cases.map((c: { group: string }) => c.group)), new Set(["published", "checking"]));
   assert.ok(md.places.some((p: { name: string }) => p.name === "São Félix do Xingu"));
 

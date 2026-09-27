@@ -83,6 +83,8 @@ const TP: Record<string, string> = {
   air: "#a8a29e",
   weather: "#7dd3fc",
   trend: "#2dd4bf",
+  good: "#bef264",
+  quake: "#fb7185",
   other: "#9aa6b8",
 };
 const INK = "#07090d";
@@ -144,6 +146,8 @@ export function mountExplorer({ figure, data, hub }: Options): void {
     figure.classList.remove("is-live");
     return;
   }
+  // Test hook (browser tests project a case to screen pixels); read-only use, nothing secret.
+  (xp as HTMLElement & { xpMap?: maplibregl.Map }).xpMap = map;
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
   let caption = mountBasemapCaption(map);
   const capList = basemaps();
@@ -342,7 +346,11 @@ export function mountExplorer({ figure, data, hub }: Options): void {
         s.v.textContent = String(st.falsePositives);
         if (st.decided) s.v.append(el("span", "num-of", ` of ${st.decided}`));
       }
-      if (s.k) s.k.textContent = whole ? s.label : `${s.label} · ${v.win ? `${WIN_LABEL[v.win]}` : `to ${fmtDay(dayOf(endMs()))}`}`;
+      if (s.k) {
+        s.k.textContent = s.label;
+        // The changing part sits in a fixed-width slot so the chips don't shuffle during replay.
+        if (!whole) s.k.append(el("span", "num-when", `· ${v.win ? WIN_LABEL[v.win] : `to ${fmtDay(dayOf(endMs()))}`}`));
+      }
     }
   }
 

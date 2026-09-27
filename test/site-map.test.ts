@@ -25,12 +25,16 @@ import {
   project,
   search,
   topicOfCase,
+  TOPICS,
+  TOPIC_LABEL,
   windowStats,
   type MapCase,
   type MapPlace,
   type View,
 } from "../web/src/site/map/model.js";
 import { groupOf, isGlobalCase, mapData, topicOf } from "../src/watch/map-data.js";
+import { RULES } from "../src/watch/rules/index.js";
+import { INDICATOR_KINDS } from "../src/watch/rules/indicatorThreshold.js";
 import type { Finding } from "../src/ledger/schema.js";
 
 const mk = (id: string, observedAt: string, over: Partial<MapCase> = {}): MapCase => ({
@@ -148,12 +152,23 @@ test("place vs. planet: global-case classification (export side and page side ag
   assert.equal(isGlobal({ bbox: [1, 1, 2, 2] }), false);
 });
 
+test("topic mapping: every known rule and indicator has a real topic (never Other)", () => {
+  for (const name of RULES.keys()) {
+    if (name === "indicator_threshold") {
+      for (const k of INDICATOR_KINDS) assert.notEqual(topicOf(name, k), "other", `indicator_threshold/${k} falls into Other`);
+    } else assert.notEqual(topicOf(name, null), "other", `rule ${name} falls into Other — map it in TOPIC_BY_RULE`);
+  }
+  for (const t of TOPICS) if (t !== "other") assert.ok(TOPIC_LABEL[t] && TOPIC_LABEL[t] !== "Other", t);
+});
+
 test("topic mapping: rule + indicator → the reader's topic", () => {
   const cases: [string, string | null, string][] = [
     ["forest_loss", null, "forest"],
     ["fires_in_protected", null, "fire"],
     ["flaring", null, "flaring"],
-    ["flaring_stopped", null, "flaring"],
+    ["flaring_stopped", null, "good"],
+    ["improvement", null, "good"],
+    ["mpa_fishing", null, "ocean"],
     ["methane_anomaly", null, "methane"],
     ["weather_extreme", null, "weather"],
     ["indicator_trend", "red-list-index", "trend"],
@@ -162,13 +177,14 @@ test("topic mapping: rule + indicator → the reader's topic", () => {
     ["indicator_threshold", "enso", "ocean"],
     ["indicator_threshold", "air_quality", "air"],
     ["indicator_threshold", "river_discharge", "weather"],
-    ["indicator_threshold", "quake", "other"],
+    ["indicator_threshold", "quake", "quake"],
     ["indicator_threshold", null, "other"],
     ["something_new", null, "other"],
   ];
   for (const [rule, ind, topic] of cases) assert.equal(topicOf(rule, ind), topic, `${rule}/${ind}`);
   // The page's fallback for older data (no `topic`): from the case type.
-  assert.equal(topicOfCase({ kind: "flaring-stopped" }), "flaring");
+  assert.equal(topicOf("forest_loss", null, ["improvement"]), "good", "an improvement tag is good news");
+  assert.equal(topicOfCase({ kind: "flaring-stopped" }), "good");
   assert.equal(topicOfCase({ kind: "forest", topic: "air" }), "air");
   assert.deepEqual(defaultOverlays({ kind: "forest" }), ["alerts"]);
   assert.deepEqual(defaultOverlays({ kind: "flaring-stopped" }), ["imagery"]);
@@ -307,7 +323,7 @@ test("export side: api/map.json projection — groups, types, coarse fires, publ
     ["a", "forest", false],
     ["b", "fire", false],
     ["c", "methane", false],
-    ["s", "flaring", false],
+    ["s", "good", false],
   ]);
   // A world trend: planet-wide, carries its indicator (to meet its world-pulse row), and is no search place.
   const trend = f("w", "indicator_trend", "candidate", {

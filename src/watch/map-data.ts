@@ -15,7 +15,7 @@ import { areaHaOf, fmtUsd, PLAIN_STATUS, plainArea, plainTitle } from "./site-re
 export type MapGroup = "published" | "checking" | "dropped";
 export type MapKind = "forest" | "fire" | "flaring" | "flaring-stopped" | "methane" | "other";
 /** What a case is about, in a reader's words — the Cases filter chips and the marker ring. */
-export type MapTopic = "forest" | "fire" | "flaring" | "methane" | "ocean" | "ice" | "air" | "weather" | "trend" | "other";
+export type MapTopic = "forest" | "fire" | "flaring" | "methane" | "ocean" | "ice" | "air" | "weather" | "trend" | "good" | "quake" | "other";
 
 export interface MapCase {
   id: string;
@@ -70,10 +70,12 @@ const TOPIC_BY_RULE: Record<string, MapTopic> = {
   forest_loss: "forest",
   fires_in_protected: "fire",
   flaring: "flaring",
-  flaring_stopped: "flaring",
+  flaring_stopped: "good",
   methane_anomaly: "methane",
   weather_extreme: "weather",
   indicator_trend: "trend",
+  improvement: "good",
+  mpa_fishing: "ocean",
 };
 const TOPIC_BY_INDICATOR: Record<string, MapTopic> = {
   sea_ice: "ice",
@@ -81,7 +83,7 @@ const TOPIC_BY_INDICATOR: Record<string, MapTopic> = {
   enso: "ocean",
   air_quality: "air",
   river_discharge: "weather",
-  quake: "other",
+  quake: "quake",
 };
 /** Indicators whose "place" stands for the whole planet. */
 const GLOBAL_INDICATORS = new Set(["sea_ice", "enso"]);
@@ -95,8 +97,12 @@ export function indicatorOf(f: Pick<Finding, "evidence">): string | null {
   return null;
 }
 
-/** Pure: a case's topic from its rule and, for threshold rules, the indicator it watched. */
-export function topicOf(rule: string, indicator: string | null): MapTopic {
+/**
+ * Pure: a case's topic from its rule and, for threshold rules, the indicator it watched; any case
+ * tagged `improvement` is good news. "other" means an unmapped rule — the export test fails on it.
+ */
+export function topicOf(rule: string, indicator: string | null, tags: readonly string[] = []): MapTopic {
+  if (tags.includes("improvement")) return "good";
   if (rule === "indicator_threshold") return (indicator ? TOPIC_BY_INDICATOR[indicator] : undefined) ?? "other";
   return TOPIC_BY_RULE[rule] ?? "other";
 }
@@ -149,7 +155,7 @@ export function mapData(findings: readonly Finding[], now = new Date()): MapData
       statusLabel: PLAIN_STATUS[f.status] ?? f.status.replace(/_/g, " "),
       group: groupOf(f.status),
       kind: KIND_BY_RULE[f.rule.name] ?? "other",
-      topic: topicOf(f.rule.name, indicator),
+      topic: topicOf(f.rule.name, indicator, f.aoi?.tags ?? []),
       global,
       place,
       meta: [place, ha !== null ? plainArea(ha) : "", lv !== null ? `nature’s work worth ≈ ${fmtUsd(lv)} a year` : ""].filter(Boolean).join(" · "),
