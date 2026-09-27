@@ -1119,3 +1119,93 @@ a.case-row > .case-top {
     transition: none;
   }
 }
+
+/* ---- reply wall (under every case; form built by reply.ts) ---- */
+.replies {
+  list-style: none;
+  margin: 0 0 var(--s-3);
+  padding: 0;
+  display: grid;
+  gap: var(--s-3);
+}
+.reply {
+  border-left: 2px solid var(--line-2);
+  padding-left: var(--s-3);
+}
+.reply-meta {
+  margin: 0;
+  font-size: var(--fs-12);
+  color: var(--fg-3);
+}
+.reply-meta b {
+  color: var(--fg-2);
+  font-weight: 600;
+}
+.reply-text {
+  margin: var(--s-1) 0 0;
+  color: var(--fg-1);
+  overflow-wrap: anywhere;
+}
+.reply-note,
+.reply-hint {
+  font-size: var(--fs-12);
+  color: var(--fg-3);
+}
+.reply-box {
+  margin-top: var(--s-4);
+}
+.reply-lede {
+  color: var(--fg-2);
+}
+.reply-nojs {
+  font-size: var(--fs-12);
+  color: var(--fg-3);
+}
+.reply-form {
+  display: grid;
+  gap: var(--s-2);
+}
+.reply-label {
+  font-size: var(--fs-12);
+  color: var(--fg-2);
+}
+.reply-text-in,
+.reply-role {
+  font: inherit;
+  font-size: 16px; /* no zoom-on-focus on iOS */
+  color: var(--fg-1);
+  background: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-2);
+  padding: var(--s-2);
+  width: 100%;
+  box-sizing: border-box;
+}
+.reply-text-in {
+  resize: vertical;
+  min-height: 6em;
+}
+.reply-hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.reply-send {
+  justify-self: start;
+}
+.reply-status {
+  margin: 0;
+  font-size: var(--fs-13);
+  color: var(--fg-2);
+}
+.reply-status:empty {
+  display: none;
+}
+.reply-status--error {
+  color: var(--danger);
+}
+.reply-status--ok {
+  color: var(--ok);
+}

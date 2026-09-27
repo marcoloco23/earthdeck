@@ -10,6 +10,7 @@ import "./landing.css";
 import { ago } from "../ui";
 import { createHub } from "./hub";
 import { mountPanel } from "./panel";
+import { mountReplyForms } from "./reply";
 import { verifyCase, wireCopy } from "./verify";
 
 const page = document.body.dataset.page ?? "";
@@ -43,6 +44,7 @@ if (page === "case") {
   else {
     const box = document.querySelector<HTMLElement>(".verify");
     if (box) void verifyCase(box, prefix);
+    mountReplyForms(document);
   }
 }
 

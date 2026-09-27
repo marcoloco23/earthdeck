@@ -13,6 +13,7 @@ import { OverviewError } from "../errors.js";
 import * as schema from "../ledger/schema.js";
 import type { Finding } from "../ledger/schema.js";
 import type { EventInput, Ledger } from "../ledger/store.js";
+import { reviewReplies } from "../replies/review.js";
 import { uuidv7 } from "../util.js";
 import type { Journal } from "../watch/journal.js";
 import type { QuotaGovernor } from "../watch/quota.js";
@@ -48,6 +49,8 @@ export interface AnalystOptions {
   log?: (line: string) => void;
   /** Daily case count + USD spend cap (quota.json). Omitted = no daily limits. */
   quota?: QuotaGovernor;
+  /** Local mirror of the reply wall (`replies/`): after the cases, the reviewer screens its inbox. */
+  repliesDir?: string;
 }
 
 export interface AnalystReport {
@@ -61,6 +64,8 @@ export interface AnalystReport {
   errors: { findingId: string; message: string }[];
   calls: number;
   costUsd: number;
+  /** Public replies screened this run (null = no replies dir / dry run). */
+  replies: null | { accepted: number; rejected: number; errors: number; left: number };
 }
 
 const NARRATOR_SYSTEM = `You write the public narration of one environmental finding for Earth Watch, an evidence-first public ledger. You are given the finding as JSON: its rule, evidence (with numeric values), the independent confirming signal, context (regional baseline ring, ENSO phase, nearby natural events), the rule's blind spots and the AOI tags.
@@ -168,7 +173,7 @@ export async function runAnalyst(o: AnalystOptions): Promise<AnalystReport> {
   const apiKey = o.apiKey;
   const dryRun = Boolean(o.dryRun);
   const runId = uuidv7();
-  const report: AnalystReport = { runId, dryRun, selected: 0, narrated: [], published: [], held: [], rejected: [], errors: [], calls: 0, costUsd: 0 };
+  const report: AnalystReport = { runId, dryRun, selected: 0, narrated: [], published: [], held: [], rejected: [], errors: [], calls: 0, costUsd: 0, replies: null };
   const j = (kind: string, rec: Record<string, unknown> = {}) => o.journal.append({ t: new Date().toISOString(), sweepId: runId, kind: `analyst_${kind}`, ...rec });
 
   const q = o.quota;
@@ -280,6 +285,32 @@ export async function runAnalyst(o: AnalystOptions): Promise<AnalystReport> {
       j("error", { findingId: f.findingId, message });
       log(`    ✗ ${message}`);
     }
+  }
+  if (o.repliesDir && !dryRun) {
+    // The reply wall: same reviewer model, low effort, counted in the same daily $ budget.
+    const rr = await reviewReplies({
+      dir: o.repliesDir,
+      ledger: o.ledger,
+      reviewer,
+      quota: q,
+      log,
+      journal: (kind, rec) => j(kind, rec),
+      call: async (system, user, schema) => {
+        try {
+          const r = await callJson({ apiKey, model: reviewer, system, user, schema, effort: "low", maxTokens: 2_000 });
+          report.calls++;
+          report.costUsd += r.costUsd ?? 0;
+          j("call", { purpose: "reply_review", model: r.model, usage: r.usage, costUsd: r.costUsd, ms: r.ms, requestSha256: r.requestSha256, responseSha256: r.responseSha256 });
+          if (q) j("spend", { day: q.day, callUsd: r.costUsd, dayUsd: q.addAnalystUsd(r.costUsd ?? 0), limitUsd: q.caps.analystUsd });
+          return r;
+        } catch (err) {
+          report.calls++;
+          throw err;
+        }
+      },
+    });
+    report.replies = { accepted: rr.accepted.length, rejected: rr.rejected.length, errors: rr.errors.length, left: rr.left };
+    if (rr.accepted.length || rr.rejected.length || rr.errors.length) log(`replies: ${rr.accepted.length} accepted · ${rr.rejected.length} rejected · ${rr.errors.length} errors · ${rr.left} waiting`);
   }
   j("end", { published: report.published.length, held: report.held.length, rejected: report.rejected.length, narrated: report.narrated.length, errors: report.errors.length, calls: report.calls, costUsd: report.costUsd });
   return report;

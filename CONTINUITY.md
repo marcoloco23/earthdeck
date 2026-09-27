@@ -39,8 +39,13 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
    $71/yr, refund refused by AWS, auto-renew OFF; Marc dislikes the name but uses it since
    it's paid). The public name is the neutral **"Earth Watch"** (`src/site.config.ts`);
    "Vital Earth" is a taken trademark. **The site is anonymous**: no owner name, email or
-   GitHub handle anywhere (test in `test/site-export.test.ts` fails on any); right of reply
-   has no channel yet (a forwarding mailbox on the domain is a follow-up). Do NOT register
+   GitHub handle anywhere (test in `test/site-export.test.ts` fails on any). Right of reply =
+   the **public reply wall** (2026-09-27; no email, nobody reads an inbox): `earthdeck-reply`
+   Lambda behind a Function URL (`POST /reply`, src/replies/intake.ts) → `replies/inbox/`;
+   the analyst's reviewer (Sonnet) screens ≤ 50/run → `replies/public/` (+ `commented` ledger
+   event, text hash only) or `replies/rejected/`; the export renders them + the form
+   (`--reply-url` = stack output ReplyUrl, set on the runner as EARTHDECK_REPLY_URL).
+   deploy.sh creates `/earthdeck/REPLY_SALT` once. NOT deployed yet. Do NOT register
    or buy anything without showing Marc the exact item + price first. IPv6 is disabled on
    CloudFront on purpose (AAAA-only resolver answers broke the fresh domain on IPv6-less
    networks); Tailscale MagicDNS on Marc's Mac negative-cached the name for an hour.
