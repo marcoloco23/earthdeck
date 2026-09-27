@@ -1,0 +1,145 @@
+{
+  "source": "Our World in Data (CC BY 4.0; upstream licences per indicator)",
+  "counts": {
+    "improving": 1,
+    "worsening": 5,
+    "flat": 0,
+    "unavailable": 0
+  },
+  "summary": "1 improving · 5 worsening · 0 flat. Improving: Marine protected areas. Worsening: Living Planet Index (wildlife populations), Red List Index (species survival), Fish stocks within sustainable levels, Tree cover loss, Ocean surface pH (Station ALOHA).",
+  "indicators": [
+    {
+      "slug": "global-living-planet-index",
+      "label": "Living Planet Index (wildlife populations)",
+      "unit": "index, 1970 = 100",
+      "group": "life",
+      "betterWhen": "up",
+      "upstream": "WWF / ZSL Living Planet Report",
+      "licence": "CC BY 4.0 (OWID); WWF/ZSL — attribute",
+      "status": "ok",
+      "latest": {
+        "t": "2020",
+        "v": 27.134067
+      },
+      "previous": {
+        "t": "2019",
+        "v": 27.327447999999997
+      },
+      "direction": "worsening",
+      "pace": "slowing",
+      "pctPerDecade": -9.2,
+      "perDecade": -2.567
+    },
+    {
+      "slug": "red-list-index",
+      "label": "Red List Index (species survival)",
+      "unit": "index, 1 = none threatened",
+      "group": "life",
+      "betterWhen": "up",
+      "upstream": "IUCN / BirdLife via UN SDG 15.5.1",
+      "licence": "CC BY 4.0",
+      "status": "ok",
+      "latest": {
+        "t": "2025",
+        "v": 0.74
+      },
+      "previous": {
+        "t": "2024",
+        "v": 0.75
+      },
+      "direction": "worsening",
+      "pace": "steady",
+      "pctPerDecade": -3.5,
+      "perDecade": -0.0261
+    },
+    {
+      "slug": "fish-stocks-within-sustainable-levels",
+      "label": "Fish stocks within sustainable levels",
+      "unit": "% of stocks",
+      "group": "life",
+      "betterWhen": "up",
+      "upstream": "FAO SOFIA",
+      "licence": "CC BY 4.0",
+      "status": "ok",
+      "latest": {
+        "t": "2021",
+        "v": 64.5
+      },
+      "previous": {
+        "t": "2020",
+        "v": 63.45
+      },
+      "direction": "worsening",
+      "pace": "accelerating",
+      "pctPerDecade": -8.8,
+      "perDecade": -5.8061
+    },
+    {
+      "slug": "tree-cover-loss",
+      "label": "Tree cover loss",
+      "unit": "ha/yr",
+      "group": "life",
+      "betterWhen": "down",
+      "upstream": "Global Forest Watch (Hansen / UMD)",
+      "licence": "CC BY 4.0",
+      "status": "ok",
+      "latest": {
+        "t": "2024",
+        "v": 29559676
+      },
+      "previous": {
+        "t": "2023",
+        "v": 28231408
+      },
+      "direction": "worsening",
+      "pace": "steady",
+      "pctPerDecade": 11.9,
+      "perDecade": 3075819.8788
+    },
+    {
+      "slug": "marine-protected-areas",
+      "label": "Marine protected areas",
+      "unit": "% of territorial waters",
+      "group": "life",
+      "betterWhen": "up",
+      "upstream": "UNEP-WCMC via World Bank",
+      "licence": "CC BY 4.0",
+      "status": "ok",
+      "latest": {
+        "t": "2025",
+        "v": 17.464169
+      },
+      "previous": {
+        "t": "2024",
+        "v": 14.014829
+      },
+      "direction": "improving",
+      "pace": "steady",
+      "pctPerDecade": 31.8,
+      "perDecade": 4.3452
+    },
+    {
+      "slug": "seawater-ph",
+      "label": "Ocean surface pH (Station ALOHA)",
+      "unit": "pH",
+      "group": "planet",
+      "betterWhen": "up",
+      "upstream": "Hawaii Ocean Time-series (Univ. of Hawaii)",
+      "licence": "CC BY 4.0",
+      "status": "ok",
+      "latest": {
+        "t": "2024",
+        "v": 8.042414
+      },
+      "previous": {
+        "t": "2023",
+        "v": 8.037277
+      },
+      "direction": "worsening",
+      "pace": "accelerating",
+      "pctPerDecade": -0.4,
+      "perDecade": -0.0346
+    }
+  ],
+  "dashboard": "dashboard not running"
+}

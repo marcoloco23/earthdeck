@@ -194,7 +194,7 @@ export const eventPayload = z.discriminatedUnion("kind", [
     kind: z.literal("confirmed"),
     /** The independent second signal — different sensor physics, provider, or a later revisit. */
     signal: evidence,
-    independence: z.enum(["sensor", "provider", "revisit", "human"]),
+    independence: z.enum(["sensor", "provider", "revisit", "method", "human"]),
   }),
   base.extend({
     kind: z.literal("status_changed"),

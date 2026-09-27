@@ -50,7 +50,8 @@ export interface Candidate {
 
 export interface Confirmation {
   signal: Evidence;
-  independence: "sensor" | "provider" | "revisit" | "human";
+  /** `method`: same provider, a different product or check (e.g. USGS review status, a data-stability re-read). */
+  independence: "sensor" | "provider" | "revisit" | "method" | "human";
 }
 
 export interface Rule {
