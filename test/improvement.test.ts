@@ -60,7 +60,7 @@ async function run(s: ReturnType<typeof setup>, wl: Watchlist, call: ToolCall, n
 
 // ---- forest_recovery ---------------------------------------------------------------------
 
-test("forest_recovery: loss ≤ 30 % of the same window last year and below the ring → improvement case, NDVI confirms", async () => {
+test("forest_recovery: loss ≤ 30 % of the same window last year and below the ring → improvement case, opt-in NDVI confirms", async () => {
   const s = setup();
   const end = addDays(NOW.slice(0, 10), -14); // alert lag
   const { call, calls } = fakeCall({
@@ -72,9 +72,14 @@ test("forest_recovery: loss ≤ 30 % of the same window last year and below the 
     },
     eo_compare: () => ({ dateA: "x", dateB: "y", validPctA: 98, validPctB: 98, delta: { meanChange: 0.038 } }),
   });
-  const r = await run(s, list({ kind: "forest_recovery" }), call);
+  const r = await run(s, list({ kind: "forest_recovery", confirmWithNdvi: true }), call);
   assert.equal(r.created.length, 1);
   assert.equal(r.confirmed.length, 1);
+  const off = fakeCall({ ...context, forest_alerts: (a) => ((a.bbox as number[])[0] !== -52.4 ? { ...GFW.now, areaHa: 2000 } : a.endDate === end ? GFW.now : GFW.yearAgo), eo_compare: () => ({ validPctA: 98, validPctB: 98, delta: { meanChange: 0.038 } }) });
+  const r0 = await run(setup(), list({ kind: "forest_recovery" }), off.call);
+  assert.equal(r0.created.length, 1);
+  assert.equal(r0.confirmed.length, 0, "default: NDVI never confirms; waits for the next window");
+  assert.equal(off.calls.filter((c) => c.tool === "eo_compare").length, 0);
   const f = s.ledger.get(r.created[0]!)!;
   assert.equal(f.title, "Forest loss near São Félix do Xingu (PA) fell 80 % year on year");
   assert.ok(f.aoi?.tags?.includes("improvement"), "the case carries the improvement tag");
@@ -161,13 +166,15 @@ test("flaring_decline: VNF −36 % and fewer hot nights than a year ago → impr
 
 test("bleaching_relief: live Galápagos is on Watch today → quiet; the same series cut at 08-30 → 27 clear days after a Warning", async () => {
   const reef = (fixture: Json) => fakeCall({ ...context, coral_bleaching: () => fixture });
-  const wl = list({ kind: "bleaching_relief", lat: -1.0, lon: -92.0 }, [-92.5, -1.5, -91.5, -0.5], "Galápagos (west of Isabela, Ecuador)");
+  const wl = list({ kind: "bleaching_relief", lat: -1.0, lon: -92.0, minPeakLevel: 1 }, [-92.5, -1.5, -91.5, -0.5], "Galápagos (west of Isabela, Ecuador)");
   assert.equal((await run(setup(), wl, reef(CORAL).call)).created.length, 0);
 
   const cut = clone(CORAL);
   cut.series = cut.series.filter((p: { t: string }) => p.t <= "2026-08-30");
   cut.latest = { ...cut.latest, date: "2026-08-30", alertLevel: 0, alert: "No stress", dhw: 0.45 };
   assert.deepEqual(bleachingRelief(cut), { peak: 2, peakDhw: 0.45, lastAlert: "2026-08-02", clearDays: 27 });
+  const dflt = list({ kind: "bleaching_relief", lat: -1.0, lon: -92.0 }, [-92.5, -1.5, -91.5, -0.5], "Galápagos");
+  assert.equal((await run(setup(), dflt, reef(cut).call, "2026-09-01T06:00:00Z")).created.length, 0, "default peak is Alert Level 1 (3); a Warning (2) is not enough");
   const s = setup();
   const r = await run(s, wl, reef(cut).call, "2026-09-01T06:00:00Z");
   assert.equal(r.created.length, 1);

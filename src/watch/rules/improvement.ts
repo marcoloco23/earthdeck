@@ -6,8 +6,8 @@
 //   forest_recovery    GFW integrated alerts (ha) in the last `days` ≤ maxShareOfBaseline × the same
 //                      window a year earlier, AND the AOI's alert density is below its ring
 //                      → confirm: the next `confirmDays` window is still low (revisit), else a
-//                        Sentinel-2 median NDVI that held or rose year on year (sensor; CDSE —
-//                        deferred, not skipped, when that quota is spent)
+//                        Sentinel-2 median NDVI that held or rose year on year (opt-in:
+//                        confirmWithNdvi; CDSE — deferred when that quota is spent)
 //   flaring_decline    VNF annual flared volume in the box fell ≥ minDropPct between the last two
 //                      VNF years AND FIRMS night-time hot detections are lower than a year ago
 //                      → confirm: the next window is still lower than a year earlier (revisit)
@@ -35,9 +35,9 @@ export type ImprovementKind = (typeof IMPROVEMENT_KINDS)[number];
 export const IMPROVEMENT_DEFAULTS: Record<ImprovementKind, Record<string, unknown>> = {
   // lagDays: GFW alerts arrive 1–2 weeks late, so both windows end lagDays before the sweep —
   // otherwise the fresh window is under-counted and every AOI looks like it recovered.
-  forest_recovery: { days: 90, lagDays: 14, minConfidence: "high", maxShareOfBaseline: 0.3, minBaselineHa: 20, confirmDays: 30, ndviTolerance: 0.02, minValidPct: 60 },
+  forest_recovery: { days: 90, lagDays: 14, minConfidence: "high", maxShareOfBaseline: 0.3, minBaselineHa: 20, confirmDays: 30, confirmWithNdvi: false, ndviTolerance: 0.02, minValidPct: 60 },
   flaring_decline: { days: 30, minDropPct: 30, minBaselineBcm: 0.05, minFirmsDropPct: 10, minFrp: 5, source: "VIIRS_NOAA21_NRT" },
-  bleaching_relief: { days: 90, minPeakLevel: 1, minClearDays: 14 },
+  bleaching_relief: { days: 90, minPeakLevel: 3, minClearDays: 14 },
   air_quality_clean: { guideline: 15, window: 7, minDaysAbove: 7 },
   fires_absent: { days: 30, minFrp: 20, clusterMin: 3, cellDeg: 0.05, minHotLastYear: 10, source: "VIIRS_NOAA21_NRT", aliveRingKm: 100, revisitDays: 5 },
 };
@@ -147,7 +147,7 @@ async function detectForest(ctx: RuleContext, p: P): Promise<Candidate | null> {
     summary:
       `Good news, if it holds: deforestation alerts near ${name} covered ${now.areaHa} ha in the ${days} days to ${end}, down from ${ly.areaHa} ha in the same weeks a year earlier (−${drop} %), ` +
       `and the area is now quieter than its ${ring.km} km neighbourhood (${round(aoiValue, 1)} vs ${round(regionalValue, 1)} ha per deg²). ` +
-      `Alerts can lag and cloud can hide clearing, so this counts only if the next month stays low or satellite greenness held up.`,
+      `Alerts can lag and cloud can hide clearing, so this counts only if the next month stays low too.`,
     observedAt,
     evidence,
     values,
@@ -184,7 +184,8 @@ async function confirmForest(ctx: RuleContext, p: P, c0: Pick<Candidate, "observ
       };
     }
   }
-  // 2. Different sensor: Sentinel-2 median NDVI held or rose, same weeks year on year.
+  // 2. Opt-in (confirmWithNdvi): Sentinel-2 median NDVI held or rose, same weeks year on year.
+  if (p.confirmWithNdvi !== true) return null;
   const dateA = addDays(end, -365);
   const args = { bbox: ctx.aoi.bbox, dateA, dateB: end, index: "NDVI", composite: "median", width: 256 };
   let c: CompareResult;
@@ -340,7 +341,7 @@ async function detectBleaching(ctx: RuleContext, p: P): Promise<Candidate | null
   const pt = pointOf(ctx, p);
   const r = (await shared(ctx, "coral_bleaching", { lat: pt.lat, lon: pt.lon, days: num(p.days, 90) })) as CoralResult;
   const s = bleachingRelief(r);
-  if (!s || s.peak < num(p.minPeakLevel, 1) || s.clearDays < num(p.minClearDays, 14)) return null;
+  if (!s || s.peak < num(p.minPeakLevel, 3) || s.clearDays < num(p.minClearDays, 14)) return null;
   const name = ctx.aoi.name ?? ctx.aoi.id;
   const peakLabel = BAA_LABEL[s.peak] ?? `level ${s.peak}`;
   const observedAt = dayStart(r.latest.date);
@@ -359,7 +360,7 @@ async function detectBleaching(ctx: RuleContext, p: P): Promise<Candidate | null
         source: "noaa-crw-coraltemp",
         datetime: observedAt,
         href: CRW_HREF,
-        method: method("bleaching_relief", { lat: pt.lat, lon: pt.lon, days: num(p.days, 90), minPeakLevel: num(p.minPeakLevel, 1), minClearDays: num(p.minClearDays, 14) }),
+        method: method("bleaching_relief", { lat: pt.lat, lon: pt.lon, days: num(p.days, 90), minPeakLevel: num(p.minPeakLevel, 3), minClearDays: num(p.minClearDays, 14) }),
         summary: `CRW Bleaching Alert Area at (${r.gridCell.lat}, ${r.gridCell.lon}): peak "${peakLabel}" (level ${s.peak}) in the window, last alert sample ${s.lastAlert}, "No stress" through ${r.latest.date} (series every ${r.window.strideDays} d).`,
         values,
       },
@@ -588,7 +589,7 @@ export const improvement = defineRule({
     "All: an improvement is a measured drop, not a cause — policy, enforcement, rain, market prices or a data change can all produce it, and the case does not say which.",
     "Forest: GFW alerts cover 30°N–30°S only and lag 1–2 weeks; both windows end two weeks before the sweep, but late alerts can still fill in the recent one.",
     "Forest: cloud hides optical alerts and RADD (radar) covers only part of the tropics; a cloudy season can look like less clearing.",
-    "Forest: the optical check is a whole-box median NDVI — it rules out broad canopy loss, not small clearings; the stronger confirmation is the next month staying low.",
+    "Forest: confirmation is the next 30 days staying low year on year — a case waits at least ~45 days; the optional whole-box NDVI check (off by default) cannot see clearings of this size.",
     "Flaring: the two VNF years come from different satellites (S-NPP 2023, NOAA-20 2024); part of a change can be calibration, not gas.",
     "Flaring: less flaring can mean less oil produced, gas vented cold (invisible to heat sensors) or re-routed to another flare, not gas put to use.",
     "Reefs: one 5 km CRW cell stands for the reef; 'No stress' means the heat stopped building, not that bleached corals recovered or survived.",
