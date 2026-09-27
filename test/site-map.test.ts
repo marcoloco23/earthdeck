@@ -5,22 +5,32 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  CLUSTER_PROPERTIES,
   DEFAULT_VIEW,
   EASE_IN_OUT,
+  MODES,
+  boundsOf,
+  caseFeatures,
+  clusterGroup,
   decodeView,
+  defaultOverlays,
   encodeView,
   endMsOf,
   firstDay,
   inWindow,
+  isGlobal,
   isVisible,
+  nearestSnap,
   parseCoords,
+  project,
   search,
+  topicOfCase,
   windowStats,
   type MapCase,
   type MapPlace,
   type View,
 } from "../web/src/site/map/model.js";
-import { groupOf, mapData } from "../src/watch/map-data.js";
+import { groupOf, isGlobalCase, mapData, topicOf } from "../src/watch/map-data.js";
 import type { Finding } from "../src/ledger/schema.js";
 
 const mk = (id: string, observedAt: string, over: Partial<MapCase> = {}): MapCase => ({
@@ -49,11 +59,15 @@ test("URL state: round-trips, omits defaults, restores only what it holds", () =
     pitch: 40,
     bearing: -30,
     groups: ["published", "dropped"],
-    kinds: ["forest", "methane"],
+    topics: ["forest", "methane", "ice"],
     win: 90,
     end: "2026-09-01",
     sel: "01994a2e-0000-7000-8000-00000000d001",
-    overlays: ["imagery"],
+    overlays: ["imagery", "weather"],
+    mode: "planet",
+    panel: false,
+    metric: "forest_ha",
+    layers: ["wx-clouds", "cl-sst"],
   };
   const h = encodeView(v);
   assert.ok(h.startsWith("#map:v=1&"));
@@ -61,6 +75,25 @@ test("URL state: round-trips, omits defaults, restores only what it holds", () =
   // Defaults stay out of the link.
   assert.equal(encodeView(DEFAULT_VIEW), "#map:v=1&c=-20,12&z=1.35");
   assert.deepEqual(decodeView("#map:v=1&z=3"), { zoom: 3 });
+});
+
+test("URL state: modes, panel and an open case", () => {
+  for (const mode of MODES) assert.equal({ ...DEFAULT_VIEW, ...decodeView(encodeView({ ...DEFAULT_VIEW, mode })) }.mode, mode);
+  assert.ok(!encodeView({ ...DEFAULT_VIEW, mode: "cases" }).includes("m="), "the default mode stays out of the link");
+  assert.match(encodeView({ ...DEFAULT_VIEW, mode: "metrics" }), /&m=x$/);
+  assert.match(encodeView({ ...DEFAULT_VIEW, panel: false }), /&pc=1$/);
+  // An open case is a short, shareable link — the camera follows the case.
+  const id = "01994a2e-0000-7000-8000-00000000d001";
+  assert.equal(encodeView({ ...DEFAULT_VIEW, sel: id, open: true, mode: "planet", zoom: 7 }), `#case=${id}`);
+  assert.deepEqual(decodeView(`#case=${id}`), { sel: id, open: true, mode: "cases", panel: true });
+  assert.equal(decodeView("#case=../../etc"), null, "a bad id is not a case link");
+  assert.equal(decodeView("#case="), null);
+  // Selected but not open: a normal map link that remembers the selection.
+  assert.match(encodeView({ ...DEFAULT_VIEW, sel: id }), new RegExp(`&s=${id}$`));
+  // Fail closed per field.
+  const d = decodeView("#map:v=1&m=q&pc=0&f=Bad-Key!&l=wx-clouds,<x>")!;
+  for (const k of ["mode", "panel", "metric", "layers"] as const) assert.equal(d[k], undefined, `${k} with a bad value is dropped`);
+  assert.equal(decodeView(`#map:v=1&l=${Array.from({ length: 9 }, (_, i) => `l${i}`).join(",")}`)!.layers, undefined, "at most eight layers");
 });
 
 test("URL state: fail closed and clamped — hostile or foreign hashes never half-apply", () => {
@@ -73,7 +106,7 @@ test("URL state: fail closed and clamped — hostile or foreign hashes never hal
   assert.equal(d.zoom, 18);
   assert.equal(d.pitch, 60);
   assert.equal(d.bearing, -90, "bearing wraps");
-  for (const k of ["groups", "kinds", "win", "end", "sel", "overlays"] as const) assert.equal(d[k], undefined, `${k} with a bad token is dropped whole`);
+  for (const k of ["groups", "topics", "win", "end", "sel", "overlays"] as const) assert.equal(d[k], undefined, `${k} with a bad token is dropped whole`);
   assert.deepEqual(decodeView("#map:v=1&c=190,89")!.center, [-170, 85], "lon wraps, lat clamps to the globe's range");
   assert.deepEqual(decodeView("#map:v=1&g=")!.groups, [], "an explicitly empty layer set is valid");
   // Writing clamps too.
@@ -91,12 +124,85 @@ test("time window + layer filter", () => {
   assert.ok(!inWindow("2026-09-28T00:00:00Z", 0, end), "nothing from after the end");
   assert.ok(!inWindow("not a date", 0, end));
 
-  const c = mk("a", "2026-09-20T00:00:00Z", { group: "checking", kind: "fire" });
-  const v = { groups: DEFAULT_VIEW.groups, kinds: DEFAULT_VIEW.kinds, win: 30 as const };
+  const c = mk("a", "2026-09-20T00:00:00Z", { group: "checking", kind: "fire", topic: "fire" });
+  const v = { groups: DEFAULT_VIEW.groups, topics: DEFAULT_VIEW.topics, win: 30 as const };
   assert.ok(isVisible(c, v, end));
-  assert.ok(!isVisible(c, { ...v, groups: ["published"] }, end), "status layer off");
-  assert.ok(!isVisible(c, { ...v, kinds: ["forest"] }, end), "case type off");
-  assert.ok(!isVisible(mk("b", "2026-09-20T00:00:00Z", { group: "dropped" }), v, end), "false alarms are off by default");
+  assert.ok(!isVisible(c, { ...v, groups: ["published"] }, end), "status filter off");
+  assert.ok(!isVisible(c, { ...v, topics: ["forest"] }, end), "topic filter off");
+  assert.ok(isVisible(mk("b", "2026-09-20T00:00:00Z", { group: "dropped" }), v, end), "false alarms are shown by default — counted, not hidden");
+  assert.ok(!isVisible(c, v, end, new Set(["other"])), "a Metrics number narrows to its own cases");
+  assert.ok(isVisible(c, v, end, new Set(["a"])));
+  assert.ok(!isVisible(mk("w", "2026-09-20T00:00:00Z", { global: true }), v, end), "planet-wide cases are never on the map");
+});
+
+test("place vs. planet: global-case classification (export side and page side agree)", () => {
+  assert.equal(isGlobalCase({ bbox: [-180, -90, 180, 90], aoiId: "wp-red-list" }), true, "world trend AOI");
+  assert.equal(isGlobalCase({ bbox: [1, 1, 2, 2], aoiId: "wp-anything" }), true, "the wp- prefix alone is enough");
+  assert.equal(isGlobalCase({ bbox: [-180, 60, 180, 90], aoiId: "seaice-arctic", indicator: "sea_ice" }), true, "sea ice");
+  assert.equal(isGlobalCase({ bbox: [-170, -5, -120, 5], aoiId: "enso-global", indicator: "enso" }), true, "ENSO is planet-scale though its box is not");
+  assert.equal(isGlobalCase({ bbox: [-60.5, -3.33, -60, -2.83], aoiId: "river-rio-negro-manaus", indicator: "river_discharge" }), false);
+  assert.equal(isGlobalCase({ bbox: [-100, -10, 90, 10] }), true, "any box spanning half the globe");
+  // The page falls back to the box when an older map.json has no `global` flag.
+  assert.equal(isGlobal({ bbox: [-180, -90, 180, 90] }), true);
+  assert.equal(isGlobal({ bbox: [-180, -90, 180, 90], global: false }), false, "the export's flag wins");
+  assert.equal(isGlobal({ bbox: [1, 1, 2, 2] }), false);
+});
+
+test("topic mapping: rule + indicator → the reader's topic", () => {
+  const cases: [string, string | null, string][] = [
+    ["forest_loss", null, "forest"],
+    ["fires_in_protected", null, "fire"],
+    ["flaring", null, "flaring"],
+    ["flaring_stopped", null, "flaring"],
+    ["methane_anomaly", null, "methane"],
+    ["weather_extreme", null, "weather"],
+    ["indicator_trend", "red-list-index", "trend"],
+    ["indicator_threshold", "sea_ice", "ice"],
+    ["indicator_threshold", "marine_heatwave", "ocean"],
+    ["indicator_threshold", "enso", "ocean"],
+    ["indicator_threshold", "air_quality", "air"],
+    ["indicator_threshold", "river_discharge", "weather"],
+    ["indicator_threshold", "quake", "other"],
+    ["indicator_threshold", null, "other"],
+    ["something_new", null, "other"],
+  ];
+  for (const [rule, ind, topic] of cases) assert.equal(topicOf(rule, ind), topic, `${rule}/${ind}`);
+  // The page's fallback for older data (no `topic`): from the case type.
+  assert.equal(topicOfCase({ kind: "flaring-stopped" }), "flaring");
+  assert.equal(topicOfCase({ kind: "forest", topic: "air" }), "air");
+  assert.deepEqual(defaultOverlays({ kind: "forest" }), ["alerts"]);
+  assert.deepEqual(defaultOverlays({ kind: "flaring-stopped" }), ["imagery"]);
+  assert.deepEqual(defaultOverlays({ kind: "other", topic: "weather" }), ["weather"]);
+  assert.deepEqual(defaultOverlays({ kind: "fire" }), [], "fires stay coarse: no imagery zoom-in on the cluster");
+});
+
+test("clustered markers: one point per place case, per-status sums, cluster colour", () => {
+  const cases = [
+    mk("p", "2026-09-01T00:00:00Z", { lon: 1, lat: 2, title: "x".repeat(120) }),
+    mk("c", "2026-09-01T00:00:00Z", { group: "checking", kind: "fire", lon: 3, lat: 4 }),
+    mk("g", "2026-09-01T00:00:00Z", { global: true, topic: "trend" }),
+    mk("n", "2026-09-01T00:00:00Z", { lon: Number.NaN }),
+  ];
+  const fc = caseFeatures(cases);
+  assert.deepEqual(fc.features.map((f) => f.properties.id), ["p", "c"], "no planet-wide or unplaceable cases");
+  assert.deepEqual(fc.features.map((f) => f.id), [1, 2], "numeric ids for feature-state");
+  assert.deepEqual(fc.features[0]!.properties, { id: "p", g: "published", t: "forest", pub: 1, title: `${"x".repeat(79)}…` });
+  assert.equal(fc.features[1]!.properties.pub, 0);
+  assert.deepEqual(fc.features[1]!.geometry.coordinates, [3, 4]);
+  assert.deepEqual(Object.keys(CLUSTER_PROPERTIES), ["pub", "chk", "drop"]);
+  assert.equal(clusterGroup({ pub: 1, chk: 9 }), "published", "any published case colours the cluster");
+  assert.equal(clusterGroup({ pub: 0, chk: 2, drop: 5 }), "checking");
+  assert.equal(clusterGroup({ drop: 3 }), "dropped");
+  assert.deepEqual(boundsOf([{ bbox: [0, 0, 1, 1] }, { bbox: [-5, 2, 0, 8] }]), [-5, 0, 1, 8]);
+  assert.equal(boundsOf([]), null);
+});
+
+test("bottom sheet: momentum-projected snap", () => {
+  const o = { full: 0, half: 400, peek: 700 };
+  assert.equal(nearestSnap(420, 0, o), "half", "a slow release settles where it is");
+  assert.equal(nearestSnap(420, 1500, o), "peek", "a flick down throws it to peek");
+  assert.equal(nearestSnap(420, -1500, o), "full", "a flick up throws it open");
+  assert.ok(Math.abs(project(1000) - 499) < 1, "Apple's projection at d = 0.998");
 });
 
 test("window stats: published, false alarms of decided, per window", () => {
@@ -197,4 +303,20 @@ test("export side: api/map.json projection — groups, types, coarse fires, publ
   assert.equal(d.cases.find((c) => c.id === "b")!.points, undefined, "fire cases carry no detection points");
   assert.deepEqual(d.places, [{ id: "a1", name: "Somewhere", lon: 10, lat: 10, bbox: [9, 9, 11, 11] }]);
   assert.equal(groupOf("retracted"), "published", "a withdrawn case stays on the public record");
+  assert.deepEqual(d.cases.map((c) => [c.id, c.topic, c.global]), [
+    ["a", "forest", false],
+    ["b", "fire", false],
+    ["c", "methane", false],
+    ["s", "flaring", false],
+  ]);
+  // A world trend: planet-wide, carries its indicator (to meet its world-pulse row), and is no search place.
+  const trend = f("w", "indicator_trend", "candidate", {
+    aoi: { id: "wp-red-list", name: "World: Red List Index" },
+    bbox: [-180, -90, 180, 90],
+    geometry: { type: "Polygon", coordinates: [[[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]] },
+    evidence: [{ id: "e", kind: "series", source: "owid", datetime: "2025-01-01T00:00:00Z", method: { name: "indicator_trend", version: "1.0", params: { indicator: "red-list-index" } } }],
+  } as Partial<Finding>);
+  const g = mapData([trend], new Date("2026-09-27T00:00:00Z"));
+  assert.deepEqual([g.cases[0]!.global, g.cases[0]!.topic, g.cases[0]!.indicator], [true, "trend", "red-list-index"]);
+  assert.deepEqual(g.places, [], "a world trend is not a place to fly to");
 });

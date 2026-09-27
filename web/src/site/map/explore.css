@@ -1,5 +1,6 @@
 /* The interactive map (lazy chunk, with MapLibre's own CSS). It sits over the static world image
-   in the same box — no layout shift — and uses the site's tokens from styles.css. */
+   in the same box — no layout shift — and uses the site's tokens (styles.css, landing.css). The
+   markers are map layers (clustered circles), not DOM. */
 
 .world.is-live .world-scroll {
   visibility: hidden;
@@ -12,7 +13,7 @@
   inset: 0;
   outline: none;
   opacity: 0;
-  animation: xp-in 240ms var(--ease-out) forwards;
+  animation: xp-in 320ms var(--ease-out) forwards;
 }
 .xp:focus-visible {
   box-shadow: inset 0 0 0 2px var(--accent-line);
@@ -35,13 +36,12 @@
 .xp .maplibregl-ctrl-attrib a {
   color: var(--fg-2);
 }
-.xp .maplibregl-ctrl-bottom-right {
-  bottom: 44px;
-}
 .xp .maplibregl-ctrl-group {
-  background: rgb(12 16 22 / 0.88);
+  background: var(--glass, rgb(12 16 22 / 0.88));
   border: 1px solid var(--line-2);
   box-shadow: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 .xp .maplibregl-ctrl-group button + button {
   border-top-color: var(--line-2);
@@ -49,95 +49,41 @@
 .xp .maplibregl-ctrl-group button .maplibregl-ctrl-icon {
   filter: invert(0.85);
 }
+.xp .bm-caption {
+  padding: 2px 8px;
+  border-radius: var(--r-1);
+  background: rgb(7 9 13 / 0.6);
+  color: var(--fg-2);
+  font-size: var(--fs-11);
+}
 
-/* ---- markers: the wrapper is positioned by MapLibre; the button inside owns opacity + scale */
-.mk {
-  width: 28px;
-  height: 28px;
-}
-.mk-b {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: none;
-  cursor: pointer;
-  transition: opacity 200ms var(--ease-out), visibility 0s linear 0s;
-}
-.mk-b.is-out {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 200ms var(--ease-out), visibility 0s linear 200ms;
-}
-.mk-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--st-candidate);
-  box-shadow: 0 0 0 2px #04050b;
-  transition: transform var(--dur-hover) var(--ease-out);
-}
-.mk--published .mk-dot {
-  width: 12px;
-  height: 12px;
-  background: var(--st-published);
-}
-.mk-b.status--confirmed .mk-dot {
-  background: var(--st-confirmed);
-}
-.mk--dropped .mk-dot {
-  background: transparent;
-  box-shadow: inset 0 0 0 2px var(--st-false_positive), 0 0 0 1px #04050b;
-}
-.mk-b.status--resolved .mk-dot {
-  background: var(--st-resolved);
-}
-.mk-b.is-hot .mk-dot,
-.mk-b.is-sel .mk-dot {
-  transform: scale(1.45);
-}
-.mk-b.is-sel .mk-dot {
-  box-shadow: 0 0 0 2px #04050b, 0 0 0 4px var(--fg-1);
-}
-.mk-tip {
+/* hover tip: the headline, over the marker */
+.xp-tip {
   position: absolute;
-  bottom: calc(100% - 2px);
-  left: 50%;
-  width: max-content;
-  max-width: 240px;
-  padding: 4px 8px;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  max-width: 260px;
+  padding: 5px 9px;
   border-radius: var(--r-2);
   background: var(--bg-3);
   border: 1px solid var(--line-2);
   box-shadow: var(--e-3);
+  color: var(--fg-1);
   font-size: var(--fs-12);
   line-height: 1.35;
-  color: var(--fg-1);
-  text-align: left;
   pointer-events: none;
-  opacity: 0;
-  transform: translate(-50%, 4px);
-  transition: opacity var(--dur-hover) ease, transform var(--dur-hover) var(--ease-out);
 }
-.mk-b.is-hot .mk-tip {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
-.mk-b.is-sel .mk-tip {
-  opacity: 0;
+.xp-tip[hidden] {
+  display: none;
 }
 
-/* ---- toolbar */
+/* ---- toolbar: under the number chips, left of the panel */
 .xp-top {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  right: 8px;
+  top: 54px;
+  left: 12px;
+  right: calc(var(--panel-w, 404px) + 28px);
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -149,16 +95,18 @@
 }
 .xp-search {
   position: relative;
-  flex: 0 1 260px;
+  flex: 0 1 280px;
   min-width: 0;
 }
 .xp-input {
   width: 100%;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: var(--r-2);
-  border: 1px solid var(--line-2);
-  background: rgb(12 16 22 / 0.88);
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-line, var(--line-2));
+  background: var(--glass, rgb(12 16 22 / 0.88));
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
   color: var(--fg-1);
   font: inherit;
   font-size: 16px; /* no zoom-on-focus on iOS */
@@ -185,7 +133,7 @@
   margin: 0;
   padding: 4px;
   list-style: none;
-  border-radius: var(--r-2);
+  border-radius: var(--r-3);
   background: var(--bg-3);
   border: 1px solid var(--line-2);
   box-shadow: var(--e-3);
@@ -218,14 +166,15 @@
 .xp-tools {
   display: flex;
   gap: 6px;
-  margin-left: auto;
 }
 .xp-btn {
-  height: 32px;
-  padding: 0 10px;
-  border-radius: var(--r-2);
-  border: 1px solid var(--line-2);
-  background: rgb(12 16 22 / 0.88);
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-line, var(--line-2));
+  background: var(--glass, rgb(12 16 22 / 0.88));
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
   color: var(--fg-2);
   font: inherit;
   font-size: var(--fs-12);
@@ -236,12 +185,6 @@
 .xp-btn:active {
   transform: scale(0.97);
 }
-.xp-btn[aria-pressed="true"],
-.xp-btn[aria-expanded="true"] {
-  color: var(--fg-1);
-  background: var(--bg-4);
-  border-color: var(--line-3);
-}
 @media (hover: hover) and (pointer: fine) {
   .xp-btn:hover {
     color: var(--fg-1);
@@ -250,124 +193,33 @@
 }
 .xp-btn:focus-visible,
 .xp-seg-b:focus-visible,
-.xp-chip:focus-visible,
-.xp-close:focus-visible,
-.xp-open:focus-visible {
+.xp-chip:focus-visible {
   outline: 2px solid var(--accent-line);
   outline-offset: 1px;
 }
 
-/* layers panel: a small popover under the Layers button */
-.xp-panel {
-  flex-basis: 100%;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: var(--s-3);
-  max-width: 420px;
-  margin-left: auto;
-  padding: var(--s-3);
-  border-radius: var(--r-3);
-  background: var(--bg-3);
-  border: 1px solid var(--line-2);
-  box-shadow: var(--e-3);
-  transform-origin: top right;
-  animation: xp-pop 180ms var(--ease-out);
-}
-@keyframes xp-pop {
-  from {
-    opacity: 0;
-    transform: scale(0.97) translateY(-4px);
-  }
-}
-.xp-panel[hidden] {
-  display: none;
-}
-.xp-fs {
-  display: grid;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  min-width: 0;
-}
-.xp-legend {
-  padding: 0 0 4px;
-  font-size: var(--fs-11);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-3);
-}
-.xp-check {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 30px;
-  padding: 0 6px;
-  border-radius: var(--r-1);
-  color: var(--fg-2);
-  font-size: var(--fs-13);
-  cursor: pointer;
-}
-@media (hover: hover) and (pointer: fine) {
-  .xp-check:hover {
-    background: var(--bg-4);
-  }
-}
-.xp-check input {
-  margin: 0;
-  accent-color: var(--accent);
-}
-.xp-swatch {
-  display: none;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-.xp-check--published .xp-swatch,
-.xp-check--checking .xp-swatch,
-.xp-check--dropped .xp-swatch {
-  display: block;
-}
-.xp-check--published .xp-swatch {
-  background: var(--st-published);
-}
-.xp-check--checking .xp-swatch {
-  background: var(--st-candidate);
-}
-.xp-check--dropped .xp-swatch {
-  box-shadow: inset 0 0 0 2px var(--st-false_positive);
-}
-.xp-check-l {
-  flex: 1;
-}
-.xp-check-n {
-  color: var(--fg-3);
-  font-size: var(--fs-12);
-  font-variant-numeric: tabular-nums;
-}
-
-/* ---- time bar */
+/* ---- time bar: bottom left, clear of the panel */
 .xp-time {
   position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
+  left: 12px;
+  bottom: 12px;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 10px;
+  width: min(600px, calc(100% - var(--panel-w, 404px) - 120px));
   padding: 6px 8px;
-  border-radius: var(--r-2);
-  background: rgb(12 16 22 / 0.88);
-  border: 1px solid var(--line-2);
-  max-width: calc(100% - 64px);
+  border-radius: var(--r-3);
+  background: var(--glass, rgb(12 16 22 / 0.88));
+  border: 1px solid var(--glass-line, var(--line-2));
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
 }
 .xp-seg {
   display: inline-flex;
   padding: 2px;
   border-radius: var(--r-2);
-  background: var(--bg-1);
+  background: rgb(7 9 13 / 0.55);
 }
 .xp-seg-b {
   min-width: 36px;
@@ -396,6 +248,8 @@
 }
 .xp-time .xp-btn {
   height: 26px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 .xp-time-l {
   flex: 1 0 100%;
@@ -403,88 +257,8 @@
   color: var(--fg-3);
   font-variant-numeric: tabular-nums;
 }
-@media (min-width: 900px) {
-  .xp-time-l {
-    flex: 0 1 auto;
-  }
-}
 
-/* ---- the case card */
-.xp-card {
-  position: absolute;
-  left: 8px;
-  top: 48px;
-  z-index: 3;
-  width: min(320px, calc(100% - 16px));
-  max-height: calc(100% - 110px);
-  overflow: auto;
-  display: grid;
-  gap: 8px;
-  padding: var(--s-3);
-  border-radius: var(--r-3);
-  background: var(--bg-2);
-  border: 1px solid var(--line-2);
-  box-shadow: var(--e-3);
-  animation: xp-card-in 220ms var(--ease-out);
-}
-@keyframes xp-card-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-}
-.xp-card[hidden] {
-  display: none;
-}
-.xp-card-top {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.xp-card-when {
-  color: var(--fg-3);
-  font-size: var(--fs-12);
-}
-.xp-close {
-  margin-left: auto;
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: var(--r-1);
-  background: none;
-  color: var(--fg-3);
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-}
-@media (hover: hover) and (pointer: fine) {
-  .xp-close:hover {
-    color: var(--fg-1);
-    background: var(--bg-3);
-  }
-}
-.xp-card-h {
-  margin: 0;
-  font-size: var(--fs-16);
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--fg-1);
-  text-wrap: balance;
-}
-.xp-card-meta,
-.xp-card-note {
-  margin: 0;
-  font-size: var(--fs-12);
-  color: var(--fg-2);
-}
-.xp-card-note {
-  color: var(--fg-3);
-}
-.xp-ov {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
+/* overlay chips (they live in the panel's case view) */
 .xp-chip {
   height: 28px;
   padding: 0 10px;
@@ -495,80 +269,38 @@
   font: inherit;
   font-size: var(--fs-12);
   cursor: pointer;
-  transition: color var(--dur-hover) ease, background-color var(--dur-hover) ease, border-color var(--dur-hover) ease;
+  transition: color var(--dur-hover) ease, background-color var(--dur-hover) ease, border-color var(--dur-hover) ease, transform var(--dur-press) var(--ease-out);
+}
+.xp-chip:active {
+  transform: scale(0.97);
 }
 .xp-chip[aria-pressed="true"] {
   color: var(--fg-1);
   background: var(--accent-soft);
   border-color: var(--accent-line);
 }
-.xp-fade {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--fs-11);
-  color: var(--fg-3);
-}
-.xp-fade[hidden] {
-  display: none;
-}
-.xp-open {
-  justify-self: start;
-  padding: 6px 12px;
-  border-radius: var(--r-2);
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-line);
-  color: var(--accent-strong);
-  font-size: var(--fs-13);
-  font-weight: 500;
-  text-decoration: none;
-}
 
-/* the list rows the map filters out */
-.case-row.is-dim {
-  opacity: 0.45;
-  transition: opacity 200ms ease;
-}
-.case-row.is-sel {
-  border-color: var(--accent-line);
-}
-
-/* phone: bottom sheet card, compact toolbar */
+/* phone: the sheet owns the bottom; search under the chips; controls above the sheet */
 @media (max-width: 899px) {
+  .xp-top {
+    top: 44px;
+    left: 8px;
+    right: 8px;
+  }
   .xp-search {
     flex: 1 1 140px;
   }
-  .xp-tools {
-    margin-left: 0;
-  }
   .xp-btn {
-    padding: 0 8px;
+    padding: 0 10px;
   }
   .xp-btn--share {
     display: none; /* the address bar's share sheet does this on a phone; the hash is always current */
   }
-  .xp-card {
-    top: auto;
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    width: auto;
-    max-height: 70%;
-    animation-name: xp-sheet-in;
-    animation-duration: 260ms;
-    animation-timing-function: var(--ease-drawer, cubic-bezier(0.32, 0.72, 0, 1));
-  }
-  @keyframes xp-sheet-in {
-    from {
-      transform: translateY(100%);
-    }
-  }
   .xp-time {
-    max-width: none;
+    display: none; /* the time window stays a desktop tool; filters live in the sheet */
   }
   .xp .maplibregl-ctrl-bottom-right {
-    bottom: 76px;
+    bottom: calc(100% - var(--sheet-y, 52%) + 4px);
   }
   .xp .maplibregl-ctrl-group:not(:empty) {
     display: none; /* pinch and two-finger drag instead */
@@ -576,13 +308,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .xp,
-  .xp-panel,
-  .xp-card {
+  .xp {
     animation-duration: 1ms;
-  }
-  .mk-dot,
-  .mk-tip {
-    transition: opacity var(--dur-hover) ease;
   }
 }

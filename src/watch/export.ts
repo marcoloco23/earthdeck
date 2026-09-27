@@ -8,7 +8,9 @@
 //   ledger/{checkpoint,pub,entries.jsonl,tile/**}                     — the verification surface
 //   api/stats.json                 counts + published false-positive rate per rule
 //   api/map.json                   the interactive map's cases + watched places (src/watch/map-data.ts)
+//   api/metrics.json               the landing's Metrics mode: totals, timeline, stakes (src/watch/metrics.ts)
 //   api/pulse.json                 world_pulse snapshot (fresh, else cached, else omitted)
+//   api/storms.json                active tropical cyclones as GeoJSON (live exports only, best-effort)
 //   developers/index.html          verify-it-yourself commands, feeds, API, schema (kept off the landing)
 //   schema/finding-event.v1.json, trust.html (+ TRUST.md), sitemap.xml, robots.txt
 //   assets/**, og.png, favicon.{ico,svg}, apple-touch-icon.png, icon-{192,512}.png
@@ -28,6 +30,7 @@ import { ledgerDir as defaultLedgerDir } from "../config.js";
 import { SITE } from "../site.config.js";
 import { readHeartbeat, type Heartbeat } from "./journal.js";
 import { mapData } from "./map-data.js";
+import { computeMetrics } from "./metrics.js";
 import { casePage, developersPage, FALLBACK_TEMPLATE, fillTemplate, landingPage, robots, sitemap, trustPage, watchIndexPage, webManifest, type CaseData, type Ctx } from "./site-render.js";
 
 const PKG_ROOT = fileURLToPath(new URL("../../", import.meta.url)); // dist/watch → root, src/watch → root
@@ -234,10 +237,16 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
   );
   write("api/stats.json", JSON.stringify(stats));
   write("api/map.json", JSON.stringify(mapData(findings, now)));
+  write("api/metrics.json", JSON.stringify(computeMetrics(findings, stats, now)));
 
   // ---- world pulse ----
   const pulse = await pulseSnapshot(opts.pulse ?? "auto", opts.pulseCache ?? join(dirname(resolve(lDir)), "pulse.json"), opts.pulseTimeoutMs ?? 45_000, log);
   if (pulse.json) write("api/pulse.json", pulse.json);
+  // Active tropical cyclones for the map's Live layers — live exports only, best-effort.
+  if ((opts.pulse ?? "auto") === "auto") {
+    const storms = await stormsSnapshot(now, Math.min(opts.pulseTimeoutMs ?? 45_000, 20_000), log);
+    if (storms) write("api/storms.json", storms);
+  }
 
   const schemaFile = join(PKG_ROOT, "schema", "finding-event.v1.json");
   if (existsSync(schemaFile)) write("schema/finding-event.v1.json", readFileSync(schemaFile));
@@ -349,6 +358,23 @@ async function pulseSnapshot(
     }
   }
   return { kind: "none" };
+}
+
+async function stormsSnapshot(now: Date, timeoutMs: number, log: (s: string) => void): Promise<string | null> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    const [{ activeStorms }, { stormsGeoJson }] = await Promise.all([import("../clients/storms.js"), import("../tools/weather.js")]);
+    const timeout = new Promise<never>((_, rej) => {
+      timer = setTimeout(() => rej(new Error(`timed out after ${timeoutMs} ms`)), timeoutMs);
+    });
+    const r = await Promise.race([activeStorms(now.toISOString().slice(0, 10)), timeout]);
+    return JSON.stringify({ generatedAt: now.toISOString(), ...stormsGeoJson(r.storms) });
+  } catch (e) {
+    log(`  storms: ${(e as Error).message} — the cyclone layer is left out`);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function listFiles(root: string, rel = ""): string[] {

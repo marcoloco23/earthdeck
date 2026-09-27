@@ -1,12 +1,15 @@
-// The interactive map's pure core — no DOM, no MapLibre, unit-tested in test/site-map.test.ts.
-// View state ⇄ URL hash (a link is a handoff), the layer + time-window filter, the stats the
-// strip shows for a window, and the keyless search (bundled places + coordinate parsing).
+// The landing's map + panel, pure core — no DOM, no MapLibre, unit-tested in test/site-map.test.ts.
+// View state ⇄ URL hash (a link is a handoff: camera, filters, mode, panel, the open case), the
+// status/topic/time filter, planet-wide vs. place cases, the clustered marker features, the
+// stats for a time window, and the keyless search (bundled places + coordinate parsing).
 //
-// Data shapes mirror src/watch/map-data.ts, which writes api/map.json at export time.
+// Data shapes mirror src/watch/map-data.ts (api/map.json) and src/watch/metrics.ts (api/metrics.json).
 
 export type Group = "published" | "checking" | "dropped";
 export type Kind = "forest" | "fire" | "flaring" | "flaring-stopped" | "methane" | "other";
-export type Overlay = "alerts" | "imagery";
+export type Topic = "forest" | "fire" | "flaring" | "methane" | "ocean" | "ice" | "air" | "weather" | "trend" | "other";
+export type Overlay = "alerts" | "imagery" | "weather";
+export type Mode = "cases" | "planet" | "live" | "metrics" | "about";
 /** Days back from the window's end; 0 = everything up to the end. */
 export type Win = 0 | 30 | 90 | 365;
 
@@ -17,6 +20,9 @@ export interface MapCase {
   statusLabel: string;
   group: Group;
   kind: Kind;
+  /** Older map.json files lack these two; see topicOfCase / isGlobal. */
+  topic?: Topic;
+  global?: boolean;
   place: string | null;
   meta: string;
   lon: number;
@@ -25,6 +31,7 @@ export interface MapCase {
   observedAt: string;
   firstSeen: string;
   geometry: { type: string; coordinates: unknown };
+  indicator?: string;
   points?: [number, number][];
 }
 export interface MapPlace {
@@ -41,25 +48,57 @@ export interface MapData {
   places: MapPlace[];
 }
 
+export interface StakeMetric {
+  key: string;
+  label: string;
+  value: number;
+  display: string;
+  explain: string;
+  caseIds: string[];
+}
+export interface Metrics {
+  v: 1;
+  generatedAt: string;
+  totals: { all: number; byGroup: Record<Group, number>; byTopic: Partial<Record<Topic, number>> };
+  timeline: { bucket: "day" | "week" | "month"; points: { t: string; published: number; checking: number; dropped: number }[] };
+  places: { name: string; n: number; caseIds: string[] }[];
+  rules: { rule: string; label: string; falsePositives: number; decided: number; rate: number | null }[];
+  stake: StakeMetric[];
+  nature: { lowUsd: number; highUsd: number; source: string };
+}
+
 export interface View {
   center: [number, number];
   zoom: number;
   pitch: number;
   bearing: number;
   groups: Group[];
-  kinds: Kind[];
+  topics: Topic[];
   win: Win;
   /** Window end as YYYY-MM-DD; null = the latest data. */
   end: string | null;
+  /** The selected case: outlined on the map, highlighted in the list. */
   sel: string | null;
+  /** The selected case is open in the panel (the full write-up). */
+  open: boolean;
   overlays: Overlay[];
+  mode: Mode;
+  /** Panel shown (true) or folded away (false). */
+  panel: boolean;
+  /** A Metrics number the list is narrowed to (its key in api/metrics.json). */
+  metric: string | null;
+  /** Live layers switched on, by layer id. */
+  layers: string[];
 }
 
 export const GROUPS: readonly Group[] = ["published", "checking", "dropped"];
 export const KINDS: readonly Kind[] = ["forest", "fire", "flaring", "flaring-stopped", "methane", "other"];
+export const TOPICS: readonly Topic[] = ["forest", "fire", "flaring", "methane", "ocean", "ice", "air", "weather", "trend", "other"];
+export const MODES: readonly Mode[] = ["cases", "planet", "live", "metrics", "about"];
+export const OVERLAYS: readonly Overlay[] = ["alerts", "imagery", "weather"];
 export const WINDOWS: readonly Win[] = [30, 90, 365, 0];
 
-export const GROUP_LABEL: Record<Group, string> = { published: "Published", checking: "Being checked", dropped: "Wrong or dropped" };
+export const GROUP_LABEL: Record<Group, string> = { published: "Published", checking: "Being checked", dropped: "False alarms" };
 export const KIND_LABEL: Record<Kind, string> = {
   forest: "Forest loss",
   fire: "Fires",
@@ -68,34 +107,80 @@ export const KIND_LABEL: Record<Kind, string> = {
   methane: "Methane",
   other: "Other",
 };
+export const TOPIC_LABEL: Record<Topic, string> = {
+  forest: "Forests",
+  fire: "Fire",
+  flaring: "Flaring",
+  methane: "Methane",
+  ocean: "Oceans",
+  ice: "Ice",
+  air: "Air",
+  weather: "Weather",
+  trend: "Nature trends",
+  other: "Other",
+};
 
 export const DEFAULT_VIEW: View = {
   center: [-20, 12],
   zoom: 1.35,
   pitch: 0,
   bearing: 0,
-  groups: ["published", "checking"],
-  kinds: [...KINDS],
+  groups: [...GROUPS],
+  topics: [...TOPICS],
   win: 0,
   end: null,
   sel: null,
+  open: false,
   overlays: [],
+  mode: "cases",
+  panel: true,
+  metric: null,
+  layers: [],
 };
+
+// ---- place vs. planet, topic ------------------------------------------------------------------------
+
+/** The topic a case is filed under (older data without `topic`: from its case type). */
+export function topicOfCase(c: Pick<MapCase, "topic" | "kind">): Topic {
+  if (c.topic && (TOPICS as readonly string[]).includes(c.topic)) return c.topic;
+  return c.kind === "flaring-stopped" ? "flaring" : c.kind === "other" ? "other" : c.kind;
+}
+
+/** Planet-wide (world trend, sea ice, ENSO): lives in the Planet panel, never a map marker. */
+export function isGlobal(c: Pick<MapCase, "global" | "bbox">): boolean {
+  if (typeof c.global === "boolean") return c.global;
+  return c.bbox[2] - c.bbox[0] >= 180;
+}
+
+/** The evidence overlay a case opens with: forest alerts, before/after imagery for flares, rain for weather. */
+export function defaultOverlays(c: Pick<MapCase, "kind" | "topic">): Overlay[] {
+  const t = topicOfCase(c);
+  if (t === "forest") return ["alerts"];
+  if (t === "flaring") return ["imagery"];
+  if (t === "weather") return ["weather"];
+  return [];
+}
 
 // ---- URL hash ----------------------------------------------------------------------------------
 //
-// `#map:v=1&c=<lon>,<lat>&z=…&p=…&b=…&g=pc&k=frlsmo&w=90&t=2026-09-01&s=<case id>&o=ai`.
-// One-letter tokens from fixed tables; a field with any unknown token is dropped whole (fail
-// closed, never half-applied); numbers are clamped on read AND write; the whole hash is length-
-// capped. Anything that doesn't start with `#map:` (e.g. `#challenge`) is not ours → null.
+// `#map:v=1&c=<lon>,<lat>&z=…&p=…&b=…&g=pc&k=frl&w=90&t=2026-09-01&s=<id>&o=ai&m=p&pc=1&f=<metric>&l=wx-clouds`,
+// or `#case=<id>` for an open case (the camera follows the case). One-letter tokens from fixed
+// tables; a field with any unknown token is dropped whole (fail closed, never half-applied);
+// numbers are clamped on read AND write; the whole hash is length-capped. Anything else (e.g.
+// `#challenge`) is not ours → null.
 
 const G_TOK: Record<Group, string> = { published: "p", checking: "c", dropped: "d" };
-const K_TOK: Record<Kind, string> = { forest: "f", fire: "r", flaring: "l", "flaring-stopped": "s", methane: "m", other: "o" };
-const O_TOK: Record<Overlay, string> = { alerts: "a", imagery: "i" };
+const T_TOK: Record<Topic, string> = { forest: "f", fire: "r", flaring: "l", methane: "m", ocean: "o", ice: "i", air: "a", weather: "w", trend: "t", other: "x" };
+const O_TOK: Record<Overlay, string> = { alerts: "a", imagery: "i", weather: "w" };
+const M_TOK: Record<Mode, string> = { cases: "c", planet: "p", live: "l", metrics: "x", about: "a" };
 const PREFIX = "#map:";
+const CASE_PREFIX = "#case=";
 const MAX_HASH = 400;
 export const CASE_ID = /^[A-Za-z0-9-]{1,64}$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const METRIC = /^[a-z0-9_]{1,32}$/;
+const LAYER = /^[a-z0-9-]{1,32}$/;
+const MAX_LAYERS = 8;
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 const wrapLon = (v: number) => ((((v + 180) % 360) + 360) % 360) - 180;
@@ -124,27 +209,39 @@ function untokens<T extends string>(table: Record<T, string>, all: readonly T[],
   }
   return all.filter((x) => out.includes(x));
 }
+const cleanLayers = (l: readonly string[]) => [...new Set(l.filter((x) => LAYER.test(x)))].slice(0, MAX_LAYERS);
 
 export function encodeView(view: View): string {
+  if (view.open && view.sel && CASE_ID.test(view.sel)) return `${CASE_PREFIX}${view.sel}`;
   const v = clampView(view);
   const q: string[] = ["v=1", `c=${v.center[0]},${v.center[1]}`, `z=${v.zoom}`];
   if (v.pitch) q.push(`p=${v.pitch}`);
   if (v.bearing) q.push(`b=${v.bearing}`);
   const g = tokens(G_TOK, GROUPS, v.groups);
   if (g !== tokens(G_TOK, GROUPS, DEFAULT_VIEW.groups)) q.push(`g=${g}`);
-  const k = tokens(K_TOK, KINDS, v.kinds);
-  if (k !== tokens(K_TOK, KINDS, DEFAULT_VIEW.kinds)) q.push(`k=${k}`);
+  const k = tokens(T_TOK, TOPICS, v.topics);
+  if (k !== tokens(T_TOK, TOPICS, DEFAULT_VIEW.topics)) q.push(`k=${k}`);
   if (v.win) q.push(`w=${v.win}`);
   if (v.end && DAY.test(v.end)) q.push(`t=${v.end}`);
   if (v.sel && CASE_ID.test(v.sel)) q.push(`s=${v.sel}`);
-  const o = tokens(O_TOK, ["alerts", "imagery"], v.overlays);
+  const o = tokens(O_TOK, OVERLAYS, v.overlays);
   if (o) q.push(`o=${o}`);
+  if (v.mode !== DEFAULT_VIEW.mode && MODES.includes(v.mode)) q.push(`m=${M_TOK[v.mode]}`);
+  if (!v.panel) q.push("pc=1");
+  if (v.metric && METRIC.test(v.metric)) q.push(`f=${v.metric}`);
+  const l = cleanLayers(v.layers);
+  if (l.length) q.push(`l=${l.join(",")}`);
   return `${PREFIX}${q.join("&")}`;
 }
 
-/** The fields a hash sets (anything invalid is simply absent), or null when it isn't a map hash. */
+/** The fields a hash sets (anything invalid is simply absent), or null when it isn't ours. */
 export function decodeView(hash: string): Partial<View> | null {
-  if (!hash.startsWith(PREFIX) || hash.length > MAX_HASH) return null;
+  if (hash.length > MAX_HASH) return null;
+  if (hash.startsWith(CASE_PREFIX)) {
+    const id = hash.slice(CASE_PREFIX.length);
+    return CASE_ID.test(id) ? { sel: id, open: true, mode: "cases", panel: true } : null;
+  }
+  if (!hash.startsWith(PREFIX)) return null;
   const p = new URLSearchParams(hash.slice(PREFIX.length));
   if (p.get("v") !== "1") return null;
   const out: Partial<View> = {};
@@ -172,8 +269,8 @@ export function decodeView(hash: string): Partial<View> | null {
   }
   const k = p.get("k");
   if (k !== null) {
-    const x = untokens(K_TOK, KINDS, k);
-    if (x) out.kinds = x;
+    const x = untokens(T_TOK, TOPICS, k);
+    if (x) out.topics = x;
   }
   const w = num("w");
   if (w !== null && (WINDOWS as readonly number[]).includes(w)) out.win = w as Win;
@@ -183,13 +280,26 @@ export function decodeView(hash: string): Partial<View> | null {
   if (s && CASE_ID.test(s)) out.sel = s;
   const o = p.get("o");
   if (o !== null) {
-    const x = untokens(O_TOK, ["alerts", "imagery"], o);
+    const x = untokens(O_TOK, OVERLAYS, o);
     if (x) out.overlays = x;
+  }
+  const m = p.get("m");
+  if (m !== null) {
+    const x = MODES.find((mode) => M_TOK[mode] === m);
+    if (x) out.mode = x;
+  }
+  if (p.get("pc") === "1") out.panel = false;
+  const f = p.get("f");
+  if (f && METRIC.test(f)) out.metric = f;
+  const l = p.get("l");
+  if (l !== null) {
+    const parts = l.split(",");
+    if (parts.length <= MAX_LAYERS && parts.every((x) => LAYER.test(x))) out.layers = cleanLayers(parts);
   }
   return out;
 }
 
-// ---- time window + layer filter ---------------------------------------------------------------------
+// ---- time window + filter ---------------------------------------------------------------------
 
 const DAY_MS = 86_400_000;
 
@@ -212,14 +322,20 @@ export function inWindow(iso: string, win: Win, endMs: number): boolean {
   return t <= end && (start === null || t > start);
 }
 
-/** Is a case on the map: its status group and case type are switched on, and it falls in the window. */
-export function isVisible(c: MapCase, v: Pick<View, "groups" | "kinds" | "win">, endMs: number): boolean {
-  return v.groups.includes(c.group) && v.kinds.includes(c.kind) && inWindow(c.observedAt, v.win, endMs);
+/**
+ * Is a place case on the map and in the list: its status and topic are switched on, it falls in
+ * the window, and (when a Metrics number narrowed the view) it is one of that number's cases.
+ * Planet-wide cases never are — they live in the Planet panel.
+ */
+export function isVisible(c: MapCase, v: Pick<View, "groups" | "topics" | "win">, endMs: number, only: ReadonlySet<string> | null = null): boolean {
+  if (isGlobal(c)) return false;
+  if (only && !only.has(c.id)) return false;
+  return v.groups.includes(c.group) && v.topics.includes(topicOfCase(c)) && inWindow(c.observedAt, v.win, endMs);
 }
 
 const DECIDED_TRUE = new Set(["confirmed", "published", "notified", "replied", "no_response", "resolved", "ignored", "retracted"]);
 
-/** The stats strip for a window (layer toggles don't change it — it counts the ledger, not the view). */
+/** The stats chips for a window (filters don't change it — it counts the ledger, not the view). */
 export function windowStats(cases: readonly MapCase[], win: Win, endMs: number): { published: number; falsePositives: number; decided: number; total: number } {
   let published = 0;
   let falsePositives = 0;
@@ -245,6 +361,61 @@ export function firstDay(cases: readonly MapCase[]): string | null {
 }
 
 export const dayOf = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
+/** One bbox around many cases (for "fit the map to these"), or null for none. */
+export function boundsOf(cases: readonly Pick<MapCase, "bbox">[]): [number, number, number, number] | null {
+  if (!cases.length) return null;
+  const b: [number, number, number, number] = [180, 90, -180, -90];
+  for (const c of cases) {
+    b[0] = Math.min(b[0], c.bbox[0]);
+    b[1] = Math.min(b[1], c.bbox[1]);
+    b[2] = Math.max(b[2], c.bbox[2]);
+    b[3] = Math.max(b[3], c.bbox[3]);
+  }
+  return b;
+}
+
+// ---- clustered markers --------------------------------------------------------------------------
+//
+// One GeoJSON point per place case; MapLibre clusters them at low zoom and sums per-status counts
+// into each cluster (CLUSTER_PROPERTIES), which colour the cluster the way clusterGroup() says.
+
+export interface CaseProps {
+  id: string;
+  g: Group;
+  t: Topic;
+  /** 1 for public cases — drawn a little larger. */
+  pub: 0 | 1;
+  title: string;
+}
+
+export function caseFeatures(cases: readonly MapCase[]): { type: "FeatureCollection"; features: { type: "Feature"; id: number; geometry: { type: "Point"; coordinates: [number, number] }; properties: CaseProps }[] } {
+  return {
+    type: "FeatureCollection",
+    features: cases
+      .filter((c) => !isGlobal(c) && Number.isFinite(c.lon) && Number.isFinite(c.lat))
+      .map((c, i) => ({
+        type: "Feature" as const,
+        id: i + 1, // numeric ids so hover/selection can use feature-state
+        geometry: { type: "Point" as const, coordinates: [c.lon, c.lat] as [number, number] },
+        properties: { id: c.id, g: c.group, t: topicOfCase(c), pub: c.group === "published" ? 1 : 0, title: c.title.length > 80 ? `${c.title.slice(0, 79)}…` : c.title },
+      })),
+  };
+}
+
+/** Per-status counts MapLibre adds up inside each cluster. */
+export const CLUSTER_PROPERTIES = {
+  pub: ["+", ["case", ["==", ["get", "g"], "published"], 1, 0]],
+  chk: ["+", ["case", ["==", ["get", "g"], "checking"], 1, 0]],
+  drop: ["+", ["case", ["==", ["get", "g"], "dropped"], 1, 0]],
+} as const;
+
+/** A cluster takes the colour of the most important status inside it: published, then checking. */
+export function clusterGroup(p: { pub?: number; chk?: number; drop?: number }): Group {
+  if ((p.pub ?? 0) > 0) return "published";
+  if ((p.chk ?? 0) > 0) return "checking";
+  return "dropped";
+}
 
 // ---- keyless search ------------------------------------------------------------------------------------
 
@@ -348,3 +519,26 @@ export function cubicBezier(x1: number, y1: number, x2: number, y2: number): (t:
 }
 /** --ease-in-out from styles.css: on-screen movement. */
 export const EASE_IN_OUT = cubicBezier(0.77, 0, 0.175, 1);
+
+// ---- bottom sheet (phone) ----------------------------------------------------------------------------------
+
+export type Snap = "peek" | "half" | "full";
+export const SNAPS: readonly Snap[] = ["peek", "half", "full"];
+
+/** Apple's momentum projection: where a flick would come to rest (px), d ≈ 0.998 like scrolling. */
+export const project = (velocityPxPerS: number, d = 0.998) => ((velocityPxPerS / 1000) * d) / (1 - d);
+
+/** The snap whose offset is nearest to where the drag is heading (offsets: px from the top, per snap). */
+export function nearestSnap(offset: number, velocityPxPerS: number, offsets: Record<Snap, number>): Snap {
+  const target = offset + project(velocityPxPerS);
+  let best: Snap = "half";
+  let dist = Infinity;
+  for (const s of SNAPS) {
+    const d = Math.abs(offsets[s] - target);
+    if (d < dist) {
+      dist = d;
+      best = s;
+    }
+  }
+  return best;
+}
