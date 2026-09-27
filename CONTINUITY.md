@@ -62,7 +62,14 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
    when spent — detection always runs. TODO: measure Copernicus PU per `eo_compare`/S5P
    call (free tier 10k PU/month) and set the cap from data. Name: **TerraKeep**, slogan
    "Keeping Earth within its limits." — package/repo/stack rename still pending (3b).
-3c. **Queued by Marc 2026-09-26 (in this order, one at a time — "take it slowly")**:
+3c. **Queued by Marc 2026-09-26/27 (in this order, one at a time — "take it slowly")**:
+   -1. **Indicator-threshold rule** (2026-09-27, top of queue, in progress): one generic rule
+      `indicator_threshold@1` over the existing zero-key indicator tools — sea ice below
+      p10 (NSIDC), marine heatwave at a reef/coast point (OISST), river discharge > 2× mean
+      (GloFAS), PM2.5 > WHO for N days in watched cities (CAMS), ENSO phase declared (ONI),
+      M7+ quake in a watched region (USGS) — case type "threshold crossed", second signal =
+      persistence (next window) or a second dataset. Plus a **trend rule** for annual
+      indices (LPI, RLI, fish stocks, ocean pH): one case per year per indicator.
    1. **Backtest harness** — `earthdeck backtest --event <file>`: replay rules with the clock
       set to a past date for 8–10 documented events (2019 Amazon fires, 2020 Black Summer,
       2023 Canada, 2023 Maui, Rumaila flaring 2024, São Félix 2025 loss, Permian methane
