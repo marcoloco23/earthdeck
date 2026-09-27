@@ -12,6 +12,7 @@ import { SITE } from "../site.config.js";
 import type { NewsItem } from "../clients/gdelt.js";
 import { livingValueOf, type SiteStats, type RateCell } from "./export.js";
 import { indicatorOf, isGlobalCase } from "./map-data.js";
+import { LEVEL_LABEL, type SituationRecord } from "./situation.js";
 import { indicatorBlindSpots } from "./rules/indicatorThreshold.js";
 
 // TODO: import { GLOBAL_NATURE_VALUE } from "../clients/naturalvalue.js" once natural_value
@@ -393,7 +394,44 @@ function worldFigure(all: Finding[], caseBase: string, nPub: number): string {
 
 // ---- landing -------------------------------------------------------------------------------------------------
 
-export function landingPage(c: Ctx, findings: Finding[]): { head: string; body: string } {
+const SIT_ID = /^[A-Za-z0-9_-]{1,64}$/;
+/** One briefing item: a case opens in the map (`#case=<id>`), an indicator scrolls to its Planet row. */
+function situationItem(i: SituationRecord["text"]["items"][number]): string {
+  if (i.caseId && SIT_ID.test(i.caseId)) return `<li><a class="sit-link" href="#case=${esc(i.caseId)}" data-case="${esc(i.caseId)}">${esc(i.line)}</a></li>`;
+  if (i.indicator && SIT_ID.test(i.indicator)) return `<li><a class="sit-link" href="#pulse-${esc(i.indicator)}" data-indicator="${esc(i.indicator)}">${esc(i.line)}</a></li>`;
+  return `<li>${esc(i.line)}</li>`;
+}
+const sitWhy = (r: SituationRecord) =>
+  r.reasons.length ? `<ul class="sit-reasons">${r.reasons.map((x) => `<li><b>${esc(LEVEL_LABEL[x.level])}</b> ${esc(x.text)}</li>`).join("")}</ul>` : `<p class="sit-note">No rule fired: no newly confirmed case in 7 days, no watched indicator outside its usual range.</p>`;
+const sitBy = (r: SituationRecord) =>
+  r.source === "model" ? "Level set by fixed rules. Briefing written by AI and checked by a second, separate AI against the facts before it went up." : "Level set by fixed rules. This text comes straight from those rules — no AI wording today.";
+
+/** The slim strip at the top of the map. */
+export function situationStrip(r: SituationRecord | null | undefined): string {
+  if (!r) return "";
+  return `<a class="sit-strip sit--${r.level}" href="#situation" data-situation="" title="${esc(r.text.headline)}"><span class="sit-dot" aria-hidden="true"></span><span class="sit-k">Situation · ${esc(LEVEL_LABEL[r.level])}</span><span class="sit-h">${esc(r.text.headline)}</span></a>`;
+}
+
+/** The full briefing at the top of Planet mode. */
+export function situationBrief(r: SituationRecord | null | undefined): string {
+  if (!r) return "";
+  return `<section class="sit-brief sit--${r.level}" id="sit-brief" aria-label="Today's situation">
+    <p class="sit-k"><span class="sit-dot" aria-hidden="true"></span>Situation · ${esc(LEVEL_LABEL[r.level])} · <time datetime="${esc(r.date)}">${esc(r.date)}</time></p>
+    <h3 class="sit-title">${esc(r.text.headline)}</h3>
+    <p class="sit-sum">${esc(r.text.summary)}</p>
+    ${r.text.items.length ? `<ul class="sit-items">${r.text.items.map(situationItem).join("")}</ul>` : ""}
+    <details class="sit-why"><summary>Why this level</summary>${sitWhy(r)}</details>
+    <p class="sit-note">${esc(sitBy(r))}</p>
+  </section>`;
+}
+
+/** Below the fold: the same briefing as plain text, for crawlers and readers without JavaScript. */
+export function situationStatic(r: SituationRecord | null | undefined): string {
+  if (!r) return "";
+  return `<div id="situation"><h2 class="strip-h">Situation · ${esc(LEVEL_LABEL[r.level])} (${esc(r.date)})</h2><p class="strip-lede"><b>${esc(r.text.headline)}</b> ${esc(r.text.summary)}</p>${sitWhy(r)}<p class="strip-lede">${esc(sitBy(r))}</p></div>`;
+}
+
+export function landingPage(c: Ctx, findings: Finding[], situation: SituationRecord | null = null): { head: string; body: string } {
   const s = c.stats;
   const site = c.baseUrl ?? SITE.organization.url;
   const orgId = `${site}#org`;
@@ -440,7 +478,8 @@ export function landingPage(c: Ctx, findings: Finding[]): { head: string; body: 
 
   const body = `${siteTop(c, "landing", SITE.oneLine)}
     <main class="land">
-      <section class="hero" id="hero" aria-label="What the watch has found">
+      <section class="hero${situation ? " hero--sit" : ""}" id="hero" aria-label="What the watch has found">
+        ${situationStrip(situation)}
         <div class="hero-map">
           ${worldFigure(local, "watch/", nPub)}
           <dl class="nums" aria-label="So far">
@@ -465,7 +504,8 @@ export function landingPage(c: Ctx, findings: Finding[]): { head: string; body: 
             )}
             ${pane(
               "planet",
-              `<h2 class="pane-h">How the planet is doing</h2>
+              `${situationBrief(situation)}
+              <h2 class="pane-h">How the planet is doing</h2>
               <p class="pane-lede">Good news and bad: the world’s vital signs, and the planet-wide cases the watch has opened.</p>
               ${planet.length ? `<h3 class="pane-sub">Planet-wide cases</h3><ol class="live-rows planet-rows">${planet.map(row).join("")}</ol>` : ""}
               <div id="pulse" class="pulse"></div>
@@ -501,6 +541,7 @@ export function landingPage(c: Ctx, findings: Finding[]): { head: string; body: 
         </aside>
       </section>
       <section class="wrap wrap--wide seo" aria-label="About ${esc(SITE.name)}">
+        ${situationStatic(situation)}
         <div><h2 class="strip-h">What the watch has found</h2><p class="strip-lede">${nPub} published case${nPub === 1 ? "" : "s"} and ${local.length - nPub} still being checked, in forests, fire, gas flaring, methane, oceans, ice, air and weather. <a class="link" href="watch/">See every case</a>.</p></div>
         <div><h2 class="strip-h">How a case is made</h2><p class="strip-lede">${flow.map(([k, v]) => `${esc(k)}: ${esc(v)}.`).join(" ")}</p></div>
         <div><h2 class="strip-h">World pulse</h2><p class="strip-lede">How the planet is doing — good news and bad: wildlife, forests, oceans, air and the energy we use, as long-running open indicators.</p></div>

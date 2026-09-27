@@ -467,10 +467,11 @@ export function mountPanel(hub: Hub): void {
   }
 
   // ---- Planet: world pulse with sparklines ----------------------------------------------------------
-  let pulseLoaded = false;
-  async function loadPulse(): Promise<void> {
-    if (pulseLoaded) return;
-    pulseLoaded = true;
+  let pulseLoaded: Promise<void> | null = null;
+  function loadPulse(): Promise<void> {
+    return (pulseLoaded ??= buildPulse());
+  }
+  async function buildPulse(): Promise<void> {
     const box = document.getElementById("pulse");
     if (!box) return;
     type Row = { slug: string; label: string; unit?: string; group?: string; status?: string; latest?: { t: string; v: number }; direction?: string; pctPerDecade?: number; sparkline?: { t: string; v: number }[] };
@@ -493,6 +494,7 @@ export function mountPanel(hub: Hub): void {
       const ul = el("ul", "pulse-rows");
       for (const r of rows) {
         const li = el("li", `pulse-row wp--${safe(r.direction ?? "flat")}`);
+        li.id = `pulse-${r.slug.replace(/[^A-Za-z0-9_-]/g, "")}`;
         const txt = el("div", "pulse-txt");
         txt.append(el("span", "pulse-l", r.label));
         const val = `${Number(r.latest!.v.toPrecision(3)).toLocaleString("en-US")}${r.unit ? ` ${r.unit}` : ""} · ${r.latest!.t}`;
@@ -691,6 +693,28 @@ export function mountPanel(hub: Hub): void {
   };
   if (location.hash === "#challenge") toChallenge();
   addEventListener("hashchange", () => location.hash === "#challenge" && toChallenge());
+
+  // ---- Situation: the strip opens Planet at the briefing; indicator items scroll to their row ----
+  const toBrief = () => document.getElementById("sit-brief")?.scrollIntoView({ block: "start", behavior: reducedMotion() ? "auto" : "smooth" });
+  document.querySelector<HTMLAnchorElement>(".sit-strip[data-situation]")?.addEventListener("click", (e) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    hub.touch();
+    hub.set({ mode: "planet", open: false, panel: true });
+    if (phone.matches && snap === "peek") setSnap("half");
+    requestAnimationFrame(toBrief);
+  });
+  body.addEventListener("click", (e) => {
+    const a = (e.target as Element).closest<HTMLAnchorElement>("a.sit-link[data-indicator]");
+    if (!a) return;
+    e.preventDefault();
+    void loadPulse().then(() => {
+      const row = document.getElementById(`pulse-${a.dataset.indicator}`);
+      if (!row) return;
+      row.scrollIntoView({ block: "center", behavior: reducedMotion() ? "auto" : "smooth" });
+      row.classList.add("is-flagged");
+    });
+  });
 
   // ---- Esc: innermost first ------------------------------------------------------------------------
   addEventListener("keydown", (e) => {

@@ -63,6 +63,38 @@ To name a responsible party (an operator, an owner):
   a retraction, but they never publish or suppress a finding on their own. The evidence and
   the rules above decide.
 
+## The daily Situation — how the level is set
+
+Once a day the site shows one level for the whole watch: **quiet**, **watch** or
+**urgent**. The level is set by the fixed rules below, never by the AI. Each rule that
+fires is listed under "Why this level", pointing at the cases or indicators behind it.
+
+It is **urgent** if any of these is true:
+
+- the El Niño / La Niña phase (NOAA's definition: five seasons in a row beyond ±0.5 °C)
+  was newly declared or changed this month, or an ENSO case was opened this month;
+- an earthquake of magnitude 7 or more became a case in the last 48 hours;
+- an extreme-heat or tropical-cyclone case was published in the last 48 hours;
+- Arctic or Antarctic sea ice is below the lowest value ever recorded for that date;
+- three or more cases were confirmed within one day in the same region (a 10° × 10° box).
+
+It is **watch** if none of those holds but any of these does:
+
+- at least one case was confirmed by a second, independent signal in the last 7 days;
+- a world indicator just moved outside its usual range (above its 90th or below its 10th
+  percentile, when the reading before was inside);
+- sea ice is in the lowest tenth of 1981–2010 for the date.
+
+Otherwise it is **quiet**.
+
+An AI then writes a short briefing from a fixed set of facts (the level and its reasons,
+what changed since yesterday, new and good-news cases, the indicators, the false alarms we
+caught). Every number in it must appear in those facts, it may not name people, and a
+second, separate AI must accept it. If any of that fails, the site shows the rules' own
+plain sentences instead. At most one AI briefing is written a day. The briefing is kept
+next to the signed ledger for 30 days, not inside it: the ledger records only events on
+individual cases.
+
 ## Changing these rules
 
 Each publish entry names the policy it was made under. Changing the rules means a new

@@ -8,6 +8,7 @@ import { Ledger } from "../ledger/store.js";
 import { Journal } from "../watch/journal.js";
 import { capsFromEnv, QuotaGovernor } from "../watch/quota.js";
 import { DEFAULT_NARRATOR, DEFAULT_REVIEWER, runAnalyst } from "./analyst.js";
+import { fetchIndicatorInputs } from "./situation.js";
 
 const out = (s: string) => process.stdout.write(`${s}\n`);
 
@@ -17,7 +18,9 @@ export async function runAnalystCli(args: string[]): Promise<void> {
     return i >= 0 ? args[i + 1] : undefined;
   };
   if (!args.includes("--once")) {
-    out("usage: earthdeck analyst --once [--max N] [--dry-run] [--model-narrator id] [--model-reviewer id] [--replies dir]");
+    out("usage: earthdeck analyst --once [--max N] [--dry-run] [--model-narrator id] [--model-reviewer id] [--replies dir] [--no-situation | --situation-only]");
+    out("       Situation: after the cases, the daily briefing (level by fixed rules; at most one model briefing per UTC day,");
+    out("       skipped when today's inputs are unchanged) is written to <ledger>/situation/<date>.json.");
     out("       --replies: the reply wall mirror (inbox/ public/ rejected/); default <ledger>/../replies. Up to 50 inbox replies");
     out("       per run are screened by the reviewer model, inside the same daily $ budget.");
     out("       --max defaults to EARTHDECK_MAX_ANALYST_CASES (10), which is also the per-UTC-day case cap;");
@@ -39,7 +42,10 @@ export async function runAnalystCli(args: string[]): Promise<void> {
   out(`earthdeck analyst — ledger ${dir}${dryRun ? " — DRY RUN (one narration call per finding, nothing appended)" : ""}`);
   let r: Awaited<ReturnType<typeof runAnalyst>>;
   try {
-    r = await runAnalyst({ ledger, journal, apiKey: anthropicApiKey(), narrator: opt("--model-narrator"), reviewer: opt("--model-reviewer"), max, dryRun, quota, repliesDir, log: out });
+    const situation = args.includes("--no-situation")
+      ? undefined
+      : { ledgerDir: dir, only: args.includes("--situation-only"), indicators: () => fetchIndicatorInputs(join(dirname(resolve(dir)), "pulse.json"), 45_000, out) };
+    r = await runAnalyst({ ledger, journal, apiKey: anthropicApiKey(), narrator: opt("--model-narrator"), reviewer: opt("--model-reviewer"), max, dryRun, quota, repliesDir: args.includes("--situation-only") ? undefined : repliesDir, situation, log: out });
   } catch (err) {
     if (!(err instanceof OverviewError)) throw err;
     process.stderr.write(`earthdeck analyst: ${err.message}\n`);
@@ -48,5 +54,6 @@ export async function runAnalystCli(args: string[]): Promise<void> {
   }
   out("");
   out(`analyst ${r.runId}: ${r.selected} selected · ${r.narrated.length} narrated · ${r.published.length} published · ${r.held.length} held · ${r.rejected.length} rejected · ${r.errors.length} errors · ${r.calls} API calls ≈ $${r.costUsd.toFixed(4)} · today $${quota.analystUsd().toFixed(4)} of $${caps.analystUsd}${r.replies ? ` · replies ${r.replies.accepted} accepted / ${r.replies.rejected} rejected / ${r.replies.left} waiting` : ""}`);
+  if (r.situation) out(`situation: ${r.situation.level} (${r.situation.source}${r.situation.skipped ? ", unchanged" : ""}) — ${r.situation.headline}`);
   if (r.errors.length) process.exitCode = 1;
 }

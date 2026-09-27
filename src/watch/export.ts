@@ -9,6 +9,7 @@
 //   api/stats.json                 counts + published false-positive rate per rule
 //   api/map.json                   the interactive map's cases + watched places (src/watch/map-data.ts)
 //   api/metrics.json               the landing's Metrics mode: totals, timeline, stakes (src/watch/metrics.ts)
+//   api/situation.json, api/situation/<date>.json   the daily Situation (level by rules; src/watch/situation.ts)
 //   api/pulse.json                 world_pulse snapshot (fresh, else cached, else omitted)
 //   api/storms.json                active tropical cyclones as GeoJSON (live exports only, best-effort)
 //   api/marine/{fishing,ships}.json  GFW fishing-effort grid / AIS ship density — only when the
@@ -36,6 +37,7 @@ import { mapData } from "./map-data.js";
 import { computeMetrics } from "./metrics.js";
 import { marineSnapshots } from "./marine-export.js";
 import { newsForCases } from "./news.js";
+import { listSituations } from "./situation.js";
 import { CallBudget, gdeltCapFromEnv } from "./quota.js";
 import { casePage, developersPage, FALLBACK_TEMPLATE, NEWS_NOTE, fillTemplate, landingPage, robots, sitemap, trustPage, watchIndexPage, webManifest, type CaseData, type Ctx } from "./site-render.js";
 
@@ -262,6 +264,12 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
   write("api/stats.json", JSON.stringify(stats));
   write("api/map.json", JSON.stringify(mapData(findings, now)));
   write("api/metrics.json", JSON.stringify(computeMetrics(findings, stats, now)));
+  // The daily Situation (written by the analyst into <ledger>/situation/): latest + one file per day.
+  // A draft that failed the checks or the reviewer stays in the ledger dir, never on the site.
+  const situations = listSituations(lDir).map(({ draft: _draft, ...r }) => r);
+  const situation = situations[0] ?? null;
+  if (situation) write("api/situation.json", JSON.stringify(situation));
+  for (const r of situations) write(`api/situation/${r.date}.json`, JSON.stringify(r));
 
   // ---- world pulse ----
   const pulse = await pulseSnapshot(opts.pulse ?? "auto", opts.pulseCache ?? join(dirname(resolve(lDir)), "pulse.json"), opts.pulseTimeoutMs ?? 45_000, log);
@@ -312,7 +320,7 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
   // ---- pages ----
   const ctx = (depth: number, path: string): Ctx => ({ depth, path, baseUrl, stats });
   const published = findings.filter((f) => PUBLIC_STATUSES.includes(f.status));
-  write("index.html", fillTemplate(tpl, 0, "landing", landingPage(ctx(0, ""), findings)));
+  write("index.html", fillTemplate(tpl, 0, "landing", landingPage(ctx(0, ""), findings, situation)));
   write("developers/index.html", fillTemplate(tpl, 1, "developers", developersPage(ctx(1, "developers/"))));
   write("watch/index.html", fillTemplate(tpl, 1, "watch", watchIndexPage(ctx(1, "watch/"), findings)));
   let replyCount = 0;
