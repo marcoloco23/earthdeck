@@ -1,0 +1,169 @@
+{
+  "version": 1,
+  "name": "Weather extremes — heat, rain, tropical cyclones",
+  "description": "Twelve heat- and flood-exposed cities (read at the city centre) and six tropical-cyclone regions. Heat thresholds are set per city climate: the absolute bar sits near each city's record range; the anomaly bar is vs the ERA5 1991–2020 normal for the time of year. All data keyless (Open-Meteo, ERA5, NHC/CPHC, GDACS, NASA EONET, GloFAS). Thresholds are starting points to tune against real sweeps.",
+  "aois": [
+    {
+      "id": "in-delhi",
+      "name": "Delhi, India",
+      "bbox": [77.06, 28.46, 77.36, 28.76],
+      "tags": ["weather", "heat", "rain", "city"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["heat", "rain"], "absC": 44, "anomalyC": 7, "minDays": 2, "mm": 100 } }],
+      "notes": "Semi-arid; pre-monsoon heat routinely reaches 40–45 °C, so the absolute bar sits at 44 °C."
+    },
+    {
+      "id": "pk-karachi",
+      "name": "Karachi, Pakistan",
+      "bbox": [66.86, 24.71, 67.16, 25.01],
+      "tags": ["weather", "heat", "rain", "city"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["heat", "rain"], "absC": 41, "anomalyC": 6, "minDays": 2, "mm": 80 } }],
+      "notes": "Humid coastal megacity (the 2015 heatwave killed >1,200 people at ~44 °C); humidity makes 41 °C dangerous."
+    },
+    {
+      "id": "us-phoenix",
+      "name": "Phoenix, USA",
+      "bbox": [-112.22, 33.3, -111.92, 33.6],
+      "tags": ["weather", "heat", "rain", "city"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["heat", "rain"], "absC": 47, "anomalyC": 7, "minDays": 2, "mm": 50 } }],
+      "notes": "Desert: 43–45 °C is an ordinary summer day, so only ≥ 47 °C or a large anomaly counts."
+    },
+    {
+      "id": "iq-baghdad",
+      "name": "Baghdad, Iraq",
+      "bbox": [44.21, 33.16, 44.51, 33.46],
+      "tags": ["weather", "heat", "rain", "city"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["heat", "rain"], "absC": 49, "anomalyC": 7, "minDays": 2, "mm": 40 } }],
+      "notes": "Summer maxima of 45–48 °C are normal; the bar sits at 49 °C."
+    },
+    {
+      "id": "kw-kuwait-city",
+      "name": "Kuwait City, Kuwait",
+      "bbox": [47.83, 29.22, 48.13, 29.52],
+      "tags": ["weather", "heat", "rain", "city"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["heat", "rain"], "absC": 50, "anomalyC": 7, "minDays": 2, "mm": 40 } }],
+      "notes": "Among the hottest cities on Earth (normal summer max ~46–47 °C)."
+    },
+    {
+      "id": "bd-dhaka",
+      "name": "Dhaka, Bangladesh",
+      "bbox": [90.26, 23.66, 90.56, 23.96],
+      "tags": ["weather", "heat", "rain", "city"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["heat", "rain"], "absC": 39, "anomalyC": 5, "minDays": 2, "mm": 150 } }],
+      "notes": "Humid monsoon climate: 39 °C at high humidity is extreme heat stress."
+    },
+    {
+      "id": "ph-manila",
+      "name": "Manila, Philippines",
+      "bbox": [120.83, 14.45, 121.13, 14.75],
+      "tags": ["weather", "heat", "rain", "city"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["heat", "rain"], "absC": 37, "anomalyC": 4, "minDays": 2, "mm": 150 } }],
+      "notes": "Tropical maritime: small temperature swings, so heat thresholds are low; typhoon rain is the bigger hazard."
+    },
+    {
+      "id": "ng-lagos",
+      "name": "Lagos, Nigeria",
+      "bbox": [3.23, 6.37, 3.53, 6.67],
+      "tags": ["weather", "heat", "rain", "city"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["heat", "rain"], "absC": 36, "anomalyC": 4, "minDays": 2, "mm": 120 } }],
+      "notes": "Equatorial coastal city: normal max ~30–33 °C; flooding from intense rain is the main hazard."
+    },
+    {
+      "id": "br-sao-paulo",
+      "name": "São Paulo, Brazil",
+      "bbox": [-46.78, -23.7, -46.48, -23.4],
+      "tags": ["weather", "heat", "rain", "city"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["heat", "rain"], "absC": 35, "anomalyC": 7, "minDays": 2, "mm": 100 } }],
+      "notes": "Highland subtropical: record max ~38 °C, so 35 °C is already exceptional; landslide-prone rain."
+    },
+    {
+      "id": "gr-athens",
+      "name": "Athens, Greece",
+      "bbox": [23.58, 37.83, 23.88, 38.13],
+      "tags": ["weather", "heat", "rain", "city"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["heat", "rain"], "absC": 42, "anomalyC": 8, "minDays": 2, "mm": 100 } }],
+      "notes": "Mediterranean heatwaves (2007, 2021, 2023, 2024) pass 42–44 °C; flash floods from medicanes."
+    },
+    {
+      "id": "es-seville",
+      "name": "Seville, Spain",
+      "bbox": [-6.13, 37.24, -5.83, 37.54],
+      "tags": ["weather", "heat", "rain", "city"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["heat", "rain"], "absC": 44, "anomalyC": 8, "minDays": 2, "mm": 80 } }],
+      "notes": "Guadalquivir valley: summer max ~36 °C, heatwaves 44–46 °C."
+    },
+    {
+      "id": "id-jakarta",
+      "name": "Jakarta, Indonesia",
+      "bbox": [106.7, -6.36, 107.0, -6.06],
+      "tags": ["weather", "heat", "rain", "city"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["heat", "rain"], "absC": 36, "anomalyC": 4, "minDays": 2, "mm": 150 } }],
+      "notes": "Equatorial, sinking coastal city; extreme monsoon rain (Jan 2020: 377 mm in a day) is the main hazard."
+    },
+    {
+      "id": "cyc-gulf-florida",
+      "name": "Gulf of Mexico & Florida",
+      "bbox": [-98, 18, -79, 31.5],
+      "tags": ["weather", "cyclone"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["cyclone"], "minCategory": 1 } }],
+      "notes": "Atlantic hurricanes (NHC)."
+    },
+    {
+      "id": "cyc-caribbean",
+      "name": "Caribbean",
+      "bbox": [-88, 9, -59, 23],
+      "tags": ["weather", "cyclone"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["cyclone"], "minCategory": 1 } }],
+      "notes": "Atlantic hurricanes (NHC)."
+    },
+    {
+      "id": "cyc-bay-of-bengal",
+      "name": "Bay of Bengal",
+      "bbox": [79, 5, 100, 23],
+      "tags": ["weather", "cyclone"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["cyclone"], "minCategory": 1 } }],
+      "notes": "North Indian Ocean cyclones (GDACS; IMD/JTWC upstream). The deadliest cyclone basin — storm surge on the Ganges delta."
+    },
+    {
+      "id": "cyc-philippines",
+      "name": "Philippines",
+      "bbox": [116, 4, 128, 21],
+      "tags": ["weather", "cyclone"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["cyclone"], "minCategory": 1 } }],
+      "notes": "Northwest Pacific typhoons (GDACS; JMA/JTWC upstream)."
+    },
+    {
+      "id": "cyc-madagascar-mozambique",
+      "name": "Madagascar & Mozambique Channel",
+      "bbox": [32, -27, 51, -11],
+      "tags": ["weather", "cyclone"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["cyclone"], "minCategory": 1 } }],
+      "notes": "South-West Indian Ocean cyclones (GDACS; Météo-France La Réunion/JTWC upstream)."
+    },
+    {
+      "id": "cyc-queensland",
+      "name": "Queensland coast",
+      "bbox": [138, -29, 156, -9],
+      "tags": ["weather", "cyclone"],
+      "cooldownDays": 7,
+      "rules": [{ "name": "weather_extreme", "params": { "hazards": ["cyclone"], "minCategory": 1 } }],
+      "notes": "Australian-region cyclones (GDACS; BoM/JTWC upstream). BoM categories differ from Saffir–Simpson; this rule uses Saffir–Simpson from wind speed."
+    }
+  ]
+}
