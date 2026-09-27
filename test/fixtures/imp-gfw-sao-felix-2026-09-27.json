@@ -1,0 +1,43 @@
+{
+ "_recorded": "forest_alerts live 2026-09-27, São Félix do Xingu bbox, days 90, high; yearAgo = endDate 2025-09-27 (dailyCounts dropped)",
+ "now": {
+  "source": "Integrated Deforestation Alerts (GLAD-L + GLAD-S2 + RADD), UMD/GLAD and WUR, via Global Forest Watch",
+  "window": {
+   "from": "2026-06-29",
+   "to": "2026-09-27"
+  },
+  "minConfidence": "high",
+  "alertCount": 13841,
+  "areaHa": 169.25,
+  "byConfidence": {
+   "high": {
+    "alertCount": 13272,
+    "areaHa": 162.29
+   },
+   "highest": {
+    "alertCount": 569,
+    "areaHa": 6.96
+   }
+  }
+ },
+ "yearAgo": {
+  "source": "Integrated Deforestation Alerts (GLAD-L + GLAD-S2 + RADD), UMD/GLAD and WUR, via Global Forest Watch",
+  "window": {
+   "from": "2025-06-29",
+   "to": "2025-09-27"
+  },
+  "minConfidence": "high",
+  "alertCount": 67791,
+  "areaHa": 828.87,
+  "byConfidence": {
+   "high": {
+    "alertCount": 60773,
+    "areaHa": 743.07
+   },
+   "highest": {
+    "alertCount": 7018,
+    "areaHa": 85.81
+   }
+  }
+ }
+}

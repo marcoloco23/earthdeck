@@ -9,13 +9,16 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ToolError, type ToolCall } from "./rules/types.js";
 
-export type Provider = "cdse" | "gfw" | "firms";
-export const PROVIDERS: readonly Provider[] = ["cdse", "gfw", "firms"];
+/** `gfw` = Global *Forest* Watch Data API; `gfw_fishing` = Global *Fishing* Watch API (separate token + terms). */
+export type Provider = "cdse" | "gfw" | "firms" | "gfw_fishing";
+export const PROVIDERS: readonly Provider[] = ["cdse", "gfw", "firms", "gfw_fishing"];
 
 export interface QuotaCaps {
   cdse: number;
   gfw: number;
   firms: number;
+  /** Optional so older callers' caps objects stay valid; missing → the default (200). */
+  gfw_fishing?: number;
   analystCases: number;
   analystUsd: number;
   /** Per-rule sub-caps inside a provider's cap, keyed by ruleKey(rule name): e.g. methane may
@@ -23,7 +26,9 @@ export interface QuotaCaps {
   perRule?: Record<string, Partial<Record<Provider, number>>>;
 }
 
-const DEFAULT_CAPS: QuotaCaps = { cdse: 60, gfw: 400, firms: 300, analystCases: 10, analystUsd: 3, perRule: { METHANE_ANOMALY: { cdse: 10 } } };
+// gfw_fishing: conservative — GFW publishes no hard daily cap for the 4Wings report API; 200/day
+// covers the marine watchlist (~46 tiles, 1 call each) + confirmations with room to spare.
+const DEFAULT_CAPS: QuotaCaps = { cdse: 60, gfw: 400, firms: 300, gfw_fishing: 200, analystCases: 10, analystUsd: 3, perRule: { METHANE_ANOMALY: { cdse: 10 } } };
 
 /** `methane-anomaly` / `methane_anomaly` → `METHANE_ANOMALY` (the env-var suffix form). */
 export function ruleKey(rule: string): string {
@@ -31,7 +36,7 @@ export function ruleKey(rule: string): string {
 }
 
 /**
- * Caps from EARTHDECK_MAX_{CDSE,GFW,FIRMS}_CALLS, EARTHDECK_MAX_ANALYST_CASES, EARTHDECK_MAX_ANALYST_USD,
+ * Caps from EARTHDECK_MAX_{CDSE,GFW,FIRMS,GFW_FISHING}_CALLS, EARTHDECK_MAX_ANALYST_CASES, EARTHDECK_MAX_ANALYST_USD,
  * plus per-rule sub-caps EARTHDECK_MAX_<PROVIDER>_CALLS_<RULE> (rule name upper-cased).
  */
 export function capsFromEnv(env: NodeJS.ProcessEnv = process.env): QuotaCaps {
@@ -46,6 +51,7 @@ export function capsFromEnv(env: NodeJS.ProcessEnv = process.env): QuotaCaps {
     cdse: n("EARTHDECK_MAX_CDSE_CALLS", DEFAULT_CAPS.cdse),
     gfw: n("EARTHDECK_MAX_GFW_CALLS", DEFAULT_CAPS.gfw),
     firms: n("EARTHDECK_MAX_FIRMS_CALLS", DEFAULT_CAPS.firms),
+    gfw_fishing: n("EARTHDECK_MAX_GFW_FISHING_CALLS", DEFAULT_CAPS.gfw_fishing!),
     analystCases: n("EARTHDECK_MAX_ANALYST_CASES", DEFAULT_CAPS.analystCases),
     analystUsd: n("EARTHDECK_MAX_ANALYST_USD", DEFAULT_CAPS.analystUsd),
     perRule: perRuleFromEnv(env, n),
@@ -55,7 +61,7 @@ export function capsFromEnv(env: NodeJS.ProcessEnv = process.env): QuotaCaps {
 function perRuleFromEnv(env: NodeJS.ProcessEnv, n: (name: string, dflt: number) => number): NonNullable<QuotaCaps["perRule"]> {
   const out: NonNullable<QuotaCaps["perRule"]> = Object.fromEntries(Object.entries(DEFAULT_CAPS.perRule!).map(([k, v]) => [k, { ...v }]));
   for (const name of Object.keys(env).sort()) {
-    const m = /^EARTHDECK_MAX_(CDSE|GFW|FIRMS)_CALLS_(.+)$/.exec(name);
+    const m = /^EARTHDECK_MAX_(CDSE|GFW_FISHING|GFW|FIRMS)_CALLS_(.+)$/.exec(name);
     if (!m || env[name] === undefined || env[name]!.trim() === "") continue;
     const provider = m[1]!.toLowerCase() as Provider;
     (out[ruleKey(m[2]!)] ??= {})[provider] = n(name, 0);
@@ -72,6 +78,7 @@ const TOOL_PROVIDER: Record<string, Provider> = {
   methane_plumes: "cdse",
   fires_in: "firms",
   flaring: "firms",
+  fishing_activity: "gfw_fishing",
 };
 
 /** Provider + billable units for one tool call (null = not governed, e.g. EONET/ENSO). */
@@ -84,6 +91,8 @@ export function costOf(tool: string, args: Record<string, unknown>): { provider:
     const sources = Array.isArray(args.sources) ? args.sources.length : 2;
     return { provider, units: Math.max(1, Math.ceil(days / 5)) * sources };
   }
+  // One 4Wings report for flag/daily/cells, plus one for the gear breakdown unless byGear: false.
+  if (tool === "fishing_activity") return { provider, units: args.byGear === false ? 1 : 2 };
   return { provider, units: 1 };
 }
 
@@ -94,6 +103,7 @@ export function providersForRequires(requires: readonly string[]): Provider[] {
     if (k === "GFW_API_KEY") out.add("gfw");
     else if (k.startsWith("CDSE_")) out.add("cdse");
     else if (k === "FIRMS_MAP_KEY") out.add("firms");
+    else if (k === "GFW_FISHING_TOKEN") out.add("gfw_fishing");
   }
   return [...out];
 }
@@ -121,6 +131,7 @@ interface DayRecord {
   cdse?: number;
   gfw?: number;
   firms?: number;
+  gfw_fishing?: number;
   /** Per-rule provider usage (only for rules with a sub-cap), keyed by ruleKey. */
   rules?: Record<string, Partial<Record<Provider, number>>>;
   analystCases?: number;
@@ -161,7 +172,7 @@ export class QuotaGovernor {
   blocked(provider: Provider, units = 1, rule?: string): string | null {
     const hit = this.exhausted.get(provider);
     if (hit) return hit;
-    if (this.used(provider) + units > this.caps[provider]) return `quota:${provider}`;
+    if (this.used(provider) + units > (this.caps[provider] ?? DEFAULT_CAPS[provider]!)) return `quota:${provider}`;
     const sub = rule === undefined ? undefined : this.caps.perRule?.[ruleKey(rule)]?.[provider];
     return sub !== undefined && this.ruleUsed(rule!, provider) + units > sub ? `quota:${provider}` : null;
   }

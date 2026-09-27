@@ -119,6 +119,10 @@ export function novelty(f: Finding): number {
   return Math.round(base * (boost > 0 ? boost : 1) * 1000) / 1000;
 }
 
+/** Case-type tag for good news (e.g. flaring_stopped, improvement@1.0); selected as its own group. */
+const IMPROVEMENT_GROUP = "improvement";
+const isImprovement = (f: Finding) => f.aoi?.tags?.includes("improvement") === true;
+
 /** Higher score first; ties by observedAt desc, then findingId. */
 const byNovelty = (a: Selected, b: Selected) =>
   b.score - a.score || (a.finding.observedAt < b.finding.observedAt ? 1 : a.finding.observedAt > b.finding.observedAt ? -1 : 0) || (a.finding.findingId < b.finding.findingId ? -1 : a.finding.findingId > b.finding.findingId ? 1 : 0);
@@ -127,21 +131,29 @@ const byNovelty = (a: Selected, b: Selected) =>
  * Work for this run, deterministic. Narrations awaiting review go first (already paid for);
  * the rest is a round-robin across rules — each round takes the most novel remaining finding
  * of every rule (rules ordered by that finding) — so one cheap-to-confirm rule can't fill `max`.
+ * Findings tagged `improvement` form one group of their own, and the first round leads with it.
  */
 export function select(ledger: AnalystLedger, max: number): Selected[] {
   const review: Selected[] = [];
   const groups = new Map<string, Selected[]>();
   for (const f of ledger.list({ status: ["confirmed"] })) {
     if (!f.narration) {
-      const g = groups.get(f.rule.name) ?? [];
+      // Good news is its own group, whatever rule found it, so it always gets a turn.
+      const key = isImprovement(f) ? IMPROVEMENT_GROUP : f.rule.name;
+      const g = groups.get(key) ?? [];
       g.push({ finding: f, needs: "narrate", score: novelty(f) });
-      groups.set(f.rule.name, g);
+      groups.set(key, g);
     } else if (!f.reviews.some((r) => r.actor.startsWith("model:") && r.at >= f.narration!.at)) review.push({ finding: f, needs: "review", score: novelty(f) });
   }
   const out = review.sort(byNovelty).slice(0, max);
   const queues = [...groups.values()].map((g) => g.sort(byNovelty));
+  let first = true;
   while (out.length < max && queues.some((q) => q.length)) {
     const round = queues.filter((q) => q.length).map((q) => q.shift()!).sort(byNovelty);
+    // The first round leads with a good-news case, so a busy run never crowds it out.
+    const good = first ? round.findIndex((s) => isImprovement(s.finding)) : -1;
+    if (good > 0) round.unshift(...round.splice(good, 1));
+    first = false;
     out.push(...round.slice(0, max - out.length));
   }
   return out;

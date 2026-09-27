@@ -1,0 +1,45 @@
+{
+  "source": "USGS Earthquake Hazards Program (FDSN event service)",
+  "window": {
+    "from": "2026-08-28",
+    "to": "2026-09-27"
+  },
+  "count": 2,
+  "strongest": {
+    "mag": 5,
+    "place": "38 km E of Nobeoka, Japan",
+    "time": "2026-09-21T13:38:32.404Z",
+    "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000tixp"
+  },
+  "quakes": [
+    {
+      "id": "us7000tixp",
+      "mag": 5,
+      "place": "38 km E of Nobeoka, Japan",
+      "time": "2026-09-21T13:38:32.404Z",
+      "lon": 132.0805,
+      "lat": 32.5978,
+      "depthKm": 42.7,
+      "tsunami": false,
+      "alert": null,
+      "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000tixp",
+      "sig": 385,
+      "status": "reviewed"
+    },
+    {
+      "id": "us7000ti89",
+      "mag": 5,
+      "place": "Izu Islands, Japan region",
+      "time": "2026-09-18T07:19:28.254Z",
+      "lon": 141.5763,
+      "lat": 32.243,
+      "depthKm": 35.3,
+      "tsunami": false,
+      "alert": null,
+      "url": "https://earthquake.usgs.gov/earthquakes/eventpage/us7000ti89",
+      "sig": 385,
+      "status": "reviewed"
+    }
+  ],
+  "dashboard": "dashboard offline"
+}

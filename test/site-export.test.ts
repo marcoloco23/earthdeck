@@ -185,6 +185,15 @@ test("export writes a self-contained, relative, server-rendered site", async () 
   for (const k of ["Cases published", "False alarms we caught", "Last check", "Latest cases", "How the planet is doing", "Being checked", "34 hectares — about 48 football fields"]) {
     assert.ok(landing.includes(k), `landing lacks ${k}`);
   }
+  // The map is the product: a full-screen hero with the panel's five modes, all server-rendered
+  // (no-JS readers get every pane, stacked), and a light below-the-fold section for crawlers.
+  for (const m of ["cases", "planet", "live", "metrics", "about"]) {
+    assert.ok(landing.includes(`id="tab-${m}" href="#pane-${m}"`) && landing.includes(`id="pane-${m}"`), `landing lacks the ${m} mode`);
+  }
+  assert.ok(landing.includes('<section class="hero" id="hero"') && landing.includes('<div class="case-view" hidden></div>'));
+  assert.ok(landing.includes('id="challenge"'), "the Reply link still lands somewhere");
+  assert.ok(landing.includes('<section class="wrap wrap--wide seo"'));
+  assert.ok(files.includes("api/metrics.json") && !files.includes("api/storms.json"), "metrics always; storms only on live exports");
   // …and nothing for developers: no commands, hashes, rule ids, tiers, feeds or JSON links.
   const landingBody = landing.slice(landing.indexOf("<body"));
   for (const k of ['class="cmd"', 'class="hash"', "npx ", "forest_loss", "tier", ".json", "checkpoint", "@"]) {
@@ -213,6 +222,9 @@ test("export writes a self-contained, relative, server-rendered site", async () 
     assert.ok(page.includes(s), `case page lacks ${s}`);
   }
   assert.ok(page.includes(`data-index="${one.inclusion.index}"`));
+  // The map first (the case area outlined), then the words; the article names its case for the map redirect.
+  assert.ok(page.indexOf('<div class="case-map"><figure class="case-hero">') < page.indexOf("<article"));
+  assert.ok(page.includes(`<article class="case" itemscope itemtype="https://schema.org/Report" data-case="${PUB_ID}">`));
   // The plain part comes first; ids, rule names and the proof only inside the closed details block.
   const tech = page.indexOf('<details class="tech"');
   assert.ok(tech > page.indexOf("What would change our mind") && !page.includes('<details class="tech" open'));
@@ -234,6 +246,24 @@ test("export writes a self-contained, relative, server-rendered site", async () 
   assert.equal(idx.match(/class="case-row/g)?.length, 4);
   assert.equal(idx.match(/is-unpublished/g)?.length, 3);
   assert.ok(idx.includes('src="../assets/index-abc.js"'));
+  // Icons + manifest on every page, relative to its depth; the logo is absolute in JSON-LD.
+  assert.ok(landing.includes('<link rel="icon" href="favicon.ico" sizes="48x48" />'));
+  assert.ok(landing.includes('<link rel="apple-touch-icon" href="apple-touch-icon.png" />'));
+  assert.ok(readFileSync(join(out, `watch/case/${PUB_ID}/index.html`), "utf8").includes('<link rel="icon" href="../../../favicon.svg" type="image/svg+xml" />'));
+  assert.ok(idx.includes('<link rel="manifest" href="../site.webmanifest" />'));
+  assert.equal(jsonLdOf(landing)[0]!.logo, `${BASE}/icon-512.png`);
+  const manifest = JSON.parse(readFileSync(join(out, "site.webmanifest"), "utf8"));
+  assert.equal(manifest.name, SITE.fullName);
+  assert.deepEqual(manifest.icons.map((i: { sizes: string }) => i.sizes), ["192x192", "512x512", "any"]);
+  // Both pages carry the static world map the site bundle upgrades in place; pins link relative to the page.
+  assert.ok(idx.includes('<figure class="world" data-map>') && landing.includes('<figure class="world" data-map>'));
+  assert.ok(idx.includes(`href="case/${PUB_ID}/"`));
+  // The map's data: every finding with a usable bbox, as data (the hostile title is only text inside JSON).
+  const md = JSON.parse(readFileSync(join(out, "api/map.json"), "utf8"));
+  assert.equal(md.v, 1);
+  assert.equal(md.cases.length, 4);
+  assert.deepEqual(new Set(md.cases.map((c: { group: string }) => c.group)), new Set(["published", "checking"]));
+  assert.ok(md.places.some((p: { name: string }) => p.name === "São Félix do Xingu"));
 
   // Hostile ledger content is inert.
   const evil = readFileSync(join(out, `watch/case/${EVIL_ID}/index.html`), "utf8");

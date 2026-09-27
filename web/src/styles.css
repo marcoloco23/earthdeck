@@ -1994,6 +1994,20 @@ code {
   filter: invert(1) brightness(0.85);
   background-color: transparent !important;
 }
+/* Which imagery is in view (web/src/layers/basemap.ts) — a mosaic must never pass for today. */
+.maplibregl-ctrl.bm-caption {
+  padding: 2px 6px;
+  border-radius: var(--r-1);
+  background: rgb(7 9 13 / 0.7);
+  color: var(--fg-2);
+  font-family: var(--font-sans);
+  font-size: var(--fs-11);
+  line-height: 1.4;
+  pointer-events: none;
+}
+.maplibregl-ctrl.bm-caption:empty {
+  display: none;
+}
 .maplibregl-ctrl-attrib.maplibregl-compact {
   background: var(--bg-2) !important;
   box-shadow: var(--e-3);
@@ -2116,4 +2130,41 @@ code {
     --line-2: rgb(148 163 184 / 0.45);
     --fg-3: #9aa5b5;
   }
+}
+
+/* ---- Weather layer toggles (web/src/layers/weather.ts) ---- */
+.wx-toggles {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--fg-2);
+}
+.wx-toggles-title {
+  color: var(--fg-3);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.wx-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.wx-toggle input {
+  accent-color: var(--accent);
+}
+.wx-toggle.is-loading {
+  color: var(--fg-3);
+}
+.wx-toggle.is-error {
+  color: var(--danger);
 }

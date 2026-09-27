@@ -25,6 +25,8 @@ import { registerBiodiversityTools } from "./tools/biodiversity.js";
 import { registerCoralTools } from "./tools/coral.js";
 import { registerNaturalValueTools } from "./tools/naturalvalue.js";
 import { registerGeeTools } from "./tools/gee.js";
+import { registerWeatherTools } from "./tools/weather.js";
+import { registerMarineTools } from "./tools/marine.js";
 
 export function buildServer(): McpServer {
   const server = new McpServer(
@@ -42,7 +44,7 @@ export function buildServer(): McpServer {
         "El Niño tracking (enso), ocean temperature history since 1981 (ocean_temp), CO₂ since " +
         "1958 (co2), the global temperature record since 1880 (global_temp), polar sea ice " +
         "(sea_ice), earthquakes (quakes), air quality (air_quality), per-place climate history " +
-        "since 1940 (climate_history), river discharge (river_discharge), planet_pulse — " +
+        "since 1940 (climate_history), river discharge (river_discharge), weather now + 7-day forecast vs the 1991–2020 normal (weather_now), active tropical cyclones with forecast cones (storms), planet_pulse — " +
         "the planet's vital signs in one call — world_pulse — civilization's vital signs (child " +
         "mortality, poverty, renewables…), the living world (Living Planet Index, Red List Index, " +
         "fish stocks…) and the planet (ocean pH, nitrogen, plastic…), each with an honest " +
@@ -88,6 +90,8 @@ export function buildServer(): McpServer {
   registerCoralTools(server);
   registerNaturalValueTools(server);
   registerGeeTools(server);
+  registerWeatherTools(server);
+  registerMarineTools(server);
 
   return server;
 }
