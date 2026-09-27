@@ -10,6 +10,7 @@ import { renderCard } from "../cards";
 import { bytesToHex, leafTile, parseCheckpoint, verifyCheckpointSignature, verifyInclusion } from "../proof";
 import { ago } from "../ui";
 import type { Card } from "../types";
+import type { MapData } from "./map/model";
 
 const page = document.body.dataset.page ?? "";
 const DEPTH: Record<string, number> = { landing: 0, trust: 0, watch: 1, developers: 1, case: 3 };
@@ -120,6 +121,36 @@ if (page === "landing") {
       if (band) band.hidden = false;
     })
     .catch(() => {});
+}
+
+// ---- the interactive map: upgrade the static world image in place, lazily ------------------------------
+//
+// The landing ships a plain image + link pins (fast, crawlable). MapLibre (a separate chunk) and
+// api/map.json load only when the reader reaches for the map — hover, tap, focus — or once the
+// page has been idle for a while on a connection that isn't asking to save data. A share link
+// (`#map:…`) upgrades at once. If anything fails, the static map simply stays.
+
+const figure = document.querySelector<HTMLElement>("figure.world[data-map]");
+if (figure && (page === "landing" || page === "watch")) {
+  let started = false;
+  const upgrade = () => {
+    if (started) return;
+    started = true;
+    void Promise.all([import("./map/explore"), fetch(`${prefix}api/map.json`).then((r) => (r.ok ? (r.json() as Promise<MapData>) : null))])
+      .then(([mod, data]) => {
+        if (data && Array.isArray(data.cases)) mod.mountExplorer({ figure, data, root: prefix });
+      })
+      .catch(() => {});
+  };
+  if (location.hash.startsWith("#map:")) upgrade();
+  else {
+    for (const ev of ["pointerenter", "touchstart", "focusin"] as const) figure.addEventListener(ev, upgrade, { once: true, passive: true });
+    const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    if (!conn?.saveData && !/(^|-)2g$/.test(conn?.effectiveType ?? "")) {
+      const idle = () => ("requestIdleCallback" in window ? requestIdleCallback(upgrade, { timeout: 2000 }) : setTimeout(upgrade, 0));
+      addEventListener("load", () => setTimeout(idle, 2500), { once: true });
+    }
+  }
 }
 
 // ---- cases index: the transparency switch ----------------------------------------------------------
