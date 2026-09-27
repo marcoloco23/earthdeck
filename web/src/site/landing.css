@@ -1113,6 +1113,10 @@ body[data-page="landing"] {
 .hero.hero--sit .nums {
   top: 50px;
 }
+/* the map toolbar (search, Whole Earth, Copy link) moves down with the chips */
+.hero.hero--sit .xp-top {
+  top: 92px;
+}
 .sit-brief {
   margin: 0 0 var(--s-4);
   padding: 12px 14px;
@@ -1175,6 +1179,9 @@ body[data-page="landing"] {
   }
   .hero.hero--sit .nums {
     top: 44px;
+  }
+  .hero.hero--sit .xp-top {
+    top: 80px;
   }
 }
 @media (prefers-reduced-transparency: reduce) {
