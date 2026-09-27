@@ -31,6 +31,7 @@ import {
   type Topic,
   type View,
 } from "./map/model";
+import { mountReplyForms } from "./reply";
 import { verifyCase, wireCopy } from "./verify";
 
 const LIST_STEP = 120;
@@ -409,6 +410,7 @@ export function mountPanel(hub: Hub): void {
     }
     box.appendChild(art);
     wireCopy(art);
+    mountReplyForms(art);
     const vb = art.querySelector<HTMLElement>(".verify");
     const tech = art.querySelector<HTMLDetailsElement>("details.tech");
     if (vb && tech) tech.addEventListener("toggle", () => tech.open && void verifyCase(vb, root), { once: true });

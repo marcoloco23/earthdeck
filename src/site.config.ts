@@ -41,6 +41,12 @@ export const SITE = {
    */
   dataLicense: null as string | null,
   locale: "en",
+  /**
+   * The reply wall's intake origin (Lambda Function URL; the form posts to `<it>/reply`).
+   * Unset here — the runner passes the stack's ReplyUrl output as `--reply-url`. No email:
+   * nobody reads an inbox; the reviewer model screens every reply before it appears.
+   */
+  replyEndpoint: null as string | null,
 } as const;
 
 export type SiteConfig = typeof SITE;
