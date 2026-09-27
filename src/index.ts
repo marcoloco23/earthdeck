@@ -26,6 +26,7 @@ import { registerCoralTools } from "./tools/coral.js";
 import { registerNaturalValueTools } from "./tools/naturalvalue.js";
 import { registerGeeTools } from "./tools/gee.js";
 import { registerWeatherTools } from "./tools/weather.js";
+import { registerMarineTools } from "./tools/marine.js";
 
 export function buildServer(): McpServer {
   const server = new McpServer(
@@ -90,6 +91,7 @@ export function buildServer(): McpServer {
   registerNaturalValueTools(server);
   registerGeeTools(server);
   registerWeatherTools(server);
+  registerMarineTools(server);
 
   return server;
 }

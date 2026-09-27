@@ -82,6 +82,8 @@ test → build on every push/PR.
 | `CDSE_CLIENT_ID` / `CDSE_CLIENT_SECRET` | `eo_search`, `eo_render`, `eo_index`, `eo_compare` | Free Copernicus Data Space OAuth client |
 | `FIRMS_MAP_KEY` | `fires_in` | Free NASA FIRMS map key |
 | `GEE_SERVICE_ACCOUNT_JSON` / `GEE_PROJECT` | `gee_query` | Earth Engine service-account key (path or inline JSON) + EE-registered Cloud project — see `docs/research/2026-09-26_google-earth-engine.md` |
+| `GFW_FISHING_TOKEN` | `fishing_activity`, rule `mpa_fishing`, `api/marine/fishing.json` | Global *Fishing* Watch API v3 token (non-commercial terms; not the Global *Forest* Watch `GFW_API_KEY`). Daily cap `EARTHDECK_MAX_GFW_FISHING_CALLS` (default 200) |
+| `AISSTREAM_KEY` | `api/marine/ships.json` (export only) | aisstream.io websocket key — runner-side 20 s sample, aggregates only; never shipped to the browser |
 | `EARTHDECK_DASHBOARD_URL` | card push target | default `http://127.0.0.1:5005` |
 | `EARTHDECK_DASHBOARD_PORT` | dashboard server | default `5005` |
 

@@ -15,7 +15,7 @@ import { z } from "zod";
 // ── payload ──────────────────────────────────────────────────────────────────────────────
 
 /** The hand-written watchlists (`watchlists/<name>.json`). */
-export const WATCHLISTS = ["amazon", "congo-borneo", "controls", "methane", "flaring", "indicators", "weather", "good-news"] as const;
+export const WATCHLISTS = ["amazon", "congo-borneo", "controls", "methane", "flaring", "indicators", "weather", "good-news", "marine"] as const;
 /**
  * A sweep target: one hand-written list, `all-handwritten` (all of those), `all-generated`
  * (every file in `watchlists/generated/`), or one generated list `generated/<name>`.

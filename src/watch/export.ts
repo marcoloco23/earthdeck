@@ -11,6 +11,8 @@
 //   api/metrics.json               the landing's Metrics mode: totals, timeline, stakes (src/watch/metrics.ts)
 //   api/pulse.json                 world_pulse snapshot (fresh, else cached, else omitted)
 //   api/storms.json                active tropical cyclones as GeoJSON (live exports only, best-effort)
+//   api/marine/{fishing,ships}.json  GFW fishing-effort grid / AIS ship density — only when the
+//                                  runner has GFW_FISHING_TOKEN / AISSTREAM_KEY (src/watch/marine-export.ts)
 //   developers/index.html          verify-it-yourself commands, feeds, API, schema (kept off the landing)
 //   schema/finding-event.v1.json, trust.html (+ TRUST.md), sitemap.xml, robots.txt
 //   assets/**, og.png, favicon.{ico,svg}, apple-touch-icon.png, icon-{192,512}.png
@@ -31,6 +33,7 @@ import { SITE } from "../site.config.js";
 import { readHeartbeat, type Heartbeat } from "./journal.js";
 import { mapData } from "./map-data.js";
 import { computeMetrics } from "./metrics.js";
+import { marineSnapshots } from "./marine-export.js";
 import { casePage, developersPage, FALLBACK_TEMPLATE, fillTemplate, landingPage, robots, sitemap, trustPage, watchIndexPage, webManifest, type CaseData, type Ctx } from "./site-render.js";
 
 const PKG_ROOT = fileURLToPath(new URL("../../", import.meta.url)); // dist/watch → root, src/watch → root
@@ -163,6 +166,9 @@ export interface ExportOptions {
   pulse?: "auto" | "cache" | "off";
   pulseCache?: string;
   pulseTimeoutMs?: number;
+  /** Marine layers (needs GFW_FISHING_TOKEN / AISSTREAM_KEY): "auto" refreshes stale caches, "cache" reads them, "off" (default here; the CLI passes "auto") omits. */
+  marine?: "auto" | "cache" | "off";
+  marineCacheDir?: string;
   trustFile?: string;
   /** Overwrite a non-empty directory that was not written by a previous export. */
   force?: boolean;
@@ -175,6 +181,7 @@ export interface ExportReport {
   findings: number;
   publicFindings: number;
   pulse: "fresh" | "cached" | "none";
+  marine: { fishing: boolean; ships: boolean };
   web: boolean;
   trust: boolean;
   sitemap: boolean;
@@ -248,6 +255,17 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
     if (storms) write("api/storms.json", storms);
   }
 
+  // ---- marine layers (server-side keys; each file only if the runner could produce it) ----
+  const marine = await marineSnapshots({
+    mode: opts.marine ?? "off",
+    cacheDir: opts.marineCacheDir ?? join(dirname(resolve(lDir)), "marine"),
+    watchlist: join(PKG_ROOT, "watchlists", "marine.json"),
+    now,
+    log,
+  });
+  if (marine.fishing) write("api/marine/fishing.json", marine.fishing);
+  if (marine.ships) write("api/marine/ships.json", marine.ships);
+
   const schemaFile = join(PKG_ROOT, "schema", "finding-event.v1.json");
   if (existsSync(schemaFile)) write("schema/finding-event.v1.json", readFileSync(schemaFile));
 
@@ -298,6 +316,7 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
     findings: findings.length,
     publicFindings: stats.cases.public,
     pulse: pulse.kind,
+    marine: { fishing: Boolean(marine.fishing), ships: Boolean(marine.ships) },
     web,
     trust,
     sitemap: baseUrl !== null,
@@ -399,7 +418,7 @@ export async function runExportCli(args: string[]): Promise<void> {
     process.stdout.write(
       [
         "usage: earthdeck watch export --out <dir> [--base-url https://…]",
-        "                              [--no-pulse | --pulse-cache <file>] [--trust TRUST.md] [--force]",
+        "                              [--no-pulse | --pulse-cache <file>] [--no-marine] [--trust TRUST.md] [--force]",
         `Writes the public ${SITE.name} site (landing + case pages + ledger + feeds) as static files.`,
         `--base-url defaults to ${SITE.baseUrl} (src/site.config.ts); it drives canonical URLs, og:*, JSON-LD and sitemap.xml.`,
         "",
@@ -414,13 +433,14 @@ export async function runExportCli(args: string[]): Promise<void> {
     contact: opt("--contact"),
     pulse: args.includes("--no-pulse") ? "off" : "auto",
     pulseCache: opt("--pulse-cache"),
+    marine: args.includes("--no-marine") ? "off" : "auto",
     trustFile: opt("--trust"),
     force: args.includes("--force"),
     log: (s) => process.stdout.write(`${s}\n`),
   });
   process.stdout.write(
     `exported ${report.findings} findings (${report.publicFindings} public) → ${report.out}\n` +
-      `  ${report.files.length} files · world pulse: ${report.pulse} · web bundle: ${report.web ? "yes" : "MISSING"} · TRUST.md: ${report.trust ? "rendered" : "not found"} · sitemap: ${report.sitemap ? "yes" : "no"}\n` +
+      `  ${report.files.length} files · world pulse: ${report.pulse} · marine: fishing ${report.marine.fishing ? "yes" : "no"}, ships ${report.marine.ships ? "yes" : "no"} · web bundle: ${report.web ? "yes" : "MISSING"} · TRUST.md: ${report.trust ? "rendered" : "not found"} · sitemap: ${report.sitemap ? "yes" : "no"}\n` +
       `  preview: npx -y serve ${report.out}\n`,
   );
 }
