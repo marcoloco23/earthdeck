@@ -2117,3 +2117,40 @@ code {
     --fg-3: #9aa5b5;
   }
 }
+
+/* ---- Weather layer toggles (web/src/layers/weather.ts) ---- */
+.wx-toggles {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--fg-2);
+}
+.wx-toggles-title {
+  color: var(--fg-3);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.wx-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.wx-toggle input {
+  accent-color: var(--accent);
+}
+.wx-toggle.is-loading {
+  color: var(--fg-3);
+}
+.wx-toggle.is-error {
+  color: var(--danger);
+}

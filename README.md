@@ -72,6 +72,8 @@ Then just ask: *"What's the state of the planet right now?"* · *"Is El Niño co
 | `climate_history` | How a place's climate changed: ERA5 temperature/precip/wind, annual trend per decade | 1940→ |
 | `air_quality` | PM2.5 / PM10 / O₃ / NO₂ / US AQI for any point (Copernicus CAMS), WHO-guideline flags | 48 h |
 | `river_discharge` | Daily river flow at any point (GloFAS) — flood/drought signal vs the period mean | 1984→ |
+| `weather_now` | Weather now + past week + 7-day forecast for any point (Open-Meteo): max/min, feels-like, rain, wind — each day's max vs the ERA5 1991–2020 normal, plus ERA5's own independent reading of the elapsed days | now ± 7 d |
+| `storms` | Every active tropical cyclone: NOAA NHC/CPHC advisories (position, Saffir–Simpson category, forecast track + cone) and GDACS for the other basins, cross-checked with NASA EONET; optional bbox / min category | live |
 | `earthdata_search` | Discover datasets across NASA's full Earth-science archive (~50k collections, CMR) by topic/bbox/time | catalog |
 | `world_pulse` | Vital signs in three groups — civilization, life (Living Planet Index, Red List Index, fish stocks, protected areas, tree cover loss), planet (ocean pH, nitrogen, pesticides, water, plastic, ozone) — each improving/worsening/flat | per indicator |
 
@@ -171,7 +173,9 @@ primary signal, and marks it *confirmed* only when the rule's **independent seco
 agrees (`forest_loss`: GFW alerts → NDVI drop in a Sentinel-2 median composite;
 `fires_in_protected`: VIIRS cluster → EONET event or re-detection on a later pass;
 `flaring`: night-time heat persisting ≥ N nights → a VNF annual flare site or a later pass).
-`methane_anomaly` (tier 2): Sentinel-5P CH₄ anomaly vs 90 days → EMIT plume in the AOI).
+`methane_anomaly` (tier 2): Sentinel-5P CH₄ anomaly vs 90 days → EMIT plume in the AOI;
+`weather_extreme` (tier 0, `watchlists/weather.json`): heat over a city's bar for ≥ 2 days → ERA5 agrees or it
+persists; a category ≥ 1 cyclone cone over a region → NASA EONET; ≥ 150 mm/day → GloFAS discharge ≥ 2× or persistence).
 Every rule must declare its **blind spots** and keeps a **regional baseline** (the AOI vs
 its neighbourhood ring — "did it stop, or did it move?"); every finding carries **context**
 (ENSO phase, nearby EONET events). Watermarks make late or missed runs self-heal; failures
@@ -359,6 +363,12 @@ Tests mock the network, so the whole suite runs with zero credentials — CI
 - NOAA Coral Reef Watch CoralTemp v3.1 5 km products via CoastWatch / PacIOOS ERDDAP (free; credit NOAA CRW).
 - Our World in Data (CC BY 4.0) for `world_pulse`; upstream producers and licences are listed per indicator.
 - `natural_value`: CLMS Global Land Cover 2020, 10 m (© European Union, Copernicus Land Monitoring Service; DOI 10.2909/602507b2-96c7-47bb-b79d-7ba25e97d0a9; free and open, attribute and state modifications); ecosystem-service unit values from Costanza et al. (2014) and de Groot et al. (2012), organism values from Chami et al. (IMF) — cited per entry in the result.
+- Weather: forecast data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0; ECMWF, DWD, NOAA models) with ERA5
+  (Copernicus Climate Change Service) normals; tropical cyclones from NOAA/NWS NHC & CPHC (U.S. public data,
+  [weather.gov/disclaimer](https://www.weather.gov/disclaimer)) and [GDACS](https://www.gdacs.org/) (UN OCHA / EC JRC,
+  provided as is); map overlays from NASA GIBS (VIIRS, GPM IMERG) and, on the local dashboard only,
+  [RainViewer](https://www.rainviewer.com/) radar (personal/educational use). Source catalogue with licences:
+  `docs/research/2026-09-27_live-data-sources.md`.
 - Basemap & geocoding: NASA Blue Marble; OpenStreetMap Nominatim.
 - Attribution: protected areas © OpenStreetMap contributors (ODbL) via Overpass; LandMark
   Indigenous & community lands (CC BY-SA 4.0) via the GFW Data API; emissions from
