@@ -9,6 +9,7 @@
 
 import { PUBLIC_STATUSES, TERMINAL_STATUSES, type Evidence, type Finding, type FindingEvent } from "../ledger/schema.js";
 import { SITE } from "../site.config.js";
+import type { NewsItem } from "../clients/gdelt.js";
 import { livingValueOf, type SiteStats, type RateCell } from "./export.js";
 import { indicatorOf, isGlobalCase } from "./map-data.js";
 
@@ -635,7 +636,22 @@ const CHANGE_MIND =
 const NOT_SURE_DEFAULT =
   "Satellite signals can be wrong: clouds, smoke, the seasons and sensor glitches can all look like change. That is why every case needs a second, separate source before it is published.";
 
-export function casePage(c: Ctx, d: CaseData): { head: string; body: string } {
+export const NEWS_NOTE = "News found by place and topic. It is context, not evidence: our checks don't use it.";
+
+/** "In the news" — headline links only (no bodies, no images); "" when there is nothing. */
+export function newsHtml(items: readonly NewsItem[] | undefined): string {
+  const li = (items ?? [])
+    .map((n) => {
+      const href = safeUrl(n.url);
+      if (!href || !n.title) return "";
+      const when = n.seendate ? ` <span class="seen-when">(${esc(plainDate(n.seendate))})</span>` : "";
+      return `<li><a class="link" href="${esc(href)}" rel="noopener nofollow">${esc(n.title)}</a> <span class="news-src">${esc(n.domain)}</span>${when}</li>`;
+    })
+    .filter(Boolean);
+  return li.length ? section("In the news", `<ul class="plain-list news-list">${li.join("")}</ul><p class="section-lede">${esc(NEWS_NOTE)}</p>`) : "";
+}
+
+export function casePage(c: Ctx, d: CaseData, news?: readonly NewsItem[]): { head: string; body: string } {
   const f = d.finding;
   const s = c.stats;
   const isPublic = PUBLIC_STATUSES.includes(f.status);
@@ -695,6 +711,7 @@ export function casePage(c: Ctx, d: CaseData): { head: string; body: string } {
         ${isPublic ? "" : `<p class="banner banner--muted">${esc(NOT_PUBLIC[f.status] ?? `Not published: ${PLAIN_STATUS[f.status] ?? words(f.status)}.`)}</p>`}
         ${f.retracted ? `<p class="banner banner--danger">Withdrawn ${time(f.retracted.at, plainDate(f.retracted.at))} — ${esc(f.retracted.reason)}</p>` : ""}
         ${section("What we saw", `<ul class="plain-list">${seen.join("")}</ul>`)}
+        ${newsHtml(news)}
         ${section("What it might not be", doubts.length ? `<ul class="plain-list">${doubts.map((b) => `<li>${esc(b)}</li>`).join("")}</ul>` : `<p class="section-lede">${esc(NOT_SURE_DEFAULT)}</p>`)}
         ${section("What would change our mind", `<p class="section-lede">${esc(CHANGE_MIND)}</p>`)}
         ${section(isPublic ? "Why this was published" : "Why this is not published", `<p class="section-lede">${esc(whySentence(f, pubEv))}</p>`)}

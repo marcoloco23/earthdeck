@@ -965,6 +965,10 @@ a.case-row > .case-top {
   color: var(--fg-1);
   font-weight: 600;
 }
+.news-src {
+  color: var(--fg-2);
+  font-size: 0.9em;
+}
 .seen-when {
   color: var(--fg-3);
   white-space: nowrap;

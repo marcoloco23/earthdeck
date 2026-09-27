@@ -70,6 +70,10 @@ export const REVIEW_JSON_SCHEMA = {
 // ---- Dossier -------------------------------------------------------------------------------
 
 /** Everything a model may know about a finding — and nothing else. */
+// HOOK (deliberately unused): "In the news" headlines (src/watch/news.ts, cached under
+// <ledger dir>/news/<id>.json) could be offered to the narrator here as clearly-labelled
+// *context* one day. They must never reach the reviewer's checks or count as confirmation —
+// GDELT matches by place name and keyword, not by location, and is noisy.
 export function dossier(f: Finding) {
   const ev = (e: Evidence) => ({ id: e.id, kind: e.kind, source: e.source, datetime: e.datetime, method: e.method, summary: e.summary, values: e.values, href: e.href });
   return {

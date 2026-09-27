@@ -34,7 +34,9 @@ import { readHeartbeat, type Heartbeat } from "./journal.js";
 import { mapData } from "./map-data.js";
 import { computeMetrics } from "./metrics.js";
 import { marineSnapshots } from "./marine-export.js";
-import { casePage, developersPage, FALLBACK_TEMPLATE, fillTemplate, landingPage, robots, sitemap, trustPage, watchIndexPage, webManifest, type CaseData, type Ctx } from "./site-render.js";
+import { newsForCases } from "./news.js";
+import { CallBudget, gdeltCapFromEnv } from "./quota.js";
+import { casePage, developersPage, FALLBACK_TEMPLATE, NEWS_NOTE, fillTemplate, landingPage, robots, sitemap, trustPage, watchIndexPage, webManifest, type CaseData, type Ctx } from "./site-render.js";
 
 const PKG_ROOT = fileURLToPath(new URL("../../", import.meta.url)); // dist/watch → root, src/watch → root
 const MARKER = ".earthdeck-site";
@@ -170,6 +172,10 @@ export interface ExportOptions {
   marine?: "auto" | "cache" | "off";
   marineCacheDir?: string;
   trustFile?: string;
+  /** "In the news" headlines from GDELT for decided cases: "auto" fetches (paced, capped, cached
+   *  12 h), "cache" reads the cache only, "off" (default here; the CLI passes "auto") omits. */
+  news?: "auto" | "cache" | "off";
+  newsCacheDir?: string;
   /** Overwrite a non-empty directory that was not written by a previous export. */
   force?: boolean;
   log?: (s: string) => void;
@@ -182,6 +188,8 @@ export interface ExportReport {
   publicFindings: number;
   pulse: "fresh" | "cached" | "none";
   marine: { fishing: boolean; ships: boolean };
+  /** Cases that got an "In the news" section. */
+  news: number;
   web: boolean;
   trust: boolean;
   sitemap: boolean;
@@ -266,6 +274,19 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
   if (marine.fishing) write("api/marine/fishing.json", marine.fishing);
   if (marine.ships) write("api/marine/ships.json", marine.ships);
 
+  // ---- in the news (context only; never evidence) ----
+  const newsMode = opts.news ?? "off";
+  const news =
+    newsMode === "off"
+      ? new Map()
+      : await newsForCases(findings, {
+          cacheDir: opts.newsCacheDir ?? join(resolve(lDir), "news"),
+          budget: new CallBudget(newsMode === "auto" ? gdeltCapFromEnv() : 0),
+          now,
+          log,
+        });
+  for (const [id, items] of news) write(`api/news/${id}.json`, JSON.stringify({ generatedAt: now.toISOString(), note: NEWS_NOTE, items }));
+
   const schemaFile = join(PKG_ROOT, "schema", "finding-event.v1.json");
   if (existsSync(schemaFile)) write("schema/finding-event.v1.json", readFileSync(schemaFile));
 
@@ -287,7 +308,7 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
   write("watch/index.html", fillTemplate(tpl, 1, "watch", watchIndexPage(ctx(1, "watch/"), findings)));
   for (const d of cases) {
     const path = `watch/case/${d.finding.findingId}/`;
-    write(`${path}index.html`, fillTemplate(tpl, 3, "case", casePage(ctx(3, path), d)));
+    write(`${path}index.html`, fillTemplate(tpl, 3, "case", casePage(ctx(3, path), d, news.get(d.finding.findingId))));
   }
   if (trust) {
     const md = readFileSync(trustFile, "utf8");
@@ -317,6 +338,7 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
     publicFindings: stats.cases.public,
     pulse: pulse.kind,
     marine: { fishing: Boolean(marine.fishing), ships: Boolean(marine.ships) },
+    news: news.size,
     web,
     trust,
     sitemap: baseUrl !== null,
@@ -418,7 +440,7 @@ export async function runExportCli(args: string[]): Promise<void> {
     process.stdout.write(
       [
         "usage: earthdeck watch export --out <dir> [--base-url https://…]",
-        "                              [--no-pulse | --pulse-cache <file>] [--no-marine] [--trust TRUST.md] [--force]",
+        "                              [--no-pulse | --pulse-cache <file>] [--no-marine] [--no-news] [--trust TRUST.md] [--force]",
         `Writes the public ${SITE.name} site (landing + case pages + ledger + feeds) as static files.`,
         `--base-url defaults to ${SITE.baseUrl} (src/site.config.ts); it drives canonical URLs, og:*, JSON-LD and sitemap.xml.`,
         "",
@@ -434,13 +456,14 @@ export async function runExportCli(args: string[]): Promise<void> {
     pulse: args.includes("--no-pulse") ? "off" : "auto",
     pulseCache: opt("--pulse-cache"),
     marine: args.includes("--no-marine") ? "off" : "auto",
+    news: args.includes("--no-news") ? "off" : "auto",
     trustFile: opt("--trust"),
     force: args.includes("--force"),
     log: (s) => process.stdout.write(`${s}\n`),
   });
   process.stdout.write(
     `exported ${report.findings} findings (${report.publicFindings} public) → ${report.out}\n` +
-      `  ${report.files.length} files · world pulse: ${report.pulse} · marine: fishing ${report.marine.fishing ? "yes" : "no"}, ships ${report.marine.ships ? "yes" : "no"} · web bundle: ${report.web ? "yes" : "MISSING"} · TRUST.md: ${report.trust ? "rendered" : "not found"} · sitemap: ${report.sitemap ? "yes" : "no"}\n` +
+      `  ${report.files.length} files · world pulse: ${report.pulse} · marine: fishing ${report.marine.fishing ? "yes" : "no"}, ships ${report.marine.ships ? "yes" : "no"} · news: ${report.news} cases · web bundle: ${report.web ? "yes" : "MISSING"} · TRUST.md: ${report.trust ? "rendered" : "not found"} · sitemap: ${report.sitemap ? "yes" : "no"}\n` +
       `  preview: npx -y serve ${report.out}\n`,
   );
 }

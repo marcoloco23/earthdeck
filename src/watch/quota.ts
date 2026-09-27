@@ -247,6 +247,42 @@ export class QuotaGovernor {
   }
 }
 
+// ── news (GDELT) ─────────────────────────────────────────────────────────────────────────
+// Per export, not per day: the site export is the only caller, and GDELT asks for pacing
+// (≤1 req / 5 s) rather than a daily cap. A rate-limit answer stops fetching for the run.
+
+const DEFAULT_GDELT_CALLS = 40;
+
+/** EARTHDECK_MAX_GDELT_CALLS — news lookups one export may make (default 40). */
+export function gdeltCapFromEnv(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = env.EARTHDECK_MAX_GDELT_CALLS;
+  if (raw === undefined || raw.trim() === "") return DEFAULT_GDELT_CALLS;
+  const v = Number(raw);
+  if (!Number.isFinite(v) || v < 0) throw new Error(`EARTHDECK_MAX_GDELT_CALLS must be a non-negative number (got "${raw}")`);
+  return Math.floor(v);
+}
+
+/** In-memory call budget for one run; `stop()` after a rate limit refuses the rest. */
+export class CallBudget {
+  private used = 0;
+  private stopped = false;
+  constructor(readonly cap: number) {}
+  take(): boolean {
+    if (this.stopped || this.used >= this.cap) return false;
+    this.used += 1;
+    return true;
+  }
+  stop(): void {
+    this.stopped = true;
+  }
+  get spent(): number {
+    return this.used;
+  }
+  get halted(): boolean {
+    return this.stopped;
+  }
+}
+
 function readDays(file: string): Record<string, DayRecord> {
   try {
     const j = JSON.parse(readFileSync(file, "utf8")) as unknown;
