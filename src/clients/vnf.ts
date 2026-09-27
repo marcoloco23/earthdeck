@@ -167,12 +167,13 @@ export function parseVnfKml(kml: string): VnfSite[] {
   const out: VnfSite[] = [];
   for (const pm of kml.split("<Placemark>").slice(1)) {
     const ll = /Lat=(-?[\d.]+),\s*Lon=(-?[\d.]+)/.exec(pm);
-    const bcm = /BCM_total=(-?[\d.]+)/.exec(pm);
+    // Values can be in scientific notation ("BCM_total=2.67e-05", seen in the 2023 file) — read the exponent.
+    const bcm = /BCM_total=(-?[\d.]+(?:e[-+]?\d+)?)/i.exec(pm);
     if (!ll || !bcm) continue;
     const lat = Number(ll[1]);
     const lon = Number(ll[2]);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
-    const row = /<tr><td>\d{4}<\/td><td>[-\d.]+<\/td><td>(\d+)<\/td><td>([\d.]+)%/.exec(pm);
+    const row = /<tr><td>\d{4}<\/td><td>[-\d.]+(?:e[-+]?\d+)?<\/td><td>(\d+)<\/td><td>([\d.]+)%/i.exec(pm);
     const vector = /Vector: <b>(\d+)<\/b>/.exec(pm)?.[1];
     out.push({
       id: /<name>([^<]+)<\/name>/.exec(pm)?.[1]?.trim() || `vnf-${vector ?? out.length + 1}`,
@@ -314,7 +315,8 @@ export async function flaringReport(mapKey: string, bbox: BBox, o: FlaringOption
           const latestNear = sitesIn(near, a.sites);
           const prevNear = sitesIn(near, p.sites);
           for (const cl of persistent) cl.novel = !nearestSite(cl.lat, cl.lon, latestNear, NOVEL_KM) && !nearestSite(cl.lat, cl.lon, prevNear, NOVEL_KM);
-          previous = { available: true, year: p.year, sensor: p.sensor, file: p.url, sitesInBbox: sitesIn(bbox, p.sites).length };
+          const prevLocal = sitesIn(bbox, p.sites);
+          previous = { available: true, year: p.year, sensor: p.sensor, file: p.url, sitesInBbox: prevLocal.length, bcmTotal: round(prevLocal.reduce((sum, x) => sum + x.bcm, 0), 3) };
         } catch (err) {
           previous = { available: false, reason: err instanceof Error ? err.message : String(err) };
         }

@@ -1,0 +1,407 @@
+{
+  "version": 1,
+  "name": "Good news — improvements worth confirming",
+  "description": "Places where things can get measurably better: reefs coming out of heat stress (NOAA Coral Reef Watch), polluted cities getting a clean week (CAMS PM2.5 vs the WHO guideline), and protected areas that burned last year staying fire-free this season (FIRMS NOAA-21). Same evidence standard as every other case: detection, a later confirmation, and blind spots. Rule improvement@1.0; forest recovery and flaring decline ride on amazon.json and flaring.json.",
+  "aois": [
+    {
+      "id": "gn-reef-great-barrier-reef",
+      "name": "Great Barrier Reef (central, Australia)",
+      "bbox": [
+        147.0,
+        -19.0,
+        148.0,
+        -18.0
+      ],
+      "tags": [
+        "good-news",
+        "ocean",
+        "coral"
+      ],
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "bleaching_relief",
+            "lat": -18.5,
+            "lon": 147.5
+          }
+        }
+      ]
+    },
+    {
+      "id": "gn-reef-florida-keys",
+      "name": "Florida Keys reef tract (USA)",
+      "bbox": [
+        -81.5,
+        24.0,
+        -80.5,
+        25.0
+      ],
+      "tags": [
+        "good-news",
+        "ocean",
+        "coral"
+      ],
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "bleaching_relief",
+            "lat": 24.5,
+            "lon": -81.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "gn-reef-red-sea",
+      "name": "Central Red Sea reefs",
+      "bbox": [
+        37.5,
+        21.5,
+        38.5,
+        22.5
+      ],
+      "tags": [
+        "good-news",
+        "ocean",
+        "coral"
+      ],
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "bleaching_relief",
+            "lat": 22.0,
+            "lon": 38.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "gn-reef-galapagos",
+      "name": "Galápagos (west of Isabela, Ecuador)",
+      "bbox": [
+        -92.5,
+        -1.5,
+        -91.5,
+        -0.5
+      ],
+      "tags": [
+        "good-news",
+        "ocean",
+        "coral"
+      ],
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "bleaching_relief",
+            "lat": -1.0,
+            "lon": -92.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "gn-air-delhi",
+      "name": "Delhi (India)",
+      "bbox": [
+        76.96,
+        28.36,
+        77.46,
+        28.86
+      ],
+      "tags": [
+        "good-news",
+        "air-quality",
+        "city"
+      ],
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "air_quality_clean",
+            "lat": 28.61,
+            "lon": 77.21
+          }
+        }
+      ]
+    },
+    {
+      "id": "gn-air-lahore",
+      "name": "Lahore (Pakistan)",
+      "bbox": [
+        74.09,
+        31.3,
+        74.59,
+        31.8
+      ],
+      "tags": [
+        "good-news",
+        "air-quality",
+        "city"
+      ],
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "air_quality_clean",
+            "lat": 31.55,
+            "lon": 74.34
+          }
+        }
+      ]
+    },
+    {
+      "id": "gn-air-jakarta",
+      "name": "Jakarta (Indonesia)",
+      "bbox": [
+        106.6,
+        -6.45,
+        107.1,
+        -5.95
+      ],
+      "tags": [
+        "good-news",
+        "air-quality",
+        "city"
+      ],
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "air_quality_clean",
+            "lat": -6.2,
+            "lon": 106.85
+          }
+        }
+      ]
+    },
+    {
+      "id": "gn-air-santiago",
+      "name": "Santiago (Chile)",
+      "bbox": [
+        -70.92,
+        -33.7,
+        -70.42,
+        -33.2
+      ],
+      "tags": [
+        "good-news",
+        "air-quality",
+        "city"
+      ],
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "air_quality_clean",
+            "lat": -33.45,
+            "lon": -70.67
+          }
+        }
+      ]
+    },
+    {
+      "id": "gn-air-cairo",
+      "name": "Cairo (Egypt)",
+      "bbox": [
+        30.99,
+        29.79,
+        31.49,
+        30.29
+      ],
+      "tags": [
+        "good-news",
+        "air-quality",
+        "city"
+      ],
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "air_quality_clean",
+            "lat": 30.04,
+            "lon": 31.24
+          }
+        }
+      ]
+    },
+    {
+      "id": "gn-air-mexico-city",
+      "name": "Mexico City (Mexico)",
+      "bbox": [
+        -99.38,
+        19.18,
+        -98.88,
+        19.68
+      ],
+      "tags": [
+        "good-news",
+        "air-quality",
+        "city"
+      ],
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "air_quality_clean",
+            "lat": 19.43,
+            "lon": -99.13
+          }
+        }
+      ]
+    },
+    {
+      "id": "gn-wdpa-56",
+      "name": "Pacaás Novos National Park (Brazil)",
+      "bbox": [
+        -64.04,
+        -11.69,
+        -62.53,
+        -10.52
+      ],
+      "tags": [
+        "good-news",
+        "protected-area",
+        "bra"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "fires_absent"
+          }
+        }
+      ],
+      "notes": "Watch window of Parque Nacional De Pacaás Novos (BRA) from watchlists/generated/protected-fires.json (wdpa-56), not the legal boundary. Picked because it burned in late Aug-Sep 2025 (NOAA-21 FIRMS, checked 2026-09-27)."
+    },
+    {
+      "id": "gn-wdpa-127825",
+      "name": "Bahuaja-Sonene National Park (Peru)",
+      "bbox": [
+        -70.34,
+        -13.95,
+        -68.71,
+        -12.66
+      ],
+      "tags": [
+        "good-news",
+        "protected-area",
+        "per"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "fires_absent"
+          }
+        }
+      ],
+      "notes": "Watch window of Bahuaja - Sonene (PER) from watchlists/generated/protected-fires.json (wdpa-127825), not the legal boundary. Picked because it burned in late Aug-Sep 2025 (NOAA-21 FIRMS, checked 2026-09-27)."
+    },
+    {
+      "id": "gn-wdpa-351842",
+      "name": "Chandless State Park (Brazil)",
+      "bbox": [
+        -70.63,
+        -10.57,
+        -69.77,
+        -9.3
+      ],
+      "tags": [
+        "good-news",
+        "protected-area",
+        "bra"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "fires_absent"
+          }
+        }
+      ],
+      "notes": "Watch window of Parque Estadual Chandless (BRA) from watchlists/generated/protected-fires.json (wdpa-351842), not the legal boundary. Picked because it burned in late Aug-Sep 2025 (NOAA-21 FIRMS, checked 2026-09-27)."
+    },
+    {
+      "id": "gn-wdpa-351711-2",
+      "name": "Terra do Meio Ecological Station, south (Brazil)",
+      "bbox": [
+        -54.44,
+        -7.36,
+        -52.73,
+        -5.74
+      ],
+      "tags": [
+        "good-news",
+        "protected-area",
+        "bra"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "fires_absent"
+          }
+        }
+      ],
+      "notes": "Watch window of Estação Ecológica Da Terra Do Meio (BRA) — tile 2/2 from watchlists/generated/protected-fires.json (wdpa-351711-2), not the legal boundary. Picked because it burned in late Aug-Sep 2025 (NOAA-21 FIRMS, checked 2026-09-27)."
+    },
+    {
+      "id": "gn-wdpa-1399-4",
+      "name": "Selous Game Reserve, south-east (Tanzania)",
+      "bbox": [
+        37.415,
+        -10.44,
+        38.74,
+        -8.865
+      ],
+      "tags": [
+        "good-news",
+        "protected-area",
+        "tza"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "fires_absent"
+          }
+        }
+      ],
+      "notes": "Watch window of Selous G.R (TZA) — tile 4/4 from watchlists/generated/protected-fires.json (wdpa-1399-4), not the legal boundary. Picked because it burned in late Aug-Sep 2025 (NOAA-21 FIRMS, checked 2026-09-27)."
+    },
+    {
+      "id": "gn-wdpa-349",
+      "name": "Cameia National Park (Angola)",
+      "bbox": [
+        20.75,
+        -12.51,
+        22.6,
+        -11.29
+      ],
+      "tags": [
+        "good-news",
+        "protected-area",
+        "ago"
+      ],
+      "cooldownDays": 30,
+      "rules": [
+        {
+          "name": "improvement",
+          "params": {
+            "kind": "fires_absent"
+          }
+        }
+      ],
+      "notes": "Watch window of Cameia National Park (AGO) from watchlists/generated/protected-fires.json (wdpa-349), not the legal boundary. Picked because it burned in late Aug-Sep 2025 (NOAA-21 FIRMS, checked 2026-09-27)."
+    }
+  ]
+}
