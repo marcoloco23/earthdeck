@@ -341,7 +341,7 @@ test("cliArgs: watchlist targets map to --watchlist paths; shard and budget pass
   assert.deepEqual(watchlistPaths("generated/methane-basins"), ["watchlists/generated/methane-basins.json"]);
   assert.deepEqual(watchlistPaths("all-handwritten"), ["watchlists/amazon.json", "watchlists/congo-borneo.json", "watchlists/controls.json", "watchlists/methane.json", "watchlists/flaring.json", "watchlists/indicators.json", "watchlists/weather.json"]);
   assert.deepEqual(cliArgs({ job: "sweep", watchlist: "all-generated", shard: "2/8", timeBudgetSec: 681, dryRun: false }, "/s"), ["watch", "--once", "--watchlist", "watchlists/generated", "--shard", "2/8", "--time-budget", "681"]);
-  assert.equal(cliArgs({ job: "sweep", watchlist: "all-handwritten", dryRun: true }, "/s").filter((a) => a === "--watchlist").length, 6);
+  assert.equal(cliArgs({ job: "sweep", watchlist: "all-handwritten", dryRun: true }, "/s").filter((a) => a === "--watchlist").length, 7);
   assert.deepEqual(stepsFor({ job: "sweep", watchlist: "all-generated", shard: "1/8", timeBudgetSec: 100 }), [{ job: "sweep", watchlist: "all-generated", shard: "1/8", timeBudgetSec: 100, dryRun: false }]);
 });
 
