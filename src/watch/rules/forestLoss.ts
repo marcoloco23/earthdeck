@@ -163,7 +163,7 @@ async function watchAreaConverted(ctx: RuleContext): Promise<{ pct: number; year
 }
 
 /** Largest ring ≤ ringKm whose bbox stays under the GFW area cap; null if the AOI itself is too big. */
-function fitRing(bbox: BBox, km: number): { bbox: BBox; km: number } | null {
+export function fitRing(bbox: BBox, km: number): { bbox: BBox; km: number } | null {
   for (let k = km; k >= 5; k = Math.floor(k / 2)) {
     const r = ringBBox(bbox, k);
     if (bboxArea(r) <= GFW_MAX_AREA_DEG2 * 0.98) return { bbox: r, km: k };

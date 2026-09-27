@@ -114,7 +114,7 @@ export async function airQuality(
     latitude: String(lat),
     longitude: String(lon),
     hourly: AIR_VARS.join(","),
-    past_days: String(Math.max(1, Math.min(7, pastDays))),
+    past_days: String(Math.max(1, Math.min(16, pastDays))),
     forecast_days: "1",
     timezone: "UTC",
   });

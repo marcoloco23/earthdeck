@@ -99,13 +99,13 @@ export function registerClimateTools(server: McpServer): void {
         "Current + recent air quality for any point, from the Copernicus CAMS model via " +
         "Open-Meteo, no key: PM2.5, PM10, ozone, NO₂ (µg/m³) and the US AQI, hourly for the " +
         "last 2 days. Returns the latest values and a 48-hour series; flags unhealthy levels " +
-        "(WHO 24h PM2.5 guideline: 15 µg/m³). `pastDays` (1–7) widens the window; the " +
+        "(WHO 24h PM2.5 guideline: 15 µg/m³). `pastDays` (1–16) widens the window; the " +
         "result then carries PM2.5 daily means (UTC days, hours up to now only). " +
         "Posts a chart card to the dashboard.",
       inputSchema: {
         lat: latSchema,
         lon: lonSchema,
-        pastDays: z.number().int().min(1).max(7).optional().describe("Days of history (default 2, max 7)."),
+        pastDays: z.number().int().min(1).max(16).optional().describe("Days of history (default 2, max 16)."),
       },
     },
     async ({ lat, lon, pastDays }) =>
