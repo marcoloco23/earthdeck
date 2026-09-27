@@ -19,6 +19,7 @@
 //   storms  GeoJSON from the `storms` tool (NHC/CPHC + GDACS cones, tracks, positions)
 
 import type { GeoJSONSource, Map as MlMap } from "maplibre-gl";
+import { gibsDay } from "./basemap";
 import { windArrows, windGrid } from "./windMath";
 
 type FC = GeoJSON.FeatureCollection;
@@ -67,7 +68,8 @@ export const WEATHER_LAYERS = {
     kind: "raster",
     id: "wx-clouds",
     title: "Satellite clouds",
-    tiles: [`${GIBS}/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/default/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`],
+    // The last complete day, not GIBS's "default" (today), which stays mostly black until the day's passes are in.
+    tiles: [`${GIBS}/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/${gibsDay(new Date())}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`],
     maxzoom: 9,
     opacity: 0.85,
     attribution: `${GIBS_CREDIT} · VIIRS`,
