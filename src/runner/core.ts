@@ -194,6 +194,7 @@ const TYPES: Record<string, string> = {
   md: "text/markdown; charset=utf-8",
   xml: "application/xml",
   svg: "image/svg+xml",
+  webmanifest: "application/manifest+json",
   png: "image/png",
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
