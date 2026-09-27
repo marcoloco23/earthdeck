@@ -99,12 +99,18 @@ export function registerClimateTools(server: McpServer): void {
         "Current + recent air quality for any point, from the Copernicus CAMS model via " +
         "Open-Meteo, no key: PM2.5, PM10, ozone, NO₂ (µg/m³) and the US AQI, hourly for the " +
         "last 2 days. Returns the latest values and a 48-hour series; flags unhealthy levels " +
-        "(WHO 24h PM2.5 guideline: 15 µg/m³). Posts a chart card to the dashboard.",
-      inputSchema: { lat: latSchema, lon: lonSchema },
+        "(WHO 24h PM2.5 guideline: 15 µg/m³). `pastDays` (1–7) widens the window; the " +
+        "result then carries PM2.5 daily means (UTC days, hours up to now only). " +
+        "Posts a chart card to the dashboard.",
+      inputSchema: {
+        lat: latSchema,
+        lon: lonSchema,
+        pastDays: z.number().int().min(1).max(7).optional().describe("Days of history (default 2, max 7)."),
+      },
     },
-    async ({ lat, lon }) =>
+    async ({ lat, lon, pastDays }) =>
       safe(async () => {
-        const r = await airQuality(lat, lon);
+        const r = await airQuality(lat, lon, pastDays ?? 2);
         const latestOf = (k: string) => summarize(r.series[k] ?? []).latest;
         const pm25 = latestOf("pm2_5");
         const aqi = latestOf("us_aqi");
@@ -141,6 +147,7 @@ export function registerClimateTools(server: McpServer): void {
           units: r.units,
           summary,
           pm25Last48h: pm25Series,
+          pm25Daily: dailyMeans(r.series.pm2_5 ?? [], nowIso()),
           dashboard: pushed ? "pushed" : "dashboard offline",
         };
       }),
@@ -200,6 +207,24 @@ export function registerClimateTools(server: McpServer): void {
         };
       }),
   );
+}
+
+/**
+ * UTC-day means of an hourly series, using only hours at or before `now` (the CAMS feed
+ * appends forecast hours). `hours` is how many valid hours each mean rests on.
+ */
+export function dailyMeans(points: { t: string; v: number | null }[], now: string): { t: string; v: number; hours: number }[] {
+  const nowKey = now.slice(0, 16);
+  const acc = new Map<string, { sum: number; n: number }>();
+  for (const p of points) {
+    if (p.v === null || p.t.slice(0, 16) > nowKey) continue;
+    const d = p.t.slice(0, 10);
+    const a = acc.get(d) ?? { sum: 0, n: 0 };
+    a.sum += p.v;
+    a.n += 1;
+    acc.set(d, a);
+  }
+  return [...acc.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([t, a]) => ({ t, v: round(a.sum / a.n, 1), hours: a.n }));
 }
 
 /** Calendar-year sums for accumulation variables (precipitation, snowfall). */

@@ -172,12 +172,27 @@ agrees (`forest_loss`: GFW alerts → NDVI drop in a Sentinel-2 median composite
 `fires_in_protected`: VIIRS cluster → EONET event or re-detection on a later pass;
 `flaring`: night-time heat persisting ≥ N nights → a VNF annual flare site or a later pass).
 `methane_anomaly` (tier 2): Sentinel-5P CH₄ anomaly vs 90 days → EMIT plume in the AOI).
+Two zero-key tier-1 rules widen the watch beyond forests and flares
+(`watchlists/indicators.json`, 30 AOIs):
+
+| Rule · `indicator` | Crosses the line when… | Confirmed by |
+| --- | --- | --- |
+| `indicator_threshold` · `sea_ice` | NSIDC daily extent (Arctic / Antarctic) is below the 1981–2010 p10 for the day | a later day still below p10 (revisit) |
+| `indicator_threshold` · `marine_heatwave` | OISST at a reef/sea point is ≥ `minAnomalyC` (1.5 °C) above the same season of the last 10 years for ≥ `minDays` (5) | a later day still that warm (revisit) |
+| `indicator_threshold` · `river_discharge` | GloFAS discharge ≥ `ratio` (2×) the 10-year mean (optionally also ≥ `minSeasonalRatio` × the same month) | an EONET flood within 200 km (provider), else a later day still high |
+| `indicator_threshold` · `air_quality` | CAMS PM2.5 daily mean > the WHO 15 µg/m³ guideline for ≥ `minDays` (3) full days | a later full day still above (revisit) |
+| `indicator_threshold` · `enso` | ONI meets NOAA's event definition (≥ 5 seasons beyond ±0.5 °C) — one global case per event | OISST at the Niño3.4 centre has the same-sign anomaly (method) |
+| `indicator_threshold` · `quake` | USGS M ≥ `minMagnitude` (7.0) inside the AOI box | USGS marks it reviewed with `sig` ≥ `minSig` (600) — same provider (method) |
+| `indicator_trend` | a new year's value of an annual world-pulse indicator (Living Planet Index, Red List Index, fish stocks, ocean pH, tree cover loss, marine protected areas) continues a worsening — or improving (tag `improvement`) — 10-year trend | the same value on a later read (method: data stability) |
+
+`indicator_trend` runs one AOI per indicator (`wp-<name>`, `cooldownDays: 1`) and reads its
+own earlier cases via `ledger_list`, so each indicator-year opens exactly one case, ever.
 Every rule must declare its **blind spots** and keeps a **regional baseline** (the AOI vs
 its neighbourhood ring — "did it stop, or did it move?"); every finding carries **context**
 (ENSO phase, nearby EONET events). Watermarks make late or missed runs self-heal; failures
 are recorded as coverage gaps, never silence. **Control AOIs** (expected quiet) measure our
 own false-positive rate. Needs `GFW_API_KEY` + CDSE creds (forest) and `FIRMS_MAP_KEY`
-(fires); pairs whose keys are missing are skipped, not failed.
+(fires); pairs whose keys are missing are skipped, not failed. The indicator rules need no key.
 
 **Triage from Claude** — `ledger_list`, `ledger_get`, `ledger_verify` (read) and
 `ledger_advance`, `ledger_narrate`, `ledger_review`, `ledger_propose_attribution` (append)

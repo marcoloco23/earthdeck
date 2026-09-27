@@ -189,7 +189,8 @@ test("rules: every rule declares blind spots, a version and an independent confi
   for (const r of RULES.values()) {
     assert.ok(r.blindSpots.length >= 3, r.name);
     assert.match(r.version, /^\d+\.\d+$/);
-    assert.ok(r.requires.length > 0);
+    // Only the zero-key indicator rules (open NOAA/NSIDC/USGS/Open-Meteo/OWID feeds) need no key.
+    if (!r.name.startsWith("indicator_")) assert.ok(r.requires.length > 0, r.name);
   }
   assert.throws(() => defineRule({ ...RULES.get("forest_loss")!, name: "x", blindSpots: [] }), /blindSpots/);
   // Cloudy compare → not confirmable yet (null), not an error.
