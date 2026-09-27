@@ -102,8 +102,12 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
    fixed-width replay/caption/chips, panel-internal scroll, indicator blind spots filtered to
    the case's indicator, globe hit-test fix (nearest dot ≤ 12 px; `pnpm test:e2e`
    Playwright), cluster zoom ≥ 1.5. SSM now has GFW_FISHING_TOKEN, AISSTREAM_KEY, GEE_*,
-   REPLY_SALT. In flight: GDELT "In the news" per case (worker; `api/news/<case>.json`,
-   context not evidence). Open with Marc: keep running after Mon 08:03 stop (session cron),
+   REPLY_SALT. "In the news" per case (GDELT DOC 2.0 keyword search, `src/clients/gdelt.ts`,
+   `src/watch/news.ts`, `api/news/<case>.json`, context not evidence, `--no-news` to disable)
+   is merged and deployed but UNPROVEN: GDELT answered 429 to the first call from Lambda and
+   from the worker's Mac, so no real case has headlines yet; it fails soft (one 429 stops the
+   export's lookups, cache 12 h). If it keeps failing or returns junk, add `--no-news` to the
+   runner's export args. Open with Marc: keep running after Mon 08:03 stop (session cron),
    analyst cap 20, SNS email confirm, rotate aisstream key (was pasted in chat), hide Live
    toggles whose data file is missing, old `assets/` bundles never deleted.
 3c. **Queued by Marc 2026-09-26/27 (in this order, one at a time — "take it slowly")**:
