@@ -76,7 +76,12 @@ It is **urgent** if any of these is true:
 - an earthquake of magnitude 7 or more became a case in the last 48 hours;
 - an extreme-heat or tropical-cyclone case was published in the last 48 hours;
 - Arctic or Antarctic sea ice is below the lowest value ever recorded for that date;
-- three or more cases were confirmed within one day in the same region (a 10° × 10° box).
+- cases were confirmed within one day at three or more different watched places in the
+  same region (a 5° × 5° box). Only rules about something happening now count here: forest
+  loss, fires in protected land, extreme weather, methane, fishing inside marine reserves,
+  and the earthquake, marine-heatwave, river-flood and air-pollution indicators. Gas
+  flaring, flaring that stopped, and good-news cases never count toward urgent; they can
+  only raise the level to watch through the 7-day rule below.
 
 It is **watch** if none of those holds but any of these does:
 

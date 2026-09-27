@@ -133,12 +133,25 @@ test("sea-ice reasons point only at their own pole's cases", () => {
   assert.deepEqual(r.reasons[0]!.caseIds, [antarctic.findingId]);
 });
 
-test("U5 three confirmations in one 10° region within 24 h → urgent; spread out or older → not", () => {
+test("U5 acute cases at 3 distinct places in one 5° box within 24 h → urgent; flaring, same place, spread out or older → not", () => {
   const near = [0, 1, 2].map(() => mk({ confirmedAt: hoursAgo(3) }));
   assert.ok(codes(near).includes("regional_cluster"));
   assert.equal(computeLevel(near, {}, NOW).level, "urgent");
-  const spread = [mk({ confirmedAt: hoursAgo(3) }), mk({ confirmedAt: hoursAgo(3) }), mk({ confirmedAt: hoursAgo(3), bbox: [20, 40, 21, 41] })];
+  const spread = [mk({ confirmedAt: hoursAgo(3) }), mk({ confirmedAt: hoursAgo(3) }), mk({ confirmedAt: hoursAgo(3), bbox: [-45.4, -6.9, -44.9, -6.4] })];
   assert.ok(!codes(spread).includes("regional_cluster"));
+  for (const rule of ["flaring", "flaring_stopped", "improvement"]) {
+    const fl = [0, 1, 2].map(() => mk({ rule, confirmedAt: hoursAgo(3) }));
+    assert.ok(!codes(fl).includes("regional_cluster"), `${rule} never counts toward urgent`);
+    assert.deepEqual(computeLevel(fl, {}, NOW).level, "watch", `${rule} can still make watch`);
+  }
+  assert.ok(!codes([0, 1, 2].map(() => mk({ tags: ["improvement"], confirmedAt: hoursAgo(3) }))).includes("regional_cluster"));
+  const seaIce = [0, 1, 2].map(() => mk({ rule: "indicator_threshold", indicator: "sea_ice", confirmedAt: hoursAgo(3) }));
+  assert.ok(!codes(seaIce).includes("regional_cluster"), "chronic indicators don't count");
+  const quakes = [0, 1, 2].map(() => mk({ rule: "indicator_threshold", indicator: "quake", values: { magnitude: 6 }, confirmedAt: hoursAgo(3) }));
+  assert.ok(codes(quakes).includes("regional_cluster"), "acute indicators do");
+  const onePlace = [0, 1, 2].map(() => mk({ confirmedAt: hoursAgo(3) }));
+  for (const f of onePlace) f.aoi = { id: "same-aoi", name: "Same" };
+  assert.ok(!codes(onePlace).includes("regional_cluster"), "needs 3 distinct AOIs");
   const old = [0, 1, 2].map(() => mk({ confirmedAt: hoursAgo(30) }));
   assert.ok(!codes(old).includes("regional_cluster"));
   const many = [0, 1, 2, 3, 4].map(() => mk({ confirmedAt: hoursAgo(3) }));

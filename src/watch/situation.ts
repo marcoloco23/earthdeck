@@ -56,16 +56,26 @@ const valueOf = (f: Finding, key: string): number | null => {
   for (const v of values(f)) if (typeof v[key] === "number" && Number.isFinite(v[key])) return v[key]!;
   return null;
 };
+/** Rules about something happening now (not chronic sources like flaring, not good news). */
+const ACUTE_RULES = new Set(["forest_loss", "fires_in_protected", "weather_extreme", "methane_anomaly", "mpa_fishing"]);
+const ACUTE_INDICATORS = new Set(["quake", "marine_heatwave", "river_discharge", "air_quality"]);
+/** Pure: may this case count toward the regional-cluster criterion? */
+export function isAcute(f: Finding): boolean {
+  if (f.aoi?.tags?.includes("improvement")) return false;
+  if (f.rule.name === "indicator_threshold") return ACUTE_INDICATORS.has(indicatorOf(f) ?? "");
+  return ACUTE_RULES.has(f.rule.name);
+}
+
 /** When a case went public (first move into a public status), or null. */
 export function publishedAt(f: Finding): string | null {
   return f.history.find((h) => PUBLIC_STATUSES.includes(h.status) && h.status !== "retracted")?.at ?? null;
 }
-/** A coarse 10° × 10° box around a case's centre — "one region" for the cluster criterion. */
+/** A 5° × 5° box around a case's centre — "one region" for the cluster criterion. */
 export function regionOf(f: Pick<Finding, "bbox">): string {
   const [w, s, e, n] = f.bbox;
   const lon = (w + e) / 2;
   const lat = (s + n) / 2;
-  const cell = (v: number) => Math.floor(v / 10) * 10;
+  const cell = (v: number) => Math.floor(v / 5) * 5;
   return `${cell(lat)},${cell(lon)}`;
 }
 const place = (f: Finding) => f.aoi?.name ?? f.title;
@@ -159,12 +169,12 @@ export function computeLevel(findings: readonly Finding[], ind: IndicatorInputs,
     if (c && latest.v < c.p10) reasons.push({ code: "sea_ice_p10", level: "watch", text: `${label} sea ice is in the lowest tenth for the date: ${latest.v} million km² (1981–2010 p10 ${c.p10}).`, caseIds: cases, indicator: `sea_ice_${s.pole}` });
   }
 
-  // U5 — three or more newly confirmed cases in one 10° region in the last 24 h.
-  const fresh = findings.filter((f) => live(f) && f.confirmed && within(f.confirmed.at, now, 24));
+  // U5 — acute cases newly confirmed in the last 24 h at ≥ 3 distinct places (AOI ids) in one 5° box.
+  const fresh = findings.filter((f) => live(f) && isAcute(f) && f.confirmed && within(f.confirmed.at, now, 24));
   const byRegion = new Map<string, Finding[]>();
   for (const f of fresh) byRegion.set(regionOf(f), [...(byRegion.get(regionOf(f)) ?? []), f]);
   for (const [, fs] of byRegion) {
-    if (fs.length >= 3) reasons.push({ code: "regional_cluster", level: "urgent", text: `${fs.length} cases confirmed in one region within a day: ${places(fs)}.`, caseIds: fs.map((f) => f.findingId) });
+    if (new Set(fs.map((f) => f.aoi?.id ?? f.findingId)).size >= 3) reasons.push({ code: "regional_cluster", level: "urgent", text: `${fs.length} urgent cases confirmed in one region within a day: ${places(fs)}.`, caseIds: fs.map((f) => f.findingId) });
   }
 
   // W1 — any newly confirmed case in the last 7 days.
