@@ -1,0 +1,121 @@
+{
+  "source": "NOAA CPC Oceanic Niño Index (ONI), ERSSTv5 Niño3.4 anomalies",
+  "phase": "El Niño",
+  "latest": {
+    "season": "JJA",
+    "year": 2026,
+    "oni": 1.8
+  },
+  "consecutiveSeasons": 3,
+  "meetsEventDefinition": false,
+  "interpretation": "El Niño conditions: latest ONI +1.8 °C (JJA 2026), 3 consecutive season(s) beyond the ±0.5 °C threshold — not yet an official event (needs 5).",
+  "strongestElNino": {
+    "season": "NDJ",
+    "year": 2015,
+    "oni": 2.59
+  },
+  "strongestLaNina": {
+    "season": "NDJ",
+    "year": 1973,
+    "oni": -2.04
+  },
+  "series": [
+    {
+      "t": "2024-08",
+      "v": -0.04
+    },
+    {
+      "t": "2024-09",
+      "v": -0.12
+    },
+    {
+      "t": "2024-10",
+      "v": -0.19
+    },
+    {
+      "t": "2024-11",
+      "v": -0.29
+    },
+    {
+      "t": "2024-12",
+      "v": -0.43
+    },
+    {
+      "t": "2025-01",
+      "v": -0.46
+    },
+    {
+      "t": "2025-02",
+      "v": -0.22
+    },
+    {
+      "t": "2025-03",
+      "v": -0.08
+    },
+    {
+      "t": "2025-04",
+      "v": 0.02
+    },
+    {
+      "t": "2025-05",
+      "v": -0.04
+    },
+    {
+      "t": "2025-06",
+      "v": -0.02
+    },
+    {
+      "t": "2025-07",
+      "v": -0.11
+    },
+    {
+      "t": "2025-08",
+      "v": -0.26
+    },
+    {
+      "t": "2025-09",
+      "v": -0.43
+    },
+    {
+      "t": "2025-10",
+      "v": -0.57
+    },
+    {
+      "t": "2025-11",
+      "v": -0.61
+    },
+    {
+      "t": "2025-12",
+      "v": -0.6
+    },
+    {
+      "t": "2026-01",
+      "v": -0.39
+    },
+    {
+      "t": "2026-02",
+      "v": -0.21
+    },
+    {
+      "t": "2026-03",
+      "v": 0.11
+    },
+    {
+      "t": "2026-04",
+      "v": 0.46
+    },
+    {
+      "t": "2026-05",
+      "v": 0.95
+    },
+    {
+      "t": "2026-06",
+      "v": 1.39
+    },
+    {
+      "t": "2026-07",
+      "v": 1.8
+    }
+  ],
+  "dashboard": "dashboard offline"
+}

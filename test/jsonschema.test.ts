@@ -56,7 +56,7 @@ test("json schema: structure â€” 2020-12, one branch per event kind, statement â
   assert.equal(committed.$ref, "#/$defs/FindingEvent");
   const branches = committed.$defs.FindingEvent.oneOf as Record<string, any>[];
   const kinds = branches.map((b) => b.properties.kind.const).sort();
-  assert.deepEqual(kinds, ["attributed", "confirmed", "created", "evidence_added", "narrated", "notified", "replied", "retracted", "reviewed", "status_changed"]);
+  assert.deepEqual(kinds, ["attributed", "commented", "confirmed", "created", "evidence_added", "narrated", "notified", "replied", "retracted", "reviewed", "status_changed"]);
   for (const b of branches) {
     for (const k of ["v", "eventId", "findingId", "at", "actor", "prev", "kind"]) assert.ok(b.required.includes(k), `${b.properties.kind.const} requires ${k}`);
   }

@@ -1,0 +1,402 @@
+{
+ "_recorded": "fires_in live 2026-09-27, Pacaás Novos bbox, VIIRS_NOAA21_NRT, dayRange 5",
+ "now_2026-09-23": {
+  "count": 5,
+  "dashboard": "dashboard offline",
+  "source": "VIIRS_NOAA21_NRT",
+  "fires": [
+   {
+    "lat": -11.38916,
+    "lon": -63.41916,
+    "brightness": 335.95,
+    "confidence": "nominal",
+    "acqDate": "2026-09-24",
+    "acqTime": "1826",
+    "frp": 3.87,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.38844,
+    "lon": -63.41542,
+    "brightness": 331.82,
+    "confidence": "nominal",
+    "acqDate": "2026-09-24",
+    "acqTime": "1826",
+    "frp": 3.87,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.10739,
+    "lon": -62.64053,
+    "brightness": 338.37,
+    "confidence": "nominal",
+    "acqDate": "2026-09-25",
+    "acqTime": "1806",
+    "frp": 7.7,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.16254,
+    "lon": -62.86516,
+    "brightness": 299.05,
+    "confidence": "nominal",
+    "acqDate": "2026-09-27",
+    "acqTime": "453",
+    "frp": 0.46,
+    "satellite": "N21",
+    "daynight": "N"
+   },
+   {
+    "lat": -11.16193,
+    "lon": -62.86835,
+    "brightness": 301.15,
+    "confidence": "nominal",
+    "acqDate": "2026-09-27",
+    "acqTime": "453",
+    "frp": 0.46,
+    "satellite": "N21",
+    "daynight": "N"
+   }
+  ]
+ },
+ "yearAgo_2025-09-08": {
+  "count": 30,
+  "dashboard": "dashboard offline",
+  "source": "VIIRS_NOAA21_NRT",
+  "fires": [
+   {
+    "lat": -11.39074,
+    "lon": -63.28289,
+    "brightness": 339.65,
+    "confidence": "nominal",
+    "acqDate": "2025-09-08",
+    "acqTime": "1728",
+    "frp": 13.61,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.31132,
+    "lon": -63.32183,
+    "brightness": 337.64,
+    "confidence": "nominal",
+    "acqDate": "2025-09-08",
+    "acqTime": "1728",
+    "frp": 8.02,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.30884,
+    "lon": -63.33192,
+    "brightness": 337.94,
+    "confidence": "nominal",
+    "acqDate": "2025-09-08",
+    "acqTime": "1728",
+    "frp": 12.22,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.30817,
+    "lon": -63.32714,
+    "brightness": 347.55,
+    "confidence": "nominal",
+    "acqDate": "2025-09-08",
+    "acqTime": "1728",
+    "frp": 8.02,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.30749,
+    "lon": -63.32235,
+    "brightness": 334.46,
+    "confidence": "nominal",
+    "acqDate": "2025-09-08",
+    "acqTime": "1728",
+    "frp": 8.02,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -10.62699,
+    "lon": -63.51736,
+    "brightness": 337.36,
+    "confidence": "nominal",
+    "acqDate": "2025-09-08",
+    "acqTime": "1728",
+    "frp": 7.16,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -10.62634,
+    "lon": -63.51266,
+    "brightness": 339.7,
+    "confidence": "nominal",
+    "acqDate": "2025-09-08",
+    "acqTime": "1728",
+    "frp": 7.16,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.38677,
+    "lon": -63.33571,
+    "brightness": 338.49,
+    "confidence": "nominal",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 5.73,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.38554,
+    "lon": -63.32812,
+    "brightness": 335.64,
+    "confidence": "nominal",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 10.76,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.38396,
+    "lon": -63.34006,
+    "brightness": 334.64,
+    "confidence": "low",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 5.73,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.38334,
+    "lon": -63.33628,
+    "brightness": 340.39,
+    "confidence": "nominal",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 5.73,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.38212,
+    "lon": -63.32869,
+    "brightness": 345.23,
+    "confidence": "nominal",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 10.76,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.38053,
+    "lon": -63.34063,
+    "brightness": 335.18,
+    "confidence": "low",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 9.07,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.37991,
+    "lon": -63.33684,
+    "brightness": 337.82,
+    "confidence": "nominal",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 9.07,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.37869,
+    "lon": -63.32926,
+    "brightness": 342.14,
+    "confidence": "nominal",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 133.6,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.37726,
+    "lon": -63.34129,
+    "brightness": 333.88,
+    "confidence": "low",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 12.85,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.3771,
+    "lon": -63.34119,
+    "brightness": 334.68,
+    "confidence": "low",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 9.07,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.37383,
+    "lon": -63.34185,
+    "brightness": 331.15,
+    "confidence": "low",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 12.85,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.37263,
+    "lon": -63.33426,
+    "brightness": 330.21,
+    "confidence": "low",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 74.22,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.37203,
+    "lon": -63.33046,
+    "brightness": 336.03,
+    "confidence": "low",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 74.22,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.3698,
+    "lon": -63.33862,
+    "brightness": 332.23,
+    "confidence": "nominal",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 23.8,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.3692,
+    "lon": -63.33483,
+    "brightness": 334.46,
+    "confidence": "low",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 40.27,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.36577,
+    "lon": -63.3354,
+    "brightness": 343.21,
+    "confidence": "nominal",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 40.27,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -11.02195,
+    "lon": -62.63457,
+    "brightness": 334.59,
+    "confidence": "nominal",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 3.28,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -10.64218,
+    "lon": -63.55476,
+    "brightness": 347.96,
+    "confidence": "nominal",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 28.58,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -10.63829,
+    "lon": -63.57458,
+    "brightness": 337.15,
+    "confidence": "nominal",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 3.31,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -10.62994,
+    "lon": -63.52168,
+    "brightness": 353.13,
+    "confidence": "nominal",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 7.74,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -10.62711,
+    "lon": -63.52605,
+    "brightness": 335.01,
+    "confidence": "low",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 7.74,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -10.62652,
+    "lon": -63.52226,
+    "brightness": 345.81,
+    "confidence": "nominal",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 7.74,
+    "satellite": "N21",
+    "daynight": "D"
+   },
+   {
+    "lat": -10.57689,
+    "lon": -63.5419,
+    "brightness": 331.63,
+    "confidence": "low",
+    "acqDate": "2025-09-12",
+    "acqTime": "1754",
+    "frp": 2.65,
+    "satellite": "N21",
+    "daynight": "D"
+   }
+  ]
+ }
+}

@@ -50,7 +50,8 @@ export interface Candidate {
 
 export interface Confirmation {
   signal: Evidence;
-  independence: "sensor" | "provider" | "revisit" | "human";
+  /** `method`: same provider, a different product or check (e.g. USGS review status, a data-stability re-read). */
+  independence: "sensor" | "provider" | "revisit" | "method" | "human";
 }
 
 export interface Rule {
@@ -60,6 +61,8 @@ export interface Rule {
   description: string;
   /** Required. What this rule cannot see, in plain words. */
   blindSpots: string[];
+  /** Optional: narrow `blindSpots` to what applies to one case's params (e.g. one indicator). */
+  blindSpotsFor?: (params: Record<string, unknown>) => string[];
   /** Env keys the rule needs (for doctor / graceful skip). */
   requires: string[];
   /** Subset of `requires` only the confirmation step spends (e.g. optical checks): when that

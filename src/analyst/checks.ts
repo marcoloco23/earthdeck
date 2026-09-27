@@ -70,6 +70,10 @@ export const REVIEW_JSON_SCHEMA = {
 // ---- Dossier -------------------------------------------------------------------------------
 
 /** Everything a model may know about a finding — and nothing else. */
+// HOOK (deliberately unused): "In the news" headlines (src/watch/news.ts, cached under
+// <ledger dir>/news/<id>.json) could be offered to the narrator here as clearly-labelled
+// *context* one day. They must never reach the reviewer's checks or count as confirmation —
+// GDELT matches by place name and keyword, not by location, and is noisy.
 export function dossier(f: Finding) {
   const ev = (e: Evidence) => ({ id: e.id, kind: e.kind, source: e.source, datetime: e.datetime, method: e.method, summary: e.summary, values: e.values, href: e.href });
   return {
@@ -109,6 +113,16 @@ const rounds = (known: number, narrated: number) => {
   return same(Math.round(known * f) / f, narrated);
 };
 
+/** Numbers in `output` that do not appear (even rounded) in `source`; small counting integers 0–10 excepted. */
+export function numbersNotIn(output: string, source: string): number[] {
+  const known = numbersIn(source).map(Math.abs);
+  return numbersIn(output).filter((v) => {
+    const a = Math.abs(v);
+    if (Number.isInteger(a) && a <= 10) return false;
+    return !known.some((k) => same(k, a) || rounds(k, a));
+  });
+}
+
 /**
  * Violations (empty = faithful): every key number must appear verbatim in its cited
  * evidence's `values` or `summary`; every other number in the headline/narrative must
@@ -130,12 +144,7 @@ export function faithfulness(f: Finding, n: Narration): string[] {
   }
   const { findingId: _id, ...facts } = dossier(f); // the UUID's digits are not facts
   const text = JSON.stringify(facts);
-  const known = numbersIn(text).map(Math.abs);
-  for (const v of numbersIn(`${n.headline}\n${n.narrative}`)) {
-    const a = Math.abs(v);
-    if (Number.isInteger(a) && a <= 10) continue;
-    if (!known.some((k) => same(k, a) || rounds(k, a))) problems.push(`the number ${v} in the headline/narrative does not appear (even rounded) in the finding's evidence or context`);
-  }
+  for (const v of numbersNotIn(`${n.headline}\n${n.narrative}`, text)) problems.push(`the number ${v} in the headline/narrative does not appear (even rounded) in the finding's evidence or context`);
   for (const name of personalNames(`${n.headline}\n${n.narrative}\n${n.caveats.join("\n")}\n${n.keyNumbers.map((k) => k.label).join("\n")}`, text)) {
     problems.push(`possible personal name "${name}" — never name people; if it is a place or institution, copy it exactly as it appears in the finding`);
   }

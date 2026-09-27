@@ -1,0 +1,610 @@
+{
+ "note": "One live 20 s aisstream.io sample over the Strait of Gibraltar (box [[35.6,-6.6],[36.4,-4.8]]), 2026-09-27. Identities pseudonymised before commit: MMSI → 99000000n, names → TEST VESSEL n, call sign/IMO/destination blanked. Positions, types and timestamps are as received.",
+ "messages": [
+  {
+   "Message": {
+    "CompressionEnabled": true
+   },
+   "MessageType": "SubscriptionConfirmation"
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000001,
+    "MMSI_String": "990000001",
+    "ShipName": "TEST VESSEL 1",
+    "latitude": 35.9981,
+    "longitude": -5.4854,
+    "time_utc": "2026-09-27 08:42:39.511916917 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 1,
+     "RepeatIndicator": 0,
+     "UserID": 990000001,
+     "Valid": true,
+     "NavigationalStatus": 0,
+     "RateOfTurn": 0,
+     "Sog": 11.1,
+     "PositionAccuracy": false,
+     "Longitude": -5.4854,
+     "Latitude": 35.9981,
+     "Cog": 254,
+     "TrueHeading": 254,
+     "Timestamp": 36,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 66999
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000002,
+    "MMSI_String": "990000002",
+    "ShipName": "TEST VESSEL 2",
+    "latitude": 35.90895,
+    "longitude": -5.70582,
+    "time_utc": "2026-09-27 08:42:41.963104249 +0000 UTC"
+   },
+   "MessageType": "ShipStaticData",
+   "Message": {
+    "ShipStaticData": {
+     "AisVersion": 1,
+     "CallSign": "TEST",
+     "Destination": "REDACTED",
+     "Dimension": {
+      "A": 144,
+      "B": 35,
+      "C": 17,
+      "D": 9
+     },
+     "Dte": false,
+     "Eta": {
+      "Day": 0,
+      "Hour": 0,
+      "Minute": 0,
+      "Month": 0
+     },
+     "FixType": 0,
+     "ImoNumber": 0,
+     "MaximumStaticDraught": 11.1,
+     "MessageID": 5,
+     "Name": "TEST VESSEL 2",
+     "RepeatIndicator": 0,
+     "Spare": false,
+     "Type": 80,
+     "UserID": 990000002,
+     "Valid": true
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000003,
+    "MMSI_String": "990000003",
+    "ShipName": "TEST VESSEL 3",
+    "latitude": 36.12985,
+    "longitude": -5.37125,
+    "time_utc": "2026-09-27 08:42:42.264468736 +0000 UTC"
+   },
+   "MessageType": "StandardClassBPositionReport",
+   "Message": {
+    "StandardClassBPositionReport": {
+     "AssignedMode": false,
+     "ClassBBand": true,
+     "ClassBDisplay": true,
+     "ClassBDsc": true,
+     "ClassBMsg22": true,
+     "ClassBUnit": false,
+     "Cog": 104.8,
+     "CommunicationState": 26769,
+     "CommunicationStateIsItdma": true,
+     "Latitude": 36.129850000000005,
+     "Longitude": -5.371251666666667,
+     "MessageID": 18,
+     "PositionAccuracy": true,
+     "Raim": true,
+     "RepeatIndicator": 0,
+     "Sog": 3.6,
+     "Spare1": 0,
+     "Spare2": 0,
+     "Timestamp": 41,
+     "TrueHeading": 511,
+     "UserID": 990000003,
+     "Valid": true
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000004,
+    "MMSI_String": "990000004",
+    "ShipName": "TEST VESSEL 4",
+    "latitude": 35.89423,
+    "longitude": -5.49254,
+    "time_utc": "2026-09-27 08:42:42.429440668 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 1,
+     "RepeatIndicator": 0,
+     "UserID": 990000004,
+     "Valid": true,
+     "NavigationalStatus": 0,
+     "RateOfTurn": 0,
+     "Sog": 0,
+     "PositionAccuracy": false,
+     "Longitude": -5.492538333333333,
+     "Latitude": 35.89423,
+     "Cog": 67.8,
+     "TrueHeading": 45,
+     "Timestamp": 40,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 34354
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000005,
+    "MMSI_String": "990000005",
+    "ShipName": "TEST VESSEL 5",
+    "latitude": 35.793,
+    "longitude": -5.80677,
+    "time_utc": "2026-09-27 08:42:42.961808354 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 3,
+     "RepeatIndicator": 0,
+     "UserID": 990000005,
+     "Valid": true,
+     "NavigationalStatus": 7,
+     "RateOfTurn": 127,
+     "Sog": 0,
+     "PositionAccuracy": false,
+     "Longitude": -5.806768333333333,
+     "Latitude": 35.793,
+     "Cog": 0,
+     "TrueHeading": 0,
+     "Timestamp": 60,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 0
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000006,
+    "MMSI_String": "990000006",
+    "ShipName": "TEST VESSEL 6",
+    "latitude": 35.79108,
+    "longitude": -5.80203,
+    "time_utc": "2026-09-27 08:42:43.890090829 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 3,
+     "RepeatIndicator": 0,
+     "UserID": 990000006,
+     "Valid": true,
+     "NavigationalStatus": 0,
+     "RateOfTurn": 0,
+     "Sog": 0,
+     "PositionAccuracy": false,
+     "Longitude": -5.802026666666666,
+     "Latitude": 35.79108,
+     "Cog": 199,
+     "TrueHeading": 84,
+     "Timestamp": 60,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 0
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000007,
+    "MMSI_String": "990000007",
+    "ShipName": "TEST VESSEL 7",
+    "latitude": 36.14948,
+    "longitude": -5.42385,
+    "time_utc": "2026-09-27 08:42:44.263979486 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 1,
+     "RepeatIndicator": 0,
+     "UserID": 990000007,
+     "Valid": true,
+     "NavigationalStatus": 0,
+     "RateOfTurn": 0,
+     "Sog": 10.1,
+     "PositionAccuracy": false,
+     "Longitude": -5.423853333333333,
+     "Latitude": 36.149478333333334,
+     "Cog": 287.4,
+     "TrueHeading": 285,
+     "Timestamp": 42,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 0
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000008,
+    "MMSI_String": "990000008",
+    "ShipName": "TEST VESSEL 8",
+    "latitude": 36.12772,
+    "longitude": -5.44057,
+    "time_utc": "2026-09-27 08:42:45.513105047 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 1,
+     "RepeatIndicator": 0,
+     "UserID": 990000008,
+     "Valid": true,
+     "NavigationalStatus": 3,
+     "RateOfTurn": 0,
+     "Sog": 0,
+     "PositionAccuracy": false,
+     "Longitude": -5.440566666666667,
+     "Latitude": 36.12772,
+     "Cog": 65,
+     "TrueHeading": 162,
+     "Timestamp": 42,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 50620
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000009,
+    "MMSI_String": "990000009",
+    "ShipName": "TEST VESSEL 9",
+    "latitude": 35.89451,
+    "longitude": -5.30603,
+    "time_utc": "2026-09-27 08:42:46.608926495 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 1,
+     "RepeatIndicator": 0,
+     "UserID": 990000009,
+     "Valid": true,
+     "NavigationalStatus": 0,
+     "RateOfTurn": -127,
+     "Sog": 0.5,
+     "PositionAccuracy": true,
+     "Longitude": -5.306030000000001,
+     "Latitude": 35.894511666666666,
+     "Cog": 162,
+     "TrueHeading": 210,
+     "Timestamp": 36,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 100046
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000010,
+    "MMSI_String": "990000010",
+    "ShipName": "TEST VESSEL 10",
+    "latitude": 35.91009,
+    "longitude": -5.51743,
+    "time_utc": "2026-09-27 08:42:47.099476413 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 3,
+     "RepeatIndicator": 0,
+     "UserID": 990000010,
+     "Valid": true,
+     "NavigationalStatus": 0,
+     "RateOfTurn": 127,
+     "Sog": 0.7,
+     "PositionAccuracy": false,
+     "Longitude": -5.51743,
+     "Latitude": 35.910085,
+     "Cog": 13.1,
+     "TrueHeading": 1,
+     "Timestamp": 46,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 4048
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000011,
+    "MMSI_String": "990000011",
+    "ShipName": "TEST VESSEL 11",
+    "latitude": 35.8923,
+    "longitude": -5.50287,
+    "time_utc": "2026-09-27 08:42:49.798311876 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 1,
+     "RepeatIndicator": 0,
+     "UserID": 990000011,
+     "Valid": true,
+     "NavigationalStatus": 0,
+     "RateOfTurn": 0,
+     "Sog": 0,
+     "PositionAccuracy": false,
+     "Longitude": -5.502871666666667,
+     "Latitude": 35.89229666666667,
+     "Cog": 272.6,
+     "TrueHeading": 38,
+     "Timestamp": 48,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 20648
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000012,
+    "MMSI_String": "990000012",
+    "ShipName": "TEST VESSEL 12",
+    "latitude": 36.12754,
+    "longitude": -5.43715,
+    "time_utc": "2026-09-27 08:42:51.516935728 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 3,
+     "RepeatIndicator": 0,
+     "UserID": 990000012,
+     "Valid": true,
+     "NavigationalStatus": 5,
+     "RateOfTurn": 0,
+     "Sog": 0,
+     "PositionAccuracy": false,
+     "Longitude": -5.437148333333334,
+     "Latitude": 36.127541666666666,
+     "Cog": 223,
+     "TrueHeading": 264,
+     "Timestamp": 50,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 85610
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000013,
+    "MMSI_String": "990000013",
+    "ShipName": "TEST VESSEL 13",
+    "latitude": 36.14713,
+    "longitude": -5.36642,
+    "time_utc": "2026-09-27 08:42:52.454844316 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 3,
+     "RepeatIndicator": 0,
+     "UserID": 990000013,
+     "Valid": true,
+     "NavigationalStatus": 0,
+     "RateOfTurn": 0,
+     "Sog": 0,
+     "PositionAccuracy": false,
+     "Longitude": -5.3664233333333335,
+     "Latitude": 36.147131666666674,
+     "Cog": 235,
+     "TrueHeading": 179,
+     "Timestamp": 60,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 0
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000014,
+    "MMSI_String": "990000014",
+    "ShipName": "TEST VESSEL 14",
+    "latitude": 36.12127,
+    "longitude": -5.41787,
+    "time_utc": "2026-09-27 08:42:53.018247148 +0000 UTC"
+   },
+   "MessageType": "ShipStaticData",
+   "Message": {
+    "ShipStaticData": {
+     "AisVersion": 0,
+     "CallSign": "TEST",
+     "Destination": "REDACTED",
+     "Dimension": {
+      "A": 130,
+      "B": 42,
+      "C": 18,
+      "D": 9
+     },
+     "Dte": false,
+     "Eta": {
+      "Day": 24,
+      "Hour": 15,
+      "Minute": 0,
+      "Month": 9
+     },
+     "FixType": 1,
+     "ImoNumber": 0,
+     "MaximumStaticDraught": 6.8,
+     "MessageID": 5,
+     "Name": "TEST VESSEL 14",
+     "RepeatIndicator": 0,
+     "Spare": false,
+     "Type": 73,
+     "UserID": 990000014,
+     "Valid": true
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000015,
+    "MMSI_String": "990000015",
+    "ShipName": "TEST VESSEL 15",
+    "latitude": 35.89802,
+    "longitude": -5.49024,
+    "time_utc": "2026-09-27 08:42:53.245780149 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 3,
+     "RepeatIndicator": 0,
+     "UserID": 990000015,
+     "Valid": true,
+     "NavigationalStatus": 15,
+     "RateOfTurn": -127,
+     "Sog": 0,
+     "PositionAccuracy": true,
+     "Longitude": -5.490241666666666,
+     "Latitude": 35.898019999999995,
+     "Cog": 115.5,
+     "TrueHeading": 254,
+     "Timestamp": 52,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 3616
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000016,
+    "MMSI_String": "990000016",
+    "ShipName": "TEST VESSEL 16",
+    "latitude": 35.90646,
+    "longitude": -5.58038,
+    "time_utc": "2026-09-27 08:42:54.680150662 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 3,
+     "RepeatIndicator": 0,
+     "UserID": 990000016,
+     "Valid": true,
+     "NavigationalStatus": 0,
+     "RateOfTurn": 0,
+     "Sog": 4.6,
+     "PositionAccuracy": false,
+     "Longitude": -5.580383333333333,
+     "Latitude": 35.90645666666667,
+     "Cog": 73,
+     "TrueHeading": 71,
+     "Timestamp": 60,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 0
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000017,
+    "MMSI_String": "990000017",
+    "ShipName": "TEST VESSEL 17",
+    "latitude": 36.1012,
+    "longitude": -5.40742,
+    "time_utc": "2026-09-27 08:42:58.51407661 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 3,
+     "RepeatIndicator": 0,
+     "UserID": 990000017,
+     "Valid": true,
+     "NavigationalStatus": 5,
+     "RateOfTurn": 0,
+     "Sog": 0,
+     "PositionAccuracy": true,
+     "Longitude": -5.407415,
+     "Latitude": 36.10119666666667,
+     "Cog": 56,
+     "TrueHeading": 125,
+     "Timestamp": 57,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 83498
+    }
+   }
+  },
+  {
+   "MetaData": {
+    "MMSI": 990000018,
+    "MMSI_String": "990000018",
+    "ShipName": "TEST VESSEL 18",
+    "latitude": 36.00163,
+    "longitude": -5.41954,
+    "time_utc": "2026-09-27 08:42:59.058766285 +0000 UTC"
+   },
+   "MessageType": "PositionReport",
+   "Message": {
+    "PositionReport": {
+     "MessageID": 1,
+     "RepeatIndicator": 0,
+     "UserID": 990000018,
+     "Valid": true,
+     "NavigationalStatus": 0,
+     "RateOfTurn": 0,
+     "Sog": 10.1,
+     "PositionAccuracy": true,
+     "Longitude": -5.419535,
+     "Latitude": 36.00162833333333,
+     "Cog": 254.8,
+     "TrueHeading": 256,
+     "Timestamp": 58,
+     "SpecialManoeuvreIndicator": 0,
+     "Spare": 0,
+     "Raim": false,
+     "CommunicationState": 2269
+    }
+   }
+  }
+ ]
+}

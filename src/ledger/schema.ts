@@ -194,7 +194,7 @@ export const eventPayload = z.discriminatedUnion("kind", [
     kind: z.literal("confirmed"),
     /** The independent second signal — different sensor physics, provider, or a later revisit. */
     signal: evidence,
-    independence: z.enum(["sensor", "provider", "revisit", "human"]),
+    independence: z.enum(["sensor", "provider", "revisit", "method", "human"]),
   }),
   base.extend({
     kind: z.literal("status_changed"),
@@ -261,6 +261,26 @@ export const eventPayload = z.discriminatedUnion("kind", [
     receivedAt: rfc3339,
   }),
   base.extend({ kind: z.literal("retracted"), reason: z.string().min(1).max(2000) }),
+  base.extend({
+    kind: z.literal("commented"),
+    /**
+     * A public reply left under a public case (the site's reply wall), accepted by the
+     * reviewer model. Only a hash of the text is signed — the text itself lives beside the
+     * site (replies/public/), so the ledger never carries what a stranger wrote. No status
+     * change; unlike `replied` it needs no prior notice.
+     */
+    reply: z.object({
+      id: z.string().regex(/^[0-9A-HJKMNP-TV-Z]{26}$/, "reply id must be a ULID"),
+      role: z.enum(["resident", "operator", "company", "official", "researcher", "other"]),
+      receivedAt: rfc3339,
+      textSha256: sha256Hex,
+    }),
+    verdict: z.object({
+      accept: z.literal(true),
+      reason: z.string().min(1).max(500),
+      flags: z.array(z.string()).max(0, "an accepted reply carries no flags"),
+    }),
+  }),
 ]);
 export type FindingEvent = z.infer<typeof eventPayload>;
 export type EventKind = FindingEvent["kind"];
@@ -413,6 +433,10 @@ export function checkAppend(f: Finding | null, ev: FindingEvent): void {
       // private-notice window is exactly when we hope to hear back).
       if (f.notifications.length === 0) throw new Error("cannot record a reply: nobody was notified");
       if (!["confirmed", "published", "notified", "no_response"].includes(f.status)) throw new Error(`cannot record a reply from status ${f.status}`);
+      return;
+    case "commented":
+      if (!/^(model|reviewer):/.test(ev.actor)) throw new Error("a public reply must be accepted by a model: or reviewer: actor");
+      if (!PUBLIC_STATUSES.includes(f.status)) throw new Error(`public replies are only taken on public cases (status is ${f.status})`);
       return;
     case "evidence_added":
     case "retracted":

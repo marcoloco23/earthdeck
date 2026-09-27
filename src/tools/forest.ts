@@ -31,14 +31,15 @@ export function registerForestTools(server: McpServer): void {
         bbox: z
           .tuple([z.number(), z.number(), z.number(), z.number()])
           .describe("Bounding box [west, south, east, north] in degrees (≤ 4 deg² area)"),
-        days: z.number().int().min(1).max(365).optional().describe("Look back N days (default 90)."),
+        days: z.number().int().min(1).max(365).optional().describe("Look back N days, ending on endDate (default 90)."),
+        endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Last day of the window, YYYY-MM-DD (default today UTC) — e.g. the same window a year earlier."),
         minConfidence: z
           .enum(GFW_CONFIDENCES)
           .optional()
           .describe("Minimum alert confidence: nominal (default, all), high, or highest."),
       },
     },
-    async ({ bbox, days, minConfidence }) =>
+    async ({ bbox, days, endDate, minConfidence }) =>
       safe(async () => {
         const key = gfwApiKey();
         if (!key) {
@@ -59,9 +60,9 @@ export function registerForestTools(server: McpServer): void {
         }
         const conf = (minConfidence ?? "nominal") as GfwConfidence;
         const lookback = days ?? 90;
-        const dateTo = isoDate(0);
+        const dateTo = endDate ?? isoDate(0);
         const dateFrom = addDays(dateTo, -lookback);
-        const { summary, daily } = await integratedAlerts(key, box, dateFrom, conf);
+        const { summary, daily } = await integratedAlerts(key, box, dateFrom, conf, endDate);
 
         // The layer only covers the tropics — flag AOIs that poke outside it.
         const coverageNote =

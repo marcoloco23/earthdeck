@@ -1,0 +1,352 @@
+{
+ "source": "NOAA Coral Reef Watch CoralTemp v3.1 daily 5 km (NOAA_DHW via CoastWatch/PacIOOS ERDDAP) — free to use; credit NOAA CRW",
+ "gridCell": {
+  "lat": -0.975,
+  "lon": -91.975
+ },
+ "latest": {
+  "date": "2026-09-25",
+  "dhw": 0.44,
+  "sst": 26.71,
+  "sstAnomaly": 6.7,
+  "alertLevel": 1,
+  "alert": "Bleaching Watch",
+  "reading": "accumulating heat stress — bleaching possible"
+ },
+ "window": {
+  "days": 90,
+  "from": "2026-06-27",
+  "to": "2026-09-25",
+  "strideDays": 2,
+  "earliestAvailable": "1985-04-01"
+ },
+ "peak": {
+  "date": "2026-07-31",
+  "dhw": 0.45,
+  "alert": "Bleaching Watch"
+ },
+ "series": [
+  {
+   "t": "2026-06-27",
+   "dhw": 0.15,
+   "sstAnomaly": 4.55,
+   "baa": 1,
+   "sst": 26.03
+  },
+  {
+   "t": "2026-06-29",
+   "dhw": 0.15,
+   "sstAnomaly": 4.66,
+   "baa": 1,
+   "sst": 26.05
+  },
+  {
+   "t": "2026-07-01",
+   "dhw": 0.15,
+   "sstAnomaly": 4.75,
+   "baa": 1,
+   "sst": 26.05
+  },
+  {
+   "t": "2026-07-03",
+   "dhw": 0.15,
+   "sstAnomaly": 4.56,
+   "baa": 0,
+   "sst": 25.77
+  },
+  {
+   "t": "2026-07-05",
+   "dhw": 0.15,
+   "sstAnomaly": 4.49,
+   "baa": 0,
+   "sst": 25.61
+  },
+  {
+   "t": "2026-07-07",
+   "dhw": 0.15,
+   "sstAnomaly": 4.57,
+   "baa": 0,
+   "sst": 25.6
+  },
+  {
+   "t": "2026-07-09",
+   "dhw": 0.15,
+   "sstAnomaly": 4.34,
+   "baa": 0,
+   "sst": 25.27
+  },
+  {
+   "t": "2026-07-11",
+   "dhw": 0.15,
+   "sstAnomaly": 4.88,
+   "baa": 0,
+   "sst": 25.72
+  },
+  {
+   "t": "2026-07-13",
+   "dhw": 0.15,
+   "sstAnomaly": 4.92,
+   "baa": 0,
+   "sst": 25.67
+  },
+  {
+   "t": "2026-07-15",
+   "dhw": 0.15,
+   "sstAnomaly": 4.81,
+   "baa": 0,
+   "sst": 25.47
+  },
+  {
+   "t": "2026-07-17",
+   "dhw": 0.15,
+   "sstAnomaly": 4.92,
+   "baa": 0,
+   "sst": 25.52
+  },
+  {
+   "t": "2026-07-19",
+   "dhw": 0.15,
+   "sstAnomaly": 4.99,
+   "baa": 0,
+   "sst": 25.52
+  },
+  {
+   "t": "2026-07-21",
+   "dhw": 0.15,
+   "sstAnomaly": 4.74,
+   "baa": 0,
+   "sst": 25.21
+  },
+  {
+   "t": "2026-07-23",
+   "dhw": 0.15,
+   "sstAnomaly": 4.62,
+   "baa": 0,
+   "sst": 25.03
+  },
+  {
+   "t": "2026-07-25",
+   "dhw": 0.15,
+   "sstAnomaly": 5.32,
+   "baa": 0,
+   "sst": 25.66
+  },
+  {
+   "t": "2026-07-27",
+   "dhw": 0.15,
+   "sstAnomaly": 5.22,
+   "baa": 0,
+   "sst": 25.5
+  },
+  {
+   "t": "2026-07-29",
+   "dhw": 0.29,
+   "sstAnomaly": 6.58,
+   "baa": 2,
+   "sst": 26.8
+  },
+  {
+   "t": "2026-07-31",
+   "dhw": 0.45,
+   "sstAnomaly": 6.44,
+   "baa": 1,
+   "sst": 26.59
+  },
+  {
+   "t": "2026-08-02",
+   "dhw": 0.45,
+   "sstAnomaly": 5.81,
+   "baa": 1,
+   "sst": 25.9
+  },
+  {
+   "t": "2026-08-04",
+   "dhw": 0.45,
+   "sstAnomaly": 5.51,
+   "baa": 0,
+   "sst": 25.54
+  },
+  {
+   "t": "2026-08-06",
+   "dhw": 0.45,
+   "sstAnomaly": 5.2,
+   "baa": 0,
+   "sst": 25.16
+  },
+  {
+   "t": "2026-08-08",
+   "dhw": 0.45,
+   "sstAnomaly": 4.6,
+   "baa": 0,
+   "sst": 24.5
+  },
+  {
+   "t": "2026-08-10",
+   "dhw": 0.45,
+   "sstAnomaly": 4.83,
+   "baa": 0,
+   "sst": 24.67
+  },
+  {
+   "t": "2026-08-12",
+   "dhw": 0.45,
+   "sstAnomaly": 5.57,
+   "baa": 0,
+   "sst": 25.34
+  },
+  {
+   "t": "2026-08-14",
+   "dhw": 0.45,
+   "sstAnomaly": 5.48,
+   "baa": 0,
+   "sst": 25.19
+  },
+  {
+   "t": "2026-08-16",
+   "dhw": 0.45,
+   "sstAnomaly": 5.88,
+   "baa": 0,
+   "sst": 25.56
+  },
+  {
+   "t": "2026-08-18",
+   "dhw": 0.45,
+   "sstAnomaly": 5.56,
+   "baa": 0,
+   "sst": 25.25
+  },
+  {
+   "t": "2026-08-20",
+   "dhw": 0.45,
+   "sstAnomaly": 5.54,
+   "baa": 0,
+   "sst": 25.23
+  },
+  {
+   "t": "2026-08-22",
+   "dhw": 0.45,
+   "sstAnomaly": 5.71,
+   "baa": 0,
+   "sst": 25.41
+  },
+  {
+   "t": "2026-08-24",
+   "dhw": 0.45,
+   "sstAnomaly": 5.56,
+   "baa": 0,
+   "sst": 25.26
+  },
+  {
+   "t": "2026-08-26",
+   "dhw": 0.3,
+   "sstAnomaly": 5.77,
+   "baa": 0,
+   "sst": 25.48
+  },
+  {
+   "t": "2026-08-28",
+   "dhw": 0.3,
+   "sstAnomaly": 5.99,
+   "baa": 0,
+   "sst": 25.7
+  },
+  {
+   "t": "2026-08-30",
+   "dhw": 0.3,
+   "sstAnomaly": 5.87,
+   "baa": 0,
+   "sst": 25.59
+  },
+  {
+   "t": "2026-09-01",
+   "dhw": 0.3,
+   "sstAnomaly": 6.28,
+   "baa": 1,
+   "sst": 26
+  },
+  {
+   "t": "2026-09-03",
+   "dhw": 0.3,
+   "sstAnomaly": 6.08,
+   "baa": 1,
+   "sst": 25.81
+  },
+  {
+   "t": "2026-09-05",
+   "dhw": 0.3,
+   "sstAnomaly": 6.17,
+   "baa": 1,
+   "sst": 25.9
+  },
+  {
+   "t": "2026-09-07",
+   "dhw": 0.3,
+   "sstAnomaly": 6.16,
+   "baa": 1,
+   "sst": 25.9
+  },
+  {
+   "t": "2026-09-09",
+   "dhw": 0.3,
+   "sstAnomaly": 6.38,
+   "baa": 1,
+   "sst": 26.12
+  },
+  {
+   "t": "2026-09-11",
+   "dhw": 0.3,
+   "sstAnomaly": 6.69,
+   "baa": 1,
+   "sst": 26.44
+  },
+  {
+   "t": "2026-09-13",
+   "dhw": 0.3,
+   "sstAnomaly": 6.57,
+   "baa": 1,
+   "sst": 26.32
+  },
+  {
+   "t": "2026-09-15",
+   "dhw": 0.3,
+   "sstAnomaly": 6.39,
+   "baa": 1,
+   "sst": 26.15
+  },
+  {
+   "t": "2026-09-17",
+   "dhw": 0.3,
+   "sstAnomaly": 6.07,
+   "baa": 1,
+   "sst": 25.88
+  },
+  {
+   "t": "2026-09-19",
+   "dhw": 0.3,
+   "sstAnomaly": 6.49,
+   "baa": 1,
+   "sst": 26.35
+  },
+  {
+   "t": "2026-09-21",
+   "dhw": 0.3,
+   "sstAnomaly": 6.45,
+   "baa": 1,
+   "sst": 26.36
+  },
+  {
+   "t": "2026-09-23",
+   "dhw": 0.3,
+   "sstAnomaly": 6.6,
+   "baa": 1,
+   "sst": 26.56
+  },
+  {
+   "t": "2026-09-25",
+   "dhw": 0.44,
+   "sstAnomaly": 6.7,
+   "baa": 1,
+   "sst": 26.71
+  }
+ ]
+}

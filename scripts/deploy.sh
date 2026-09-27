@@ -5,7 +5,8 @@
 #   2. first deploy only: create the stack without the function (DeployFunction=false) so the
 #      artifacts bucket exists before the function that needs a zip in it (chicken-and-egg)
 #   3. upload the zip to the artifacts bucket
-#   4. SSM SecureStrings under /earthdeck/ — created only if absent, values from ./.env,
+#   4. SSM SecureStrings under /earthdeck/ — created only if absent, values from ./.env
+#      (REPLY_SALT: random, for the reply wall's IP hashing),
 #      /earthdeck/ledger-key adopted from .env / data/ledger/ledger.key or freshly generated.
 #      Done before the function deploy so the first scheduled run already has them.
 #   5. full deploy (function, schedules, alarm)
@@ -22,7 +23,7 @@ DOMAIN=${EARTHDECK_DOMAIN:-vitalearth.io}
 HOSTED_ZONE_ID=${EARTHDECK_HOSTED_ZONE_ID:-Z07362552JHZID1QJ2DSR}
 NOTIFY_EMAIL=me@marcsperzel.com
 SSM_PREFIX=/earthdeck
-SECRETS=(GFW_API_KEY CDSE_CLIENT_ID CDSE_CLIENT_SECRET FIRMS_MAP_KEY ANTHROPIC_API_KEY)
+SECRETS=(GFW_API_KEY CDSE_CLIENT_ID CDSE_CLIENT_SECRET FIRMS_MAP_KEY ANTHROPIC_API_KEY GFW_FISHING_TOKEN AISSTREAM_KEY GEE_PROJECT GEE_SERVICE_ACCOUNT_JSON)
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -123,7 +124,12 @@ awsx s3 cp "$ZIP" "s3://$ARTIFACTS/$ARTIFACT_KEY" --only-show-errors
 
 say "secrets under $SSM_PREFIX/ (create-if-absent; values never printed)"
 for name in "${SECRETS[@]}"; do
-  put_secret "$SSM_PREFIX/$name" "$(env_value "$name")"
+  value=$(env_value "$name")
+  # Locally GEE_SERVICE_ACCOUNT_JSON may be a path to the key file; Lambda has no such file, so store its JSON.
+  if [ "$name" = GEE_SERVICE_ACCOUNT_JSON ] && [ -n "$value" ] && [ -f "${value/#\~/$HOME}" ]; then
+    value=$(tr -d '\n' <"${value/#\~/$HOME}")
+  fi
+  put_secret "$SSM_PREFIX/$name" "$value"
 done
 
 # Ledger signing seed: base64 of 32 bytes (what src/ledger/checkpoint.ts keyFromSeed loads).
@@ -147,6 +153,10 @@ else
   unset SEED
   echo "    source: $SRC — public key (publish this as ledger.pub): $PUB"
 fi
+
+# Reply-wall salt: the intake hashes each IP with it (per-IP daily cap) and never stores the IP.
+# Random, created once, never printed; rotating it only resets today's counters.
+put_secret "$SSM_PREFIX/REPLY_SALT" "$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('base64'))")"
 
 say "deploy stack (function + schedules + alarm)"
 cfn_deploy true "$ARTIFACT_KEY"

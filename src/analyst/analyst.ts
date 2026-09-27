@@ -13,6 +13,7 @@ import { OverviewError } from "../errors.js";
 import * as schema from "../ledger/schema.js";
 import type { Finding } from "../ledger/schema.js";
 import type { EventInput, Ledger } from "../ledger/store.js";
+import { reviewReplies } from "../replies/review.js";
 import { uuidv7 } from "../util.js";
 import type { Journal } from "../watch/journal.js";
 import type { QuotaGovernor } from "../watch/quota.js";
@@ -29,6 +30,8 @@ import {
   type Narration,
   type Review,
 } from "./checks.js";
+import { runSituation } from "./situation.js";
+import type { IndicatorInputs } from "../watch/situation.js";
 
 /** Most capable Opus narrates; a different model family reviews (claude-api skill defaults). */
 export const DEFAULT_NARRATOR = "claude-opus-5";
@@ -48,6 +51,10 @@ export interface AnalystOptions {
   log?: (line: string) => void;
   /** Daily case count + USD spend cap (quota.json). Omitted = no daily limits. */
   quota?: QuotaGovernor;
+  /** Local mirror of the reply wall (`replies/`): after the cases, the reviewer screens its inbox. */
+  repliesDir?: string;
+  /** The daily Situation briefing (src/analyst/situation.ts): omitted = not run. */
+  situation?: { ledgerDir: string; indicators: () => Promise<IndicatorInputs>; only?: boolean };
 }
 
 export interface AnalystReport {
@@ -61,6 +68,10 @@ export interface AnalystReport {
   errors: { findingId: string; message: string }[];
   calls: number;
   costUsd: number;
+  /** Public replies screened this run (null = no replies dir / dry run). */
+  replies: null | { accepted: number; rejected: number; errors: number; left: number };
+  /** Today's Situation (null = not run). */
+  situation: null | { level: string; source: string; skipped: boolean; headline: string };
 }
 
 const NARRATOR_SYSTEM = `You write the public narration of one environmental finding for Earth Watch, an evidence-first public ledger. You are given the finding as JSON: its rule, evidence (with numeric values), the independent confirming signal, context (regional baseline ring, ENSO phase, nearby natural events), the rule's blind spots and the AOI tags.
@@ -119,6 +130,10 @@ export function novelty(f: Finding): number {
   return Math.round(base * (boost > 0 ? boost : 1) * 1000) / 1000;
 }
 
+/** Case-type tag for good news (e.g. flaring_stopped, improvement@1.0); selected as its own group. */
+const IMPROVEMENT_GROUP = "improvement";
+const isImprovement = (f: Finding) => f.aoi?.tags?.includes("improvement") === true;
+
 /** Higher score first; ties by observedAt desc, then findingId. */
 const byNovelty = (a: Selected, b: Selected) =>
   b.score - a.score || (a.finding.observedAt < b.finding.observedAt ? 1 : a.finding.observedAt > b.finding.observedAt ? -1 : 0) || (a.finding.findingId < b.finding.findingId ? -1 : a.finding.findingId > b.finding.findingId ? 1 : 0);
@@ -127,21 +142,29 @@ const byNovelty = (a: Selected, b: Selected) =>
  * Work for this run, deterministic. Narrations awaiting review go first (already paid for);
  * the rest is a round-robin across rules — each round takes the most novel remaining finding
  * of every rule (rules ordered by that finding) — so one cheap-to-confirm rule can't fill `max`.
+ * Findings tagged `improvement` form one group of their own, and the first round leads with it.
  */
 export function select(ledger: AnalystLedger, max: number): Selected[] {
   const review: Selected[] = [];
   const groups = new Map<string, Selected[]>();
   for (const f of ledger.list({ status: ["confirmed"] })) {
     if (!f.narration) {
-      const g = groups.get(f.rule.name) ?? [];
+      // Good news is its own group, whatever rule found it, so it always gets a turn.
+      const key = isImprovement(f) ? IMPROVEMENT_GROUP : f.rule.name;
+      const g = groups.get(key) ?? [];
       g.push({ finding: f, needs: "narrate", score: novelty(f) });
-      groups.set(f.rule.name, g);
+      groups.set(key, g);
     } else if (!f.reviews.some((r) => r.actor.startsWith("model:") && r.at >= f.narration!.at)) review.push({ finding: f, needs: "review", score: novelty(f) });
   }
   const out = review.sort(byNovelty).slice(0, max);
   const queues = [...groups.values()].map((g) => g.sort(byNovelty));
+  let first = true;
   while (out.length < max && queues.some((q) => q.length)) {
     const round = queues.filter((q) => q.length).map((q) => q.shift()!).sort(byNovelty);
+    // The first round leads with a good-news case, so a busy run never crowds it out.
+    const good = first ? round.findIndex((s) => isImprovement(s.finding)) : -1;
+    if (good > 0) round.unshift(...round.splice(good, 1));
+    first = false;
     out.push(...round.slice(0, max - out.length));
   }
   return out;
@@ -156,14 +179,14 @@ export async function runAnalyst(o: AnalystOptions): Promise<AnalystReport> {
   const apiKey = o.apiKey;
   const dryRun = Boolean(o.dryRun);
   const runId = uuidv7();
-  const report: AnalystReport = { runId, dryRun, selected: 0, narrated: [], published: [], held: [], rejected: [], errors: [], calls: 0, costUsd: 0 };
+  const report: AnalystReport = { runId, dryRun, selected: 0, narrated: [], published: [], held: [], rejected: [], errors: [], calls: 0, costUsd: 0, replies: null, situation: null };
   const j = (kind: string, rec: Record<string, unknown> = {}) => o.journal.append({ t: new Date().toISOString(), sweepId: runId, kind: `analyst_${kind}`, ...rec });
 
   const q = o.quota;
   const limit = Math.min(o.max ?? 5, q ? q.analystCasesLeft() : Infinity);
-  const work = limit > 0 ? select(o.ledger, limit) : [];
+  const work = limit > 0 && !o.situation?.only ? select(o.ledger, limit) : [];
   report.selected = work.length;
-  if (q && q.analystCasesLeft() === 0) log(`daily analyst case cap reached (${q.caps.analystCases}) — nothing to do until tomorrow (UTC)`);
+  if (q && q.analystCasesLeft() === 0 && !o.situation?.only) log(`daily analyst case cap reached (${q.caps.analystCases}) — nothing to do until tomorrow (UTC)`);
   j("start", { narrator, reviewer, dryRun, selected: work.length });
   if (work.length) {
     log(`selection (round-robin by rule, novelty-ranked): ${work.map((w, i) => `${i + 1}. ${w.finding.rule.name} ${w.score} [${w.finding.findingId}]${w.needs === "review" ? " review" : ""}`).join(" · ")}`);
@@ -268,6 +291,62 @@ export async function runAnalyst(o: AnalystOptions): Promise<AnalystReport> {
       j("error", { findingId: f.findingId, message });
       log(`    ✗ ${message}`);
     }
+  }
+  if (o.repliesDir && !dryRun) {
+    // The reply wall: same reviewer model, low effort, counted in the same daily $ budget.
+    const rr = await reviewReplies({
+      dir: o.repliesDir,
+      ledger: o.ledger,
+      reviewer,
+      quota: q,
+      log,
+      journal: (kind, rec) => j(kind, rec),
+      call: async (system, user, schema) => {
+        try {
+          const r = await callJson({ apiKey, model: reviewer, system, user, schema, effort: "low", maxTokens: 2_000 });
+          report.calls++;
+          report.costUsd += r.costUsd ?? 0;
+          j("call", { purpose: "reply_review", model: r.model, usage: r.usage, costUsd: r.costUsd, ms: r.ms, requestSha256: r.requestSha256, responseSha256: r.responseSha256 });
+          if (q) j("spend", { day: q.day, callUsd: r.costUsd, dayUsd: q.addAnalystUsd(r.costUsd ?? 0), limitUsd: q.caps.analystUsd });
+          return r;
+        } catch (err) {
+          report.calls++;
+          throw err;
+        }
+      },
+    });
+    report.replies = { accepted: rr.accepted.length, rejected: rr.rejected.length, errors: rr.errors.length, left: rr.left };
+    if (rr.accepted.length || rr.rejected.length || rr.errors.length) log(`replies: ${rr.accepted.length} accepted · ${rr.rejected.length} rejected · ${rr.errors.length} errors · ${rr.left} waiting`);
+  }
+  if (o.situation) {
+    // After the cases, so today's briefing sees today's publications. Same budget, same journal.
+    const sr = await runSituation({
+      findings: o.ledger.list(),
+      indicators: await o.situation.indicators(),
+      ledgerDir: o.situation.ledgerDir,
+      narrator,
+      reviewer,
+      quota: q,
+      dryRun,
+      log,
+      call: async (purpose, model, system, user, schema) => {
+        try {
+          const r = await callJson({ apiKey, model, system, user, schema, maxTokens: 8_000 });
+          report.calls++;
+          report.costUsd += r.costUsd ?? 0;
+          j("call", { purpose, model: r.model, usage: r.usage, costUsd: r.costUsd, ms: r.ms, requestSha256: r.requestSha256, responseSha256: r.responseSha256 });
+          if (q) j("spend", { day: q.day, callUsd: r.costUsd, dayUsd: q.addAnalystUsd(r.costUsd ?? 0), limitUsd: q.caps.analystUsd });
+          log(`    ↳ ${purpose} ${r.model} · ${r.usage.input_tokens} in / ${r.usage.output_tokens} out · ${r.costUsd == null ? "cost n/a" : `$${r.costUsd.toFixed(4)}`}`);
+          return r;
+        } catch (err) {
+          report.calls++;
+          j("call", { purpose, model, message: err instanceof Error ? err.message : String(err) });
+          throw err;
+        }
+      },
+    });
+    report.situation = { level: sr.record.level, source: sr.record.source, skipped: sr.skipped, headline: sr.record.text.headline };
+    j("situation", { date: sr.record.date, level: sr.record.level, source: sr.record.source, skipped: sr.skipped, dossierHash: sr.record.dossierHash, verdict: sr.record.verdict, problems: sr.record.problems });
   }
   j("end", { published: report.published.length, held: report.held.length, rejected: report.rejected.length, narrated: report.narrated.length, errors: report.errors.length, calls: report.calls, costUsd: report.costUsd });
   return report;

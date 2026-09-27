@@ -19,6 +19,10 @@ export interface Quake {
   tsunami: boolean;
   alert: string | null; // PAGER: green/yellow/orange/red
   url: string;
+  /** USGS significance 0–1000+ (magnitude, felt reports, PAGER); null when absent. */
+  sig: number | null;
+  /** "reviewed" (seismologist-checked) or "automatic"; null when absent. */
+  status: string | null;
 }
 
 interface RawFeature {
@@ -30,6 +34,8 @@ interface RawFeature {
     tsunami?: number | null;
     alert?: string | null;
     url?: string | null;
+    sig?: number | null;
+    status?: string | null;
   };
   geometry?: { coordinates?: unknown };
 }
@@ -56,6 +62,8 @@ export function parseQuakes(json: unknown): Quake[] {
       tsunami: p.tsunami === 1,
       alert: p.alert ?? null,
       url: p.url ?? "",
+      sig: typeof p.sig === "number" ? p.sig : null,
+      status: p.status ?? null,
     });
   }
   return out;

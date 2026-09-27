@@ -67,6 +67,12 @@ Resources:
           - Id: expire-old-versions
             Status: Enabled
             NoncurrentVersionExpiration: { NoncurrentDays: 90 }
+          # Reply-wall rate counters (per salted IP hash per UTC day) are only needed for a day.
+          - Id: expire-reply-rate-counters
+            Status: Enabled
+            Prefix: replies/rate/
+            ExpirationInDays: 2
+            NoncurrentVersionExpiration: { NoncurrentDays: 1 }
       Tags: [{ Key: Project, Value: earthdeck }]
 
   SiteBucket:
@@ -377,6 +383,8 @@ Resources:
           EARTHDECK_DISTRIBUTION_ID: !Ref Distribution
           EARTHDECK_SSM_PREFIX: /earthdeck
           EARTHDECK_SITE_URL: !Sub "https://${DomainName}"
+          # The reply wall's intake; the export renders the form against it (--reply-url).
+          EARTHDECK_REPLY_URL: !GetAtt ReplyFunctionUrl.FunctionUrl
           # No EARTHDECK_CONTACT: the public site is anonymous — no personal email is ever exported.
           # Per-UTC-day caps (counted in ledger/watch/quota.json); see infra/README.md "Quotas".
           EARTHDECK_MAX_CDSE_CALLS: "40"
@@ -399,6 +407,120 @@ Resources:
       Qualifier: $LATEST
       MaximumRetryAttempts: 0
       MaximumEventAgeInSeconds: 21600
+
+  # ── reply wall: public intake (Function URL → S3 replies/inbox/) ─────────────────────
+  # Anyone may POST a reply; nobody reads an inbox. The analyst's reviewer model screens
+  # replies/inbox/ and moves them to replies/public/ (shown) or replies/rejected/.
+  ReplyLogGroup:
+    Type: AWS::Logs::LogGroup
+    Condition: WithFunction
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: /aws/lambda/earthdeck-reply
+      RetentionInDays: 14
+      Tags: [{ Key: Project, Value: earthdeck }]
+
+  ReplyRole:
+    Type: AWS::IAM::Role
+    Condition: WithFunction
+    Properties:
+      RoleName: earthdeck-reply
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: earthdeck-reply
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: Logs
+                Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub ${ReplyLogGroup.Arn}
+              - Sid: WriteInbox
+                Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub ${StateBucket.Arn}/replies/inbox/*
+              - Sid: ReadCaseIndex
+                Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub ${StateBucket.Arn}/replies/cases.json
+              - Sid: RateCounters
+                Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub ${StateBucket.Arn}/replies/rate/*
+              - Sid: Salt
+                Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/earthdeck/REPLY_SALT
+              - Sid: DecryptSaltViaSsm
+                Effect: Allow
+                Action: kms:Decrypt
+                Resource: !Sub arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub ssm.${AWS::Region}.amazonaws.com
+                  StringLike:
+                    kms:EncryptionContext:PARAMETER_ARN: !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter/earthdeck/REPLY_SALT
+      Tags: [{ Key: Project, Value: earthdeck }]
+
+  ReplyFunction:
+    Type: AWS::Lambda::Function
+    Condition: WithFunction
+    DependsOn: ReplyLogGroup
+    Properties:
+      FunctionName: earthdeck-reply
+      Description: earthdeck public reply wall intake (POST /reply → replies/inbox/)
+      Runtime: nodejs22.x
+      Architectures: [arm64]
+      Handler: dist/runner/reply-lambda.handler
+      Code:
+        S3Bucket: !Ref ArtifactsBucket
+        S3Key: !Ref ArtifactKey
+      Role: !GetAtt ReplyRole.Arn
+      Timeout: 10
+      MemorySize: 256
+      # Caps what a flood can cost (and write): at most 2 requests in flight.
+      ReservedConcurrentExecutions: 2
+      Environment:
+        Variables:
+          EARTHDECK_STATE_BUCKET: !Ref StateBucket
+          EARTHDECK_REPLY_SALT_PARAM: /earthdeck/REPLY_SALT
+      Tags: [{ Key: Project, Value: earthdeck }]
+
+  ReplyFunctionUrl:
+    Type: AWS::Lambda::Url
+    Condition: WithFunction
+    Properties:
+      TargetFunctionArn: !GetAtt ReplyFunction.Arn
+      AuthType: NONE
+      Cors:
+        AllowOrigins: [!Sub "https://${DomainName}"]
+        AllowMethods: [POST]
+        AllowHeaders: [content-type]
+        MaxAge: 86400
+
+  ReplyUrlPublic:
+    Type: AWS::Lambda::Permission
+    Condition: WithFunction
+    Properties:
+      FunctionName: !Ref ReplyFunction
+      Action: lambda:InvokeFunctionUrl
+      Principal: "*"
+      FunctionUrlAuthType: NONE
+
+  # Newer accounts also require lambda:InvokeFunction for public Function URLs (scoped to URL calls).
+  ReplyUrlInvoke:
+    Type: AWS::Lambda::Permission
+    Condition: WithFunction
+    Properties:
+      FunctionName: !Ref ReplyFunction
+      Action: lambda:InvokeFunction
+      Principal: "*"
+      InvokedViaFunctionUrl: true
 
   # ── schedules ─────────────────────────────────────────────────────────────────────────
   SchedulerRole:
@@ -677,5 +799,9 @@ Outputs:
     Value: !Ref RunnerLogGroup
   AlertTopicArn:
     Value: !Ref AlertTopic
+  ReplyUrl:
+    Condition: WithFunction
+    Description: Public reply wall intake (the site's form posts to <this>reply)
+    Value: !GetAtt ReplyFunctionUrl.FunctionUrl
   SiteUrl:
     Value: !Sub https://${DomainName}/

@@ -29,14 +29,24 @@ export const SITE = {
   organization: { name: "TerraKeep", url: "https://vitalearth.io" },
   /** Footer credit. */
   credit: "Built on open data",
-  /** Static social card, relative to the site root (1200×630; carries no product name). */
+  /** Static social card, relative to the site root: 1200×630 PNG with the mark, the name and the slogan (scripts/site-icons.mjs). */
   ogImage: "og.png",
+  /** Square logo for JSON-LD `Organization.logo` (and the web app manifest), relative to the site root. */
+  logo: "icon-512.png",
+  /** Browser chrome + manifest colour — the page background token (--bg-0). */
+  themeColor: "#07090d",
   /**
    * Licence URL for the published findings data (JSON-LD `Dataset.license`). Unset until a
    * licence is chosen — the upstream sources carry their own terms (see the site footer).
    */
   dataLicense: null as string | null,
   locale: "en",
+  /**
+   * The reply wall's intake origin (Lambda Function URL; the form posts to `<it>/reply`).
+   * Unset here — the runner passes the stack's ReplyUrl output as `--reply-url`. No email:
+   * nobody reads an inbox; the reviewer model screens every reply before it appears.
+   */
+  replyEndpoint: null as string | null,
 } as const;
 
 export type SiteConfig = typeof SITE;

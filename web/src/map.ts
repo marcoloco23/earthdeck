@@ -1,9 +1,8 @@
 import maplibregl from "maplibre-gl";
+import { EASE_IN_OUT } from "./site/map/model";
+import { WEATHER_LAYERS, addLayer, mountLayerToggles, stormsLayer, type LayerHandle } from "./layers/weather";
+import { basemapStyle, mountBasemapCaption } from "./layers/basemap";
 import type { BBox, Card, EventItem, FireItem, QuakeItem } from "./types";
-
-// NASA GIBS Blue Marble (static, no API key) as a reliable, beautiful basemap.
-const GIBS_BASEMAP =
-  "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg";
 
 let map: maplibregl.Map | null = null;
 const overlayIds: string[] = [];
@@ -20,24 +19,18 @@ export function createMap(): boolean {
   try {
     map = new maplibregl.Map({
       container: "map",
-      style: {
-        version: 8,
-        sources: {
-          gibs: {
-            type: "raster",
-            tiles: [GIBS_BASEMAP],
-            tileSize: 256,
-            maxzoom: 8,
-            attribution: "NASA EOSDIS GIBS",
-          },
-        },
-        layers: [{ id: "gibs", type: "raster", source: "gibs" }],
-      },
+      // Same globe + zoom-dependent imagery stack as the public site's map (web/src/layers/basemap.ts).
+      style: basemapStyle(),
       center: [0, 20],
       zoom: 1.4,
       attributionControl: { compact: true },
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
+    mountBasemapCaption(map);
+    // Keyless weather overlays (local dashboard = personal use, so RainViewer radar is allowed here).
+    const m = map;
+    const container = document.getElementById("map");
+    if (container) m.once("load", () => mountLayerToggles(m, container, [WEATHER_LAYERS.clouds, WEATHER_LAYERS.precip, WEATHER_LAYERS.radar, WEATHER_LAYERS.wind]));
     return true;
   } catch (err) {
     console.error("map init failed (WebGL unavailable?) — feed still works:", err);
@@ -58,7 +51,7 @@ function fitBBox(bbox: BBox, maxZoom = 9): void {
       [w, s],
       [e, n],
     ],
-    { padding: 60, duration: 900, maxZoom },
+    { padding: 60, duration: 900, maxZoom, easing: EASE_IN_OUT },
   );
 }
 
@@ -113,9 +106,29 @@ const CATEGORY_COLOR: Record<string, string> = {
   Fungi: "#e879f9",
 };
 
+let stormsHandle: Promise<LayerHandle> | null = null;
+
+/** `storms` cards carry cones/tracks as GeoJSON: draw them under the event markers. */
+function showStorms(geojson: GeoJSON.FeatureCollection): void {
+  const m = map;
+  if (!m) return;
+  if (stormsHandle) {
+    void stormsHandle.then((h) => (h.setData?.(geojson), h.setVisible(true)));
+    return;
+  }
+  stormsHandle = addLayer(m, stormsLayer(geojson));
+  stormsHandle.catch((err) => {
+    console.warn("storm layer failed:", err);
+    stormsHandle = null;
+  });
+}
+
 /** Plot event points as colored markers, replacing the previous event layer. */
 export function showEvents(card: Card): void {
   if (!map) return;
+  const storms = card.payload.stormGeoJson as GeoJSON.FeatureCollection | undefined;
+  if (storms?.type === "FeatureCollection") showStorms(storms);
+  else if (stormsHandle) void stormsHandle.then((h) => h.setVisible(false));
   for (const m of eventMarkers) m.remove();
   eventMarkers = [];
 
@@ -389,6 +402,8 @@ export function clearOverlays(): void {
   }
   for (const id of [`${FINDING_LAYER}-fill`, `${FINDING_LAYER}-line`, `${FINDING_LAYER}-pt`]) if (map.getLayer(id)) map.removeLayer(id);
   if (map.getSource(FINDING_LAYER)) map.removeSource(FINDING_LAYER);
+  if (stormsHandle) void stormsHandle.then((h) => h.remove());
+  stormsHandle = null;
 }
 
 function escapeHtml(s: string): string {
