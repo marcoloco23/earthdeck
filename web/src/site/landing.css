@@ -15,6 +15,8 @@
   --tp-air: #a8a29e;
   --tp-weather: #7dd3fc;
   --tp-trend: #2dd4bf;
+  --tp-good: #bef264;
+  --tp-quake: #fb7185;
   --tp-other: #9aa6b8;
   --panel-w: 404px;
   --glass: rgb(12 16 22 / 0.76);
@@ -99,6 +101,19 @@ body[data-page="landing"] {
 .hero .num dt {
   font-size: var(--fs-12);
   color: var(--fg-2);
+}
+.hero .num dd,
+.hero .num-when {
+  font-variant-numeric: tabular-nums;
+}
+.hero .num dd {
+  min-width: 2ch;
+  text-align: end;
+}
+.hero .num-when {
+  display: inline-block;
+  min-width: 8.2em; /* "· to Sep 30, 2026", the longest */
+  margin-left: 0.3em;
 }
 
 /* ---- the floating panel */
@@ -356,6 +371,12 @@ body[data-page="landing"] {
 }
 .ring--trend {
   --ring: var(--tp-trend);
+}
+.ring--good {
+  --ring: var(--tp-good);
+}
+.ring--quake {
+  --ring: var(--tp-quake);
 }
 
 /* ---- Cases: filters */
@@ -909,6 +930,12 @@ body[data-page="landing"] {
 }
 .tp--trend {
   background: var(--tp-trend);
+}
+.tp--good {
+  background: var(--tp-good);
+}
+.tp--quake {
+  background: var(--tp-quake);
 }
 .mx-rules li {
   display: flex;

@@ -31,6 +31,7 @@ import {
   type Topic,
   type View,
 } from "./map/model";
+import { mountReplyForms } from "./reply";
 import { verifyCase, wireCopy } from "./verify";
 
 const LIST_STEP = 120;
@@ -51,6 +52,19 @@ export function mountPanel(hub: Hub): void {
   const syncTop = () => header && document.documentElement.style.setProperty("--top-h", `${header.offsetHeight}px`);
   syncTop();
   addEventListener("resize", syncTop);
+  // A wheel over the panel scrolls the panel, never the page: the head/tabs are not a scroll
+  // container, so without this their wheel chained to the document and slid the map away.
+  panel.addEventListener(
+    "wheel",
+    (e) => {
+      if (e.ctrlKey) return;
+      // Inside a body that can scroll, overscroll-behavior: contain already stops the chain.
+      if (body.contains(e.target as Node) && body.scrollHeight > body.clientHeight) return;
+      e.preventDefault();
+      body.scrollTop += e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    },
+    { passive: false },
+  );
   const tabs = [...panel.querySelectorAll<HTMLAnchorElement>(".mode[data-mode]")];
   const panes = new Map(MODES.map((m) => [m, document.getElementById(`pane-${m}`)]));
   const toggle = panel.querySelector<HTMLButtonElement>(".panel-toggle");
@@ -396,6 +410,7 @@ export function mountPanel(hub: Hub): void {
     }
     box.appendChild(art);
     wireCopy(art);
+    mountReplyForms(art);
     const vb = art.querySelector<HTMLElement>(".verify");
     const tech = art.querySelector<HTMLDetailsElement>("details.tech");
     if (vb && tech) tech.addEventListener("toggle", () => tech.open && void verifyCase(vb, root), { once: true });

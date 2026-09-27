@@ -11,6 +11,7 @@ import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { z } from "zod";
+import { PUBLIC_STATUSES } from "../ledger/schema.js";
 
 // ── payload ──────────────────────────────────────────────────────────────────────────────
 
@@ -98,7 +99,7 @@ export function sweepTiming(remainingMs: number, requestedSec?: number): { timeB
 }
 
 /** argv for `node dist/cli.js …`. A sweep without a watchlist sweeps the whole directory. */
-export function cliArgs(step: Step, siteDir: string): string[] {
+export function cliArgs(step: Step, siteDir: string, repliesDir?: string): string[] {
   if (step.job === "sweep") {
     return [
       "watch",
@@ -109,17 +110,19 @@ export function cliArgs(step: Step, siteDir: string): string[] {
       ...(step.timeBudgetSec !== undefined ? ["--time-budget", String(step.timeBudgetSec)] : []),
     ];
   }
-  if (step.job === "analyst") return ["analyst", "--once"];
-  // Public-site metadata comes from the function's environment (set by the stack).
+  if (step.job === "analyst") return ["analyst", "--once", ...(repliesDir ? ["--replies", repliesDir] : [])];
+  // Public-site metadata comes from the function's environment (set by the stack). No
+  // --contact: the site is anonymous; replies go through the reply wall (EARTHDECK_REPLY_URL).
   const siteUrl = process.env.EARTHDECK_SITE_URL;
-  const contact = process.env.EARTHDECK_CONTACT;
+  const replyUrl = process.env.EARTHDECK_REPLY_URL;
   return [
     "watch",
     "export",
     "--out",
     siteDir,
     ...(siteUrl ? ["--base-url", siteUrl] : []),
-    ...(contact ? ["--contact", contact] : []),
+    ...(replyUrl ? ["--reply-url", replyUrl] : []),
+    ...(repliesDir ? ["--replies", repliesDir] : []),
     "--trust",
     "TRUST.md",
   ];
@@ -177,6 +180,26 @@ export function ledgerKey(rel: string): string | null {
 /** `2026-09-26T06:00:12.345Z` → `ledger/checkpoints/2026-09-26T06-00-12Z` (colon-free, sortable). */
 export function checkpointArchiveKey(at: Date): string {
   return `${CHECKPOINT_ARCHIVE_PREFIX}${at.toISOString().replace(/\.\d+Z$/, "Z").replace(/:/g, "-")}`;
+}
+
+// ── reply wall mirror (state bucket `replies/` ↔ local dir) ─────────────────────────────
+
+export const REPLIES_PREFIX = "replies/";
+/** State-bucket key the reply intake reads to know which cases take replies. */
+export const REPLY_CASE_INDEX_KEY = "replies/cases.json";
+const REPLY_PARTS = new Set(["inbox", "public", "rejected"]);
+
+/** `replies/<inbox|public|rejected>/<caseId>/<id>.json` → the same path relative to the local dir; anything else → null. */
+export function repliesRelPath(key: string): string | null {
+  const m = /^replies\/([a-z]+)\/([A-Za-z0-9-]{1,64})\/([0-9A-Z]{26})\.json$/.exec(key);
+  return m && REPLY_PARTS.has(m[1]!) ? key.slice(REPLIES_PREFIX.length) : null;
+}
+
+/** Public case ids for the intake, from the export's api/map.json. */
+export function caseIndexFrom(mapJson: string, publicStatuses: readonly string[]): { ids: string[] } {
+  const j = JSON.parse(mapJson) as { cases?: { id?: unknown; status?: unknown }[] };
+  const ids = (j.cases ?? []).filter((c) => typeof c.id === "string" && typeof c.status === "string" && publicStatuses.includes(c.status)).map((c) => c.id as string);
+  return { ids: [...new Set(ids)].sort() };
 }
 
 // ── static-site headers ──────────────────────────────────────────────────────────────────
@@ -294,6 +317,8 @@ export interface RunnerConfig {
   budgetMs(): number;
   /** Raw time left in the invocation, ms (Lambda `getRemainingTimeInMillis`); enables sweep time budgets. */
   remainingMs?(): number;
+  /** Local mirror of the state bucket's `replies/` (analyst: inbox; export: public). Omitted = no reply wall. */
+  repliesDir?: string;
 }
 
 export interface StepResult {
@@ -400,6 +425,48 @@ async function downloadLedger(cfg: RunnerConfig, deps: RunnerDeps): Promise<numb
   return n;
 }
 
+/** Mirror `replies/<part>/` into `<repliesDir>/<part>/`; returns the keys pulled. */
+async function downloadReplies(cfg: RunnerConfig, deps: RunnerDeps, part: "inbox" | "public"): Promise<string[]> {
+  const dir = cfg.repliesDir!;
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(dir, { recursive: true });
+  const keys: string[] = [];
+  for (const key of await deps.store.list(cfg.stateBucket, `${REPLIES_PREFIX}${part}/`)) {
+    const rel = repliesRelPath(key);
+    if (!rel) continue;
+    const dest = join(dir, rel);
+    mkdirSync(dirname(dest), { recursive: true });
+    writeFileSync(dest, await deps.store.get(cfg.stateBucket, key));
+    keys.push(key);
+  }
+  return keys;
+}
+
+/** After the analyst: push public/ + rejected/ files, drop inbox keys that were moved. */
+async function syncReplies(cfg: RunnerConfig, deps: RunnerDeps, pulled: string[]): Promise<{ put: number; removed: number }> {
+  const dir = cfg.repliesDir!;
+  const local = new Set(walk(dir));
+  const put = [...local].filter((rel) => !rel.startsWith("inbox/") && repliesRelPath(REPLIES_PREFIX + rel));
+  await uploadDir(cfg.stateBucket, dir, (rel) => REPLIES_PREFIX + rel, put, deps);
+  const gone = pulled.filter((key) => !local.has(key.slice(REPLIES_PREFIX.length)));
+  if (gone.length) await deps.store.remove(cfg.stateBucket, gone);
+  return { put: put.length, removed: gone.length };
+}
+
+/** Site-bucket prefixes the export owns outright: anything there it no longer writes is stale. */
+export const SITE_PRUNE_PREFIXES = ["api/", "watch/"] as const;
+
+/**
+ * Pure: site-bucket keys to delete after an export — under api/ and watch/ only, absent from the
+ * new export. Never ledger/ (or anything else outside those prefixes), and never hashed bundles
+ * under an assets/ folder: a page cached a few minutes ago may still ask for the old one.
+ */
+export function sitePruneKeys(existing: readonly string[], exported: ReadonlySet<string>): string[] {
+  return existing
+    .filter((k) => SITE_PRUNE_PREFIXES.some((p) => k.startsWith(p)) && !exported.has(k) && !k.split("/").includes("assets") && !k.split("/").includes(".."))
+    .sort();
+}
+
 async function uploadDir(bucket: string, dir: string, keyOf: (rel: string) => string, rels: string[], deps: RunnerDeps): Promise<void> {
   for (const rel of rels) {
     const key = keyOf(rel);
@@ -429,6 +496,7 @@ export async function runStep(step: Step, cfg: RunnerConfig, deps: RunnerDeps, a
   const env = { ...cfg.env, EARTHDECK_LEDGER_DIR: cfg.ledgerDir };
 
   if (step.job === "export") rmSync(cfg.siteDir, { recursive: true, force: true });
+  const pulledReplies = cfg.repliesDir && (step.job === "analyst" || step.job === "export") ? await downloadReplies(cfg, deps, step.job === "analyst" ? "inbox" : "public") : [];
   let runStepAs = step;
   let timeoutMs = cfg.budgetMs();
   if (step.job === "sweep" && cfg.remainingMs) {
@@ -439,7 +507,7 @@ export async function runStep(step: Step, cfg: RunnerConfig, deps: RunnerDeps, a
     base.timeBudgetSec = t.timeBudgetSec;
     timeoutMs = t.killAfterMs;
   }
-  const run = await deps.exec(cliArgs(runStepAs, cfg.siteDir), { env, timeoutMs });
+  const run = await deps.exec(cliArgs(runStepAs, cfg.siteDir, cfg.repliesDir), { env, timeoutMs });
   const outputTail = run.output.slice(-2_000);
 
   if (step.job === "export") {
@@ -447,8 +515,18 @@ export async function runStep(step: Step, cfg: RunnerConfig, deps: RunnerDeps, a
     const files = walk(cfg.siteDir);
     if (files.length === 0) return done({ ok: false, status: "failed", exitCode: 0, reason: `export wrote nothing to ${cfg.siteDir}`, outputTail });
     await uploadDir(cfg.siteBucket, cfg.siteDir, (rel) => rel, files, deps);
-    await deps.invalidateAll(cfg.distributionId);
-    return done({ ok: true, status: "ok", exitCode: 0, filesUploaded: files.length, outputTail });
+    // Mirror deletions too (e.g. a reply taken down → its api/replies/<case>.json goes away).
+    const exported = new Set(files);
+    const stale: string[] = [];
+    for (const p of SITE_PRUNE_PREFIXES) stale.push(...sitePruneKeys(await deps.store.list(cfg.siteBucket, p), exported));
+    if (stale.length) await deps.store.remove(cfg.siteBucket, stale);
+    await deps.invalidateAll(cfg.distributionId); // "/*": covers the deleted paths as well
+    if (cfg.repliesDir && existsSync(join(cfg.siteDir, "api", "map.json"))) {
+      // The intake (reply Lambda) takes replies only for cases in this index.
+      const index = caseIndexFrom(readFileSync(join(cfg.siteDir, "api", "map.json"), "utf8"), PUBLIC_STATUSES);
+      await deps.store.put(cfg.stateBucket, REPLY_CASE_INDEX_KEY, Buffer.from(JSON.stringify(index)), { contentType: "application/json; charset=utf-8" });
+    }
+    return done({ ok: true, status: "ok", exitCode: 0, filesUploaded: files.length, filesDeleted: stale.length, outputTail });
   }
 
   if (!writing) {
@@ -472,12 +550,18 @@ export async function runStep(step: Step, cfg: RunnerConfig, deps: RunnerDeps, a
     checkpointArchived = checkpointArchiveKey(deps.now());
     await deps.store.put(cfg.stateBucket, checkpointArchived, readFileSync(join(cfg.ledgerDir, "checkpoint")), { contentType: "text/plain; charset=utf-8" });
   }
+  let repliesNote = "";
+  if (step.job === "analyst" && cfg.repliesDir) {
+    // Only after the ledger (with its `commented` events) is safely back in the bucket.
+    const r = await syncReplies(cfg, deps, pulledReplies);
+    if (r.put || r.removed) repliesNote = `; replies: ${r.put} written, ${r.removed} inbox removed`;
+  }
   const ok = run.code === 0;
   return done({
     ok,
     status: ok ? "ok" : "failed",
     uploaded: true,
-    reason: ok ? decision.reason : `job exited ${run.code}; ${decision.reason} (kept)`,
+    reason: (ok ? decision.reason : `job exited ${run.code}; ${decision.reason} (kept)`) + repliesNote,
     filesUploaded: plan.put.length,
     filesDeleted: plan.remove.length,
     ...(checkpointArchived ? { checkpointArchived } : {}),

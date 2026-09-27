@@ -39,8 +39,16 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
    $71/yr, refund refused by AWS, auto-renew OFF; Marc dislikes the name but uses it since
    it's paid). The public name is the neutral **"Earth Watch"** (`src/site.config.ts`);
    "Vital Earth" is a taken trademark. **The site is anonymous**: no owner name, email or
-   GitHub handle anywhere (test in `test/site-export.test.ts` fails on any); right of reply
-   has no channel yet (a forwarding mailbox on the domain is a follow-up). Do NOT register
+   GitHub handle anywhere (test in `test/site-export.test.ts` fails on any). Right of reply =
+   the **public reply wall** (2026-09-27; no email, nobody reads an inbox): `earthdeck-reply`
+   Lambda behind a Function URL (`POST /reply`, src/replies/intake.ts) → `replies/inbox/`;
+   the analyst's reviewer (Sonnet) screens ≤ 50/run → `replies/public/` (+ `commented` ledger
+   event, text hash only) or `replies/rejected/`; the export renders them + the form
+   (`--reply-url` = stack output ReplyUrl, set on the runner as EARTHDECK_REPLY_URL).
+   deploy.sh creates `/earthdeck/REPLY_SALT` once. LIVE since 2026-09-27 (end-to-end
+   tested: Marc's test reply accepted by the reviewer, then removed by hand = delete the
+   `replies/public/<case>/<id>.json` object + export; the export now deletes stale site
+   files under api/ and watch/). Do NOT register
    or buy anything without showing Marc the exact item + price first. IPv6 is disabled on
    CloudFront on purpose (AAAA-only resolver answers broke the fresh domain on IPv6-less
    networks); Tailscale MagicDNS on Marc's Mac negative-cached the name for an hour.
@@ -77,6 +85,27 @@ reference is [CLAUDE.md](CLAUDE.md); the phase plan is [ROADMAP.md](ROADMAP.md).
    when spent — detection always runs. TODO: measure Copernicus PU per `eo_compare`/S5P
    call (free tier 10k PU/month) and set the cap from data. Name: **TerraKeep**, slogan
    "Keeping Earth within its limits." — package/repo/stack rename still pending (3b).
+2c. **2026-09-27 afternoon state (all LIVE on vitalearth.io, branch `worktree-earth-watch-m3`,
+   432 tests)**: site v4 = full-screen globe + floating panel with modes Cases / Planet /
+   Live / Metrics / About (`web/src/site/{hub,panel}.ts`, `map/explore.ts`); click-to-case
+   stays in-map (`#case=<id>`, static case pages redirect JS readers, crawlers get the page);
+   Metrics from `src/watch/metrics.ts` → `api/metrics.json`; layer registry
+   (`web/src/layers/registry.ts`, every module in layers/ self-registers). Marine:
+   `fishing_activity` tool (GFW 4Wings, grouped only — never per-vessel), `mpa_fishing@1.0`
+   rule (effort inside the reserve's legal boundary), `watchlists/marine.json` (16 reserves,
+   50 tiles), runner export `api/marine/{fishing,ships}.json` (keys only on the runner).
+   First sweep: Phoenix Islands ×2 + Galápagos confirmed — both allow some licensed fishing,
+   watch the reviewer. `improvement@1.0` rule (forest_recovery, flaring_decline,
+   bleaching_relief ≥ NOAA Alert Level 1, air_quality_clean, fires_absent; NDVI confirmation
+   opt-in `confirmWithNdvi`), `watchlists/good-news.json`; topic "Good news" chip (also
+   flaring_stopped). VNF parser bug fixed (sci-notation inflated 2023 totals 10×). QA pass:
+   fixed-width replay/caption/chips, panel-internal scroll, indicator blind spots filtered to
+   the case's indicator, globe hit-test fix (nearest dot ≤ 12 px; `pnpm test:e2e`
+   Playwright), cluster zoom ≥ 1.5. SSM now has GFW_FISHING_TOKEN, AISSTREAM_KEY, GEE_*,
+   REPLY_SALT. In flight: GDELT "In the news" per case (worker; `api/news/<case>.json`,
+   context not evidence). Open with Marc: keep running after Mon 08:03 stop (session cron),
+   analyst cap 20, SNS email confirm, rotate aisstream key (was pasted in chat), hide Live
+   toggles whose data file is missing, old `assets/` bundles never deleted.
 3c. **Queued by Marc 2026-09-26/27 (in this order, one at a time — "take it slowly")**:
    -1. **Indicator-threshold rule** (2026-09-27, top of queue, in progress): one generic rule
       `indicator_threshold@1` over the existing zero-key indicator tools — sea ice below

@@ -41,6 +41,7 @@ export async function handler(event: unknown, context?: LambdaContext): Promise<
       distributionId: need("EARTHDECK_DISTRIBUTION_ID"),
       ledgerDir: "/tmp/ledger",
       siteDir: "/tmp/site",
+      repliesDir: "/tmp/replies",
       env: { ...process.env, ...secrets, HOME: "/tmp" },
       budgetMs: () => (context ? context.getRemainingTimeInMillis() - RESERVE_MS : 780_000),
       // Sweeps get `--time-budget` = remaining − 90 s from this (see sweepTiming in core.ts).

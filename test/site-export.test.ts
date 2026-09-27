@@ -218,7 +218,7 @@ test("export writes a self-contained, relative, server-rendered site", async () 
   const report2 = jsonLdOf(page)[0]!;
   assert.equal(report2["@type"], "Report");
   assert.equal(report2.datePublished, "2026-09-02T09:01:00Z");
-  for (const s of ["What we saw", "What it might not be", "What would change our mind", "Why this was published", "Two separate sources agreed", "Right of reply", "Global Forest Watch alerts", "Technical details", "Verify", "gfw-integrated-alerts", "2784", "IBAMA", "Rule FP rate", PUB_ID]) {
+  for (const s of ["What we saw", "What it might not be", "What would change our mind", "Why this was published", "Two separate sources agreed", "Replies", "Global Forest Watch alerts", "Technical details", "Verify", "gfw-integrated-alerts", "2784", "IBAMA", "Rule FP rate", PUB_ID]) {
     assert.ok(page.includes(s), `case page lacks ${s}`);
   }
   assert.ok(page.includes(`data-index="${one.inclusion.index}"`));
@@ -262,6 +262,7 @@ test("export writes a self-contained, relative, server-rendered site", async () 
   const md = JSON.parse(readFileSync(join(out, "api/map.json"), "utf8"));
   assert.equal(md.v, 1);
   assert.equal(md.cases.length, 4);
+  for (const c of md.cases as { id: string; topic: string }[]) assert.notEqual(c.topic, "other", `case ${c.id} would show under an "Other" topic`);
   assert.deepEqual(new Set(md.cases.map((c: { group: string }) => c.group)), new Set(["published", "checking"]));
   assert.ok(md.places.some((p: { name: string }) => p.name === "São Félix do Xingu"));
 

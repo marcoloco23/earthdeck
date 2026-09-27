@@ -5,7 +5,8 @@
 #   2. first deploy only: create the stack without the function (DeployFunction=false) so the
 #      artifacts bucket exists before the function that needs a zip in it (chicken-and-egg)
 #   3. upload the zip to the artifacts bucket
-#   4. SSM SecureStrings under /earthdeck/ — created only if absent, values from ./.env,
+#   4. SSM SecureStrings under /earthdeck/ — created only if absent, values from ./.env
+#      (REPLY_SALT: random, for the reply wall's IP hashing),
 #      /earthdeck/ledger-key adopted from .env / data/ledger/ledger.key or freshly generated.
 #      Done before the function deploy so the first scheduled run already has them.
 #   5. full deploy (function, schedules, alarm)
@@ -152,6 +153,10 @@ else
   unset SEED
   echo "    source: $SRC — public key (publish this as ledger.pub): $PUB"
 fi
+
+# Reply-wall salt: the intake hashes each IP with it (per-IP daily cap) and never stores the IP.
+# Random, created once, never printed; rotating it only resets today's counters.
+put_secret "$SSM_PREFIX/REPLY_SALT" "$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('base64'))")"
 
 say "deploy stack (function + schedules + alarm)"
 cfn_deploy true "$ARTIFACT_KEY"

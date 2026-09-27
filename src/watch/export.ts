@@ -30,6 +30,7 @@ import { LedgerView } from "../dashboard/ledger-view.js";
 import { PUBLIC_STATUSES, STATUSES, type Finding, type Status } from "../ledger/schema.js";
 import { ledgerDir as defaultLedgerDir } from "../config.js";
 import { SITE } from "../site.config.js";
+import { readPublicReplies } from "../replies/review.js";
 import { readHeartbeat, type Heartbeat } from "./journal.js";
 import { mapData } from "./map-data.js";
 import { computeMetrics } from "./metrics.js";
@@ -160,8 +161,12 @@ export interface ExportOptions {
   ledgerDir?: string;
   /** Public origin for canonical/OG/JSON-LD/sitemap. Default SITE.baseUrl; null = none (no sitemap). */
   baseUrl?: string | null;
-  /** Accepted for compatibility (the runner passes it) and ignored: the public site is anonymous. */
+  /** Accepted for compatibility and ignored (off by default): the public site is anonymous. Replies go through the reply wall. */
   contact?: string;
+  /** The reply wall's intake URL (`POST /reply`, the stack's ReplyUrl output). Default SITE.replyEndpoint; null = no form. */
+  replyUrl?: string | null;
+  /** Local mirror of the reply wall (`public/<caseId>/<id>.json` are shown). Default <ledger>/../replies. */
+  repliesDir?: string;
   /** Built site bundle (index.html template, assets/, og.png). Default dist/site; null = unstyled fallback. */
   siteDir?: string | null;
   /** "auto": fetch a fresh world_pulse, fall back to the cache; "cache": cache only; "off": omit. */
@@ -204,6 +209,10 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
   const rawBase = opts.baseUrl === undefined ? SITE.baseUrl : opts.baseUrl;
   const baseUrl = rawBase ? rawBase.replace(/\/+$/, "") : null;
   if (baseUrl && !/^https?:\/\/[^\s/"'<>]+(\/[^\s"'<>]*)?$/.test(baseUrl)) throw new Error(`--base-url must be an http(s) URL, got ${rawBase}`);
+  const rawReply = opts.replyUrl === undefined ? SITE.replyEndpoint : opts.replyUrl;
+  const replyEndpoint = rawReply ? `${rawReply.replace(/\/+$/, "")}/reply` : null;
+  if (replyEndpoint && !/^https:\/\/[^\s/"'<>]+(\/[^\s"'<>]*)?$/.test(replyEndpoint)) throw new Error(`--reply-url must be an https URL, got ${rawReply}`);
+  const repliesDir = opts.repliesDir ?? join(dirname(resolve(lDir)), "replies");
 
   prepareOut(out, opts.force === true);
   const write = (rel: string, body: string | Buffer) => {
@@ -306,10 +315,19 @@ export async function exportSite(opts: ExportOptions): Promise<ExportReport> {
   write("index.html", fillTemplate(tpl, 0, "landing", landingPage(ctx(0, ""), findings)));
   write("developers/index.html", fillTemplate(tpl, 1, "developers", developersPage(ctx(1, "developers/"))));
   write("watch/index.html", fillTemplate(tpl, 1, "watch", watchIndexPage(ctx(1, "watch/"), findings)));
+  let replyCount = 0;
   for (const d of cases) {
     const path = `watch/case/${d.finding.findingId}/`;
-    write(`${path}index.html`, fillTemplate(tpl, 3, "case", casePage(ctx(3, path), d, news.get(d.finding.findingId))));
+    const isPublic = PUBLIC_STATUSES.includes(d.finding.status);
+    // Only public cases show replies (and take new ones); the reviewer only accepts on those anyway.
+    const replies = isPublic ? readPublicReplies(repliesDir, d.finding.findingId) : [];
+    if (replies.length) {
+      write(`api/replies/${d.finding.findingId}.json`, JSON.stringify({ caseId: d.finding.findingId, reviewedBy: "second model", replies: replies.map(({ id, text, role, receivedAt }) => ({ id, text, role, receivedAt })) }));
+      replyCount += replies.length;
+    }
+    write(`${path}index.html`, fillTemplate(tpl, 3, "case", casePage(ctx(3, path), d, { replies, replyEndpoint: isPublic && d.finding.status !== "retracted" ? replyEndpoint : null, news: news.get(d.finding.findingId) })));
   }
+  if (replyCount) log(`  replies: ${replyCount} public repl${replyCount === 1 ? "y" : "ies"} shown`);
   if (trust) {
     const md = readFileSync(trustFile, "utf8");
     write("TRUST.md", md);
@@ -439,7 +457,7 @@ export async function runExportCli(args: string[]): Promise<void> {
   if (!out) {
     process.stdout.write(
       [
-        "usage: earthdeck watch export --out <dir> [--base-url https://…]",
+        "usage: earthdeck watch export --out <dir> [--base-url https://…] [--reply-url https://…] [--replies <dir>]",
         "                              [--no-pulse | --pulse-cache <file>] [--no-marine] [--no-news] [--trust TRUST.md] [--force]",
         `Writes the public ${SITE.name} site (landing + case pages + ledger + feeds) as static files.`,
         `--base-url defaults to ${SITE.baseUrl} (src/site.config.ts); it drives canonical URLs, og:*, JSON-LD and sitemap.xml.`,
@@ -453,6 +471,8 @@ export async function runExportCli(args: string[]): Promise<void> {
     out,
     baseUrl: opt("--base-url"),
     contact: opt("--contact"),
+    replyUrl: opt("--reply-url"),
+    repliesDir: opt("--replies"),
     pulse: args.includes("--no-pulse") ? "off" : "auto",
     pulseCache: opt("--pulse-cache"),
     marine: args.includes("--no-marine") ? "off" : "auto",

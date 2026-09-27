@@ -110,7 +110,10 @@ export async function addLayer(map: MlMap, spec: MarineSpec, opts: { visible?: b
           layout: { visibility },
           paint: {
             "heatmap-weight": ["interpolate", ["linear"], ["get", "hours"], 0, 0, 50, 1],
-            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 1, 4, 6, 18],
+            // Readable at globe zoom: a wider kernel and more intensity at z<=3. The data is a coarse
+            // grid anyway, so a soft blob there claims no more precision than the cells carry.
+            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 9, 3, 12, 6, 18],
+            "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 3, 3, 2, 6, 1],
             "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 5, 0.85, 7, 0],
             "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)", 0.2, "#1f6f8b", 0.5, "#2ec4b6", 0.8, "#f2c94c", 1, "#ff7a45"],
           },

@@ -4,7 +4,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { appendFileSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -30,6 +30,7 @@ import {
   type ObjectStore,
   type RunnerConfig,
   type RunnerDeps,
+  sitePruneKeys,
 } from "../src/runner/core.js";
 
 test("parsePayload accepts the scheduled shapes (object or JSON string)", () => {
@@ -58,10 +59,13 @@ test("stepsFor + cliArgs map payloads to CLI invocations", () => {
   delete process.env.EARTHDECK_CONTACT;
   assert.deepEqual(cliArgs({ job: "export", dryRun: false }, "/tmp/site"), ["watch", "export", "--out", "/tmp/site", "--trust", "TRUST.md"]);
   process.env.EARTHDECK_SITE_URL = "https://example.org";
-  process.env.EARTHDECK_CONTACT = "me@example.org";
-  assert.deepEqual(cliArgs({ job: "export", dryRun: false }, "/tmp/site"), ["watch", "export", "--out", "/tmp/site", "--base-url", "https://example.org", "--contact", "me@example.org", "--trust", "TRUST.md"]);
+  process.env.EARTHDECK_CONTACT = "me@example.org"; // never forwarded: the site is anonymous
+  process.env.EARTHDECK_REPLY_URL = "https://abc.lambda-url.us-east-1.on.aws/";
+  assert.deepEqual(cliArgs({ job: "export", dryRun: false }, "/tmp/site", "/tmp/replies"), ["watch", "export", "--out", "/tmp/site", "--base-url", "https://example.org", "--reply-url", "https://abc.lambda-url.us-east-1.on.aws/", "--replies", "/tmp/replies", "--trust", "TRUST.md"]);
+  assert.deepEqual(cliArgs({ job: "analyst", dryRun: false }, "/tmp/site", "/tmp/replies"), ["analyst", "--once", "--replies", "/tmp/replies"]);
   delete process.env.EARTHDECK_SITE_URL;
   delete process.env.EARTHDECK_CONTACT;
+  delete process.env.EARTHDECK_REPLY_URL;
   const all = stepsFor({ job: "all" });
   assert.deepEqual(all.map((s) => s.watchlist ?? s.job), ["amazon", "congo-borneo", "controls", "methane", "flaring", "indicators", "weather", "good-news", "marine", "analyst", "export"]);
   assert.ok(all.every((s) => !s.dryRun));
@@ -387,4 +391,94 @@ test("infra: every schedule Input is a valid payload; 8 shards + hand-written + 
   assert.equal(inputs.filter((p) => p.job === "export").length, 1);
   assert.equal(inputs.length, 11);
   assert.match(yaml, /EARTHDECK_MAX_ANALYST_CASES: "10"/);
+});
+
+test("analyst: reply inbox is mirrored down, moves are synced back only after the ledger upload; export writes the case index", async () => {
+  const A = "01K66Z2ZQ0000000000000000A";
+  const B = "01K66Z2ZQ0000000000000000B";
+  const C = "01K66Z2ZQ0000000000000000C";
+  const h = harness({
+    help: "earthdeck analyst --once\nearthdeck watch export",
+    job: (args, dir) => {
+      if (args[0] !== "analyst") return 0;
+      const rd = args[args.indexOf("--replies") + 1]!;
+      assert.ok(existsSync(join(rd, "inbox", "case-1", `${A}.json`)));
+      assert.ok(!existsSync(join(rd, "public")), "the analyst mirror holds the inbox only");
+      rmSync(join(rd, "inbox", "case-1", `${A}.json`));
+      rmSync(join(rd, "inbox", "case-1", `${B}.json`));
+      mkdirSync(join(rd, "public", "case-1"), { recursive: true });
+      writeFileSync(join(rd, "public", "case-1", `${A}.json`), "{}");
+      mkdirSync(join(rd, "rejected", "case-1"), { recursive: true });
+      writeFileSync(join(rd, "rejected", "case-1", `${B}.json`), "{}");
+      appendEntry(dir, "commented");
+      return 0;
+    },
+  });
+  h.cfg.repliesDir = join(h.cfg.siteDir, "..", "replies");
+  await h.store.put("state", "ledger/entries.jsonl", Buffer.from("e1\n"));
+  for (const id of [A, B, C]) await h.store.put("state", `replies/inbox/case-1/${id}.json`, Buffer.from("{}"));
+  await h.store.put("state", "replies/public/case-0/01K66Z2ZQ0000000000000000Z.json", Buffer.from("{}"));
+  const r = await runPayload({ job: "analyst" }, h.cfg, h.deps);
+  assert.equal(r.ok, true, JSON.stringify(r.steps));
+  assert.match(r.steps[0]!.reason ?? "", /replies: 2 written, 2 inbox removed/);
+  const keys = (await h.store.list("state", "replies/")).sort();
+  assert.deepEqual(keys, [`replies/inbox/case-1/${C}.json`, `replies/public/case-0/01K66Z2ZQ0000000000000000Z.json`, `replies/public/case-1/${A}.json`, `replies/rejected/case-1/${B}.json`]);
+
+  // A refused ledger upload leaves the inbox untouched.
+  const h2 = harness({ help: "earthdeck analyst --once", verifyExit: 1, job: (args) => (args[0] === "analyst" ? (rmSync(join(args[args.indexOf("--replies") + 1]!, "inbox"), { recursive: true }), 0) : 0) });
+  h2.cfg.repliesDir = join(h2.cfg.siteDir, "..", "replies");
+  await h2.store.put("state", `replies/inbox/case-1/${A}.json`, Buffer.from("{}"));
+  await runPayload({ job: "analyst" }, h2.cfg, h2.deps);
+  assert.deepEqual(await h2.store.list("state", "replies/"), [`replies/inbox/case-1/${A}.json`]);
+
+  // Export: public replies mirrored down; the intake's case index written from api/map.json.
+  const h3 = harness({
+    help: "earthdeck analyst --once\nearthdeck watch export",
+    job: (args, _dir, site) => {
+      const rd = args[args.indexOf("--replies") + 1]!;
+      assert.ok(existsSync(join(rd, "public", "case-0", "01K66Z2ZQ0000000000000000Z.json")));
+      mkdirSync(join(site, "api"), { recursive: true });
+      writeFileSync(join(site, "api", "map.json"), JSON.stringify({ cases: [{ id: "case-0", status: "published" }, { id: "case-9", status: "candidate" }] }));
+      return 0;
+    },
+  });
+  h3.cfg.repliesDir = join(h3.cfg.siteDir, "..", "replies");
+  await h3.store.put("state", "replies/public/case-0/01K66Z2ZQ0000000000000000Z.json", Buffer.from("{}"));
+  const r3 = await runPayload({ job: "export" }, h3.cfg, h3.deps);
+  assert.equal(r3.ok, true, JSON.stringify(r3.steps));
+  assert.deepEqual(JSON.parse(h3.store.text("state", "replies/cases.json")!), { ids: ["case-0"] });
+  for (const x of [h, h2, h3]) x.cleanup();
+});
+
+test("infra: reply wall — Function URL (auth NONE, CORS site origin only), least-privilege role, URL fed to the export", () => {
+  const yaml = readFileSync("infra/earthdeck.yaml", "utf8");
+  assert.match(yaml, /Handler: dist\/runner\/reply-lambda\.handler/);
+  assert.match(yaml, /AuthType: NONE\n\s+Cors:\n\s+AllowOrigins: \[!Sub "https:\/\/\$\{DomainName\}"\]\n\s+AllowMethods: \[POST\]/);
+  assert.match(yaml, /Action: s3:PutObject\n\s+Resource: !Sub \$\{StateBucket\.Arn\}\/replies\/inbox\/\*/);
+  assert.match(yaml, /EARTHDECK_REPLY_URL: !GetAtt ReplyFunctionUrl\.FunctionUrl/);
+  assert.match(yaml, /ReplyUrl:\n\s+Condition: WithFunction/);
+  const role = yaml.slice(yaml.indexOf("  ReplyRole:"), yaml.indexOf("  ReplyFunction:"));
+  assert.ok(!/s3:DeleteObject|s3:ListBucket|GetParametersByPath|ledger/.test(role), "the public intake cannot read the ledger or other secrets");
+});
+
+test("export: deletes stale api/ and watch/ objects, never ledger/, other prefixes or assets", async () => {
+  const h = harness({
+    help: "earthdeck watch export --out DIR",
+    job: (_a, _dir, site) => {
+      mkdirSync(join(site, "api/replies"), { recursive: true });
+      writeFileSync(join(site, "index.html"), "<h1>hi</h1>");
+      writeFileSync(join(site, "api/replies/keep.json"), "{}");
+      return 0;
+    },
+  });
+  for (const k of ["api/replies/gone.json", "watch/case/old/index.html", "watch/assets/app-Old.js", "ledger/entries.jsonl", "og-old.png", "api/replies/keep.json"]) await h.store.put("site", k, Buffer.from("x"));
+  const r = await runPayload({ job: "export" }, h.cfg, h.deps);
+  assert.equal(r.ok, true);
+  assert.equal(r.steps[0]!.filesDeleted, 2);
+  const keys = [...h.store.objects.keys()];
+  assert.ok(!keys.includes("site/api/replies/gone.json") && !keys.includes("site/watch/case/old/index.html"));
+  for (const k of ["site/watch/assets/app-Old.js", "site/ledger/entries.jsonl", "site/og-old.png", "site/api/replies/keep.json"]) assert.ok(keys.includes(k), k);
+  assert.equal(h.counts().invalidations, 1);
+  assert.deepEqual(sitePruneKeys(["api/a", "apix/b", "watch/../ledger/x", "ledger/y"], new Set()), ["api/a"]);
+  h.cleanup();
 });

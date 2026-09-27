@@ -251,8 +251,20 @@
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
+/* labels that change (Replay/Pause, Copy link/Copied/Copy failed) get a fixed slot: nothing moves */
+.xp-btn--replay {
+  min-width: 72px;
+  text-align: center;
+}
+.xp-btn--share {
+  min-width: 96px;
+  text-align: center;
+}
 .xp-time-l {
   flex: 1 0 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: var(--fs-11);
   color: var(--fg-3);
   font-variant-numeric: tabular-nums;

@@ -12,6 +12,7 @@ import { SITE } from "../site.config.js";
 import type { NewsItem } from "../clients/gdelt.js";
 import { livingValueOf, type SiteStats, type RateCell } from "./export.js";
 import { indicatorOf, isGlobalCase } from "./map-data.js";
+import { indicatorBlindSpots } from "./rules/indicatorThreshold.js";
 
 // TODO: import { GLOBAL_NATURE_VALUE } from "../clients/naturalvalue.js" once natural_value
 // (a3ab7a9) is on main — these are its figures (2007 US$, 2011 vs 1997 biome areas).
@@ -143,7 +144,26 @@ function plainActor(a: string): string {
 }
 
 const REPLY_TEXT =
-  "If a case names or affects you, you can reply. A reply channel that keeps both sides on record is being set up; until then, every case page carries its ledger id so a reply can be attached to it.";
+  "If a case names or affects you, or you know the place, reply under the case itself. Replies are public and anonymous: no account, no email. A second AI model reads each one before it appears, and turns away spam, abuse and anything that names a private person.";
+const REPLY_LEDE = "Know this place? Say what you see. Replies are checked before they appear. No account, no email.";
+const REPLY_NOJS = "Replies are open on the interactive site (it needs JavaScript).";
+const REPLY_NOTE = "Every reply here was read and accepted by a second AI model before it appeared. They are the writers’ own words, not checked facts.";
+export const ROLE_LABEL: Record<string, string> = {
+  resident: "Lives nearby",
+  operator: "Works on site",
+  company: "From a company",
+  official: "Public official",
+  researcher: "Researcher",
+  other: "Someone who knows the place",
+};
+
+/** A reviewed public reply, as the export reads it from the reply wall (src/replies/review.ts). */
+export interface ShownReply {
+  id: string;
+  text: string;
+  role: string;
+  receivedAt: string;
+}
 
 // ---- page context ---------------------------------------------------------------------------------
 
@@ -219,7 +239,6 @@ export function siteTop(c: Ctx, current: "landing" | "cases" | "trust" | "develo
         ${line ? `<h1 class="top-line">${esc(line)}</h1>` : ""}
         <nav class="site-nav" aria-label="Site">
           <a href="${rel(c, "watch/")}"${cur("cases")}>Cases</a>
-          <a href="${c.depth === 0 ? "" : home}#challenge">Reply</a>
           <a href="${rel(c, "developers/")}"${cur("developers")}>Developers</a>
         </nav>
       </div>
@@ -651,7 +670,7 @@ export function newsHtml(items: readonly NewsItem[] | undefined): string {
   return li.length ? section("In the news", `<ul class="plain-list news-list">${li.join("")}</ul><p class="section-lede">${esc(NEWS_NOTE)}</p>`) : "";
 }
 
-export function casePage(c: Ctx, d: CaseData, news?: readonly NewsItem[]): { head: string; body: string } {
+export function casePage(c: Ctx, d: CaseData, wall: { replies?: ShownReply[]; replyEndpoint?: string | null; news?: readonly NewsItem[] } = {}): { head: string; body: string } {
   const f = d.finding;
   const s = c.stats;
   const isPublic = PUBLIC_STATUSES.includes(f.status);
@@ -674,7 +693,9 @@ export function casePage(c: Ctx, d: CaseData, news?: readonly NewsItem[]): { hea
       return `<li><b>${esc(sourceName(x.source))}</b>${x.summary ? ` — ${esc(x.summary)}` : ""} <span class="seen-when">(${esc(plainDate(x.datetime))})</span>${href ? ` <a class="link" href="${esc(href)}" rel="noopener nofollow">See the source ↗</a>` : ""}</li>`;
     }),
   ];
-  const doubts = [...(nar?.caveats ?? []), ...(f.blindSpots ?? [])];
+  // Older indicator_threshold entries carry every indicator's blind spots; show only this case's.
+  const spots = f.rule.name === "indicator_threshold" ? indicatorBlindSpots(f.blindSpots ?? [], indicatorOf(f)) : (f.blindSpots ?? []);
+  const doubts = [...(nar?.caveats ?? []), ...spots];
   const replies = rightOfReplyHtml(f);
 
   // Technical details (collapsed).
@@ -711,11 +732,11 @@ export function casePage(c: Ctx, d: CaseData, news?: readonly NewsItem[]): { hea
         ${isPublic ? "" : `<p class="banner banner--muted">${esc(NOT_PUBLIC[f.status] ?? `Not published: ${PLAIN_STATUS[f.status] ?? words(f.status)}.`)}</p>`}
         ${f.retracted ? `<p class="banner banner--danger">Withdrawn ${time(f.retracted.at, plainDate(f.retracted.at))} — ${esc(f.retracted.reason)}</p>` : ""}
         ${section("What we saw", `<ul class="plain-list">${seen.join("")}</ul>`)}
-        ${newsHtml(news)}
+        ${newsHtml(wall.news)}
         ${section("What it might not be", doubts.length ? `<ul class="plain-list">${doubts.map((b) => `<li>${esc(b)}</li>`).join("")}</ul>` : `<p class="section-lede">${esc(NOT_SURE_DEFAULT)}</p>`)}
         ${section("What would change our mind", `<p class="section-lede">${esc(CHANGE_MIND)}</p>`)}
         ${section(isPublic ? "Why this was published" : "Why this is not published", `<p class="section-lede">${esc(whySentence(f, pubEv))}</p>`)}
-        ${section("Right of reply", `${replies}<p class="section-lede">${esc(REPLY_TEXT)}</p><p class="case-id">Ledger id <code>${esc(f.findingId)}</code>${copyBtn(f.findingId)}</p>`, undefined, "challenge")}
+        ${section("Replies", `${replies}${replyWallHtml(f.findingId, wall.replies ?? [], wall.replyEndpoint ?? null)}<p class="case-id">Ledger id <code>${esc(f.findingId)}</code>${copyBtn(f.findingId)}</p>`, wall.replies?.length || undefined, "challenge")}
         <details class="tech" id="technical">
           <summary class="tech-sum">Technical details <span>rule, evidence ids, history, proof</span></summary>
           <dl class="kv kv--case">${facts.map(([k, v]) => `<dt>${esc(k)}</dt><dd${k === "Rule FP rate" ? ` title="${esc(s.falsePositiveRate.definition)}"` : ""}>${esc(v)}</dd>`).join("")}</dl>
@@ -844,6 +865,19 @@ function contextHtml(f: Finding): string {
 
 function tl(at: string | null, what: string, sub: string, cls = ""): string {
   return `<li class="tl-item${cls ? ` ${cls}` : ""}"><span class="tl-dot"></span>${at ? time(at, dateOf(at), "tl-when") : '<span class="tl-when"></span>'}<span class="tl-what">${esc(what)}</span>${sub ? `<span class="tl-sub">${esc(sub)}</span>` : ""}</li>`;
+}
+
+/** The public reply wall under a case: reviewed replies, then the form's mount point (built by web/src/site/reply.ts). */
+export function replyWallHtml(caseId: string, list: ShownReply[], endpoint: string | null): string {
+  const items = list.map(
+    (r) =>
+      `<li class="reply"><p class="reply-meta"><b>${esc(ROLE_LABEL[r.role] ?? ROLE_LABEL.other)}</b> · ${time(r.receivedAt, plainDate(r.receivedAt))}</p><p class="reply-text">${esc(r.text).replace(/\n/g, "<br />")}</p></li>`,
+  );
+  const listHtml = items.length ? `<ol class="replies">${items.join("")}</ol><p class="reply-note">${esc(REPLY_NOTE)}</p>` : "";
+  const box = endpoint
+    ? `<div class="reply-box" data-case="${esc(caseId)}" data-endpoint="${esc(endpoint)}"><p class="reply-lede">${esc(REPLY_LEDE)}</p><p class="reply-nojs">${esc(REPLY_NOJS)}</p></div>`
+    : "";
+  return `${listHtml}${box}${!items.length && !endpoint ? `<p class="section-lede">No replies yet.</p>` : ""}`;
 }
 
 function rightOfReplyHtml(f: Finding): string {

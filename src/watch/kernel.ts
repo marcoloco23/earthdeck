@@ -259,7 +259,7 @@ export async function sweep(o: SweepOptions): Promise<SweepReport> {
         observedAt: candidate.observedAt,
         evidence: candidate.evidence,
         context,
-        blindSpots: rule.blindSpots,
+        blindSpots: rule.blindSpotsFor?.({ ...rule.defaults, ...params }) ?? rule.blindSpots,
         at: now,
       };
       if (report.dryRun) {

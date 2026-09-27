@@ -66,6 +66,40 @@ export async function readParameters(region: string, prefix: string): Promise<{ 
   return out;
 }
 
+/** One parameter, decrypted; null when it does not exist. */
+export async function readParameter(region: string, name: string): Promise<string | null> {
+  const m = await load<typeof SSM>("@aws-sdk/client-ssm");
+  const ssm = new m.SSMClient({ region });
+  try {
+    const r = await ssm.send(new m.GetParameterCommand({ Name: name, WithDecryption: true }));
+    return r.Parameter?.Value ?? null;
+  } catch (e) {
+    if ((e as { name?: string }).name === "ParameterNotFound") return null;
+    throw e;
+  }
+}
+
+/** Get (null when the key is absent) + put on one bucket — all the reply intake needs. */
+export async function s3KeyValue(region: string, bucket: string): Promise<{ get(key: string): Promise<Buffer | null>; put(key: string, body: Buffer): Promise<void> }> {
+  const m = await load<typeof S3>("@aws-sdk/client-s3");
+  const s3 = new m.S3Client({ region });
+  return {
+    async get(key) {
+      try {
+        const r = await s3.send(new m.GetObjectCommand({ Bucket: bucket, Key: key }));
+        return r.Body ? Buffer.from(await r.Body.transformToByteArray()) : Buffer.alloc(0);
+      } catch (e) {
+        const name = (e as { name?: string }).name;
+        if (name === "NoSuchKey" || name === "NotFound" || name === "AccessDenied") return null;
+        throw e;
+      }
+    },
+    async put(key, body) {
+      await s3.send(new m.PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: "application/json; charset=utf-8" }));
+    },
+  };
+}
+
 export async function cloudFrontInvalidator(region: string): Promise<(distributionId: string) => Promise<void>> {
   const m = await load<typeof CloudFront>("@aws-sdk/client-cloudfront");
   const cf = new m.CloudFrontClient({ region });
