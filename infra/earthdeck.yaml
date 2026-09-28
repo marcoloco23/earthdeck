@@ -391,7 +391,7 @@ Resources:
           # methane_anomaly may spend at most 10 of those; forest confirmations keep the rest.
           EARTHDECK_MAX_CDSE_CALLS_METHANE_ANOMALY: "10"
           EARTHDECK_MAX_GFW_CALLS: "400"
-          EARTHDECK_MAX_FIRMS_CALLS: "3000"
+          EARTHDECK_MAX_FIRMS_CALLS: "6000"
           EARTHDECK_MAX_ANALYST_CASES: "10"
           EARTHDECK_MAX_ANALYST_USD: "3"
           NODE_OPTIONS: --enable-source-maps

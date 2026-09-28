@@ -171,8 +171,8 @@ land):
 | Anthropic | ≈ $0.10 per case (narrate + review) | — | ≤ 10 cases | $3 | — | — |
 
 The caps, not Lambda time, set the revisit rate. FIRMS's own limit is per 10 minutes, so
-`EARTHDECK_MAX_FIRMS_CALLS` can be raised (≈ 3,000 covers four full passes; one shard spends
-~90) without risk; raising CDSE needs the account's monthly PU budget checked first. Caps
+`EARTHDECK_MAX_FIRMS_CALLS` can be raised without risk (deployed: 6,000 — measured 2026-09-28,
+a full pass now spends ~1,000–1,250, so 3,000 ran out by ~13:00 UTC and starved the evening sweep); raising CDSE needs the account's monthly PU budget checked first. Caps
 reset at 00:00 UTC, so the 00:00 window's shards spend them first; later windows sweep what
 is left, least-recently-swept first within each shard.
 
