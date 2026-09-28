@@ -1,5 +1,5 @@
 // The zoom-dependent basemap shared by the public site's map (web/src/site/map/explore.ts) and the
-// live dashboard map (web/src/map.ts): today-ish NASA imagery when zoomed out, a sharp 10 m
+// live dashboard map (web/src/map.ts): today's NASA imagery (filling in over yesterday's) when zoomed out, a sharp 10 m
 // cloud-free Sentinel-2 mosaic when zoomed in, and light OpenStreetMap place names + roads on top.
 //
 //   new maplibregl.Map({ style: basemapStyle(), … });   // sources + layers + glyphs, globe
@@ -9,6 +9,9 @@
 //   z0–9   NASA GIBS VIIRS SNPP Corrected Reflectance true colour, one day (Level9 = 375 m) — public
 //          domain. Yesterday UTC (two days back before 06 UTC): "today" is mostly black until the
 //          day's passes are processed, and a JPEG can't be transparent where there is no data yet.
+//          Live on top (`live: true`): the newer days' passes so far (VIIRS SNPP + NOAA-20), fetched
+//          through the `gibs-live://` protocol, which turns GIBS's no-data black transparent in the
+//          browser — so the globe fills in with today as the satellites pass, no deploy or job needed.
 //   z6–14  EOxCloudless (Sentinel-2 cloudless) 2025, 10 m, whole Earth — CC BY-NC-SA 4.0, free for
 //          non-commercial use with the attribution below, verbatim (https://cloudless.eox.at/license-non-commercial).
 //          The 2016 layer (`s2cloudless_3857`) is CC BY 4.0 if the site ever becomes commercial.
@@ -35,6 +38,8 @@ export interface BasemapEntry {
   caption: string;
   /** Name of a key this layer needs (env / config); the layer is skipped when it is absent. */
   requiresKey?: string;
+  /** Partial newer-day layers drawn right above this one (bottom → top), same zoom span. */
+  overlays?: { id: string; tiles: string[] }[];
 }
 
 const GIBS = "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best";
@@ -50,16 +55,36 @@ export function gibsDay(now: Date): string {
 
 const fmtDay = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 
-/** Bottom → top. Later entries fade in over earlier ones as you zoom in. */
-export function basemaps(now: Date = new Date()): BasemapEntry[] {
+/** URL scheme whose tiles get GIBS's no-data black made transparent (see `registerLiveImagery`). */
+export const LIVE_SCHEME = "gibs-live";
+const LIVE_SATS = ["VIIRS_SNPP", "VIIRS_NOAA20"] as const;
+const gibsTile = (sat: string, day: string, scheme = "https") =>
+  `${scheme}://${GIBS.slice("https://".length)}/${sat}_CorrectedReflectance_TrueColor/default/${day}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`;
+
+/** The UTC days after the complete base day, up to today (oldest first): today's passes, and yesterday's
+ *  too before 06 UTC — the partial days drawn over the base. */
+export function liveDays(now: Date): string[] {
+  const out: string[] = [];
+  const today = now.toISOString().slice(0, 10);
+  for (let t = Date.parse(`${gibsDay(now)}T00:00:00Z`) + DAY_MS; ; t += DAY_MS) {
+    const d = new Date(t).toISOString().slice(0, 10);
+    out.push(d);
+    if (d >= today) return out;
+  }
+}
+
+/** Bottom → top. Later entries fade in over earlier ones as you zoom in. `live` adds today's passes. */
+export function basemaps(now: Date = new Date(), live = false): BasemapEntry[] {
   const day = gibsDay(now);
+  const overlays = live ? liveDays(now).flatMap((d) => LIVE_SATS.map((sat) => ({ id: `bm-live-${d}-${sat}`, tiles: [gibsTile(sat, d, LIVE_SCHEME)] }))) : undefined;
   return [
     {
       id: "bm-gibs",
-      tiles: [`${GIBS}/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/${day}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`],
+      tiles: [gibsTile("VIIRS_SNPP", day)],
       maxzoom: 9,
-      attribution: `NASA EOSDIS GIBS · VIIRS ${day}`,
-      caption: `Daily satellite view, ${fmtDay(day)} (NASA)`,
+      attribution: live ? `NASA EOSDIS GIBS · VIIRS ${day} + today` : `NASA EOSDIS GIBS · VIIRS ${day}`,
+      caption: live ? `Satellite view today (NASA), rest from ${fmtDay(day)}` : `Daily satellite view, ${fmtDay(day)} (NASA)`,
+      ...(overlays ? { overlays } : {}),
     },
     {
       id: "bm-eox",
@@ -106,15 +131,71 @@ export function activeAt(zoom: number, list: BasemapEntry[]): BasemapEntry | und
 
 export const captionAt = (zoom: number, list: BasemapEntry[]): string => activeAt(zoom, list)?.caption ?? "";
 
-/** Raster layers: each drawn from its fade start, and dropped (no more fetching) once the next one is opaque. */
+/** Raster layers: each drawn from its fade start, and dropped (no more fetching) once the next one is opaque.
+ *  An entry's overlays sit right above it with the same zoom span. */
 function rasterLayers(list: BasemapEntry[]): LayerSpecification[] {
-  return list.map((b, i) => {
+  return list.flatMap((b, i) => {
     const next = list[i + 1];
-    const l: LayerSpecification = { id: b.id, type: "raster", source: b.id, paint: { "raster-opacity": opacityFor(b), "raster-fade-duration": 200 } };
-    if (b.fadeIn) l.minzoom = b.fadeIn[0];
-    if (next?.fadeIn) l.maxzoom = next.fadeIn[1] + 1;
-    return l;
+    const layer = (id: string): LayerSpecification => {
+      const l: LayerSpecification = { id, type: "raster", source: id, paint: { "raster-opacity": opacityFor(b), "raster-fade-duration": 200 } };
+      if (b.fadeIn) l.minzoom = b.fadeIn[0];
+      if (next?.fadeIn) l.maxzoom = next.fadeIn[1] + 1;
+      return l;
+    };
+    return [layer(b.id), ...(b.overlays ?? []).map((o) => layer(o.id))];
   });
+}
+
+/** Make GIBS's no-data (pure black, give or take JPEG noise) transparent, in place. Returns pixels changed. */
+export function knockOutNoData(rgba: Uint8ClampedArray, max = 8): number {
+  let n = 0;
+  for (let i = 0; i < rgba.length; i += 4) {
+    if (rgba[i]! <= max && rgba[i + 1]! <= max && rgba[i + 2]! <= max) {
+      rgba[i + 3] = 0;
+      n++;
+    }
+  }
+  return n;
+}
+
+// Browser canvas APIs, typed locally: the test build has no DOM lib.
+interface Bmp { width: number; height: number; close(): void }
+interface Ctx2d {
+  drawImage(b: Bmp, x: number, y: number): void;
+  getImageData(x: number, y: number, w: number, h: number): { data: Uint8ClampedArray };
+  putImageData(d: { data: Uint8ClampedArray }, x: number, y: number): void;
+}
+interface Canvas { width: number; height: number; getContext(k: "2d", o: object): Ctx2d | null; convertToBlob(o: { type: string }): Promise<Blob> }
+const web = globalThis as unknown as { OffscreenCanvas?: new (w: number, h: number) => Canvas; createImageBitmap?: (b: Blob) => Promise<Bmp> };
+
+/** Can this browser run the `gibs-live://` protocol? (OffscreenCanvas + createImageBitmap.) */
+export const liveImagerySupported = (): boolean => !!web.OffscreenCanvas && !!web.createImageBitmap;
+
+type AddProtocol = (name: string, load: (req: { url: string }, abort: AbortController) => Promise<{ data: ArrayBuffer }>) => void;
+let registered = false;
+
+/**
+ * Register `gibs-live://` once: fetch the https tile, make its no-data black transparent, hand MapLibre a
+ * PNG. Returns whether live imagery can be used (pass it to basemapStyle/mountBasemapCaption as `live`).
+ */
+export function registerLiveImagery(ml: { addProtocol: AddProtocol }): boolean {
+  if (!liveImagerySupported()) return false;
+  if (registered) return true;
+  registered = true;
+  ml.addProtocol(LIVE_SCHEME, async (req, abort) => {
+    const res = await fetch(`https${req.url.slice(LIVE_SCHEME.length)}`, { signal: abort.signal });
+    if (!res.ok) throw new Error(`${res.status} ${req.url}`);
+    const bmp = await web.createImageBitmap!(await res.blob());
+    const canvas = new web.OffscreenCanvas!(bmp.width, bmp.height);
+    const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+    ctx.drawImage(bmp, 0, 0);
+    bmp.close();
+    const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    knockOutNoData(img.data);
+    ctx.putImageData(img, 0, 0);
+    return { data: await (await canvas.convertToBlob({ type: "image/png" })).arrayBuffer() };
+  });
+  return true;
 }
 
 // ---- labels + roads (OpenFreeMap, OpenMapTiles schema) --------------------------------------------------
@@ -167,15 +248,20 @@ function labelLayers(): LayerSpecification[] {
 
 export interface BasemapOptions {
   now?: Date;
+  /** Draw today's passes over the base day (needs `registerLiveImagery` to have returned true). */
+  live?: boolean;
   /** Keys for optional keyed layers, by name (e.g. { ARCGIS_API_KEY: "…" }). */
   keys?: Record<string, string | undefined>;
 }
 
 /** A complete globe style: imagery stack + OpenFreeMap names/roads. Callers may spread extra fields (sky). */
 export function basemapStyle(opts: BasemapOptions = {}): StyleSpecification {
-  const list = availableBasemaps(basemaps(opts.now), opts.keys);
+  const list = availableBasemaps(basemaps(opts.now, opts.live), opts.keys);
   const sources: Record<string, SourceSpecification> = {};
-  for (const b of list) sources[b.id] = { type: "raster", tiles: b.tiles, tileSize: 256, maxzoom: b.maxzoom, attribution: b.attribution };
+  for (const b of list) {
+    sources[b.id] = { type: "raster", tiles: b.tiles, tileSize: 256, maxzoom: b.maxzoom, attribution: b.attribution };
+    for (const o of b.overlays ?? []) sources[o.id] = { type: "raster", tiles: o.tiles, tileSize: 256, maxzoom: b.maxzoom };
+  }
   sources[LABEL_SRC] = {
     type: "vector",
     url: `${OFM}/planet`, // TileJSON → dated tile path; its attribution: OpenFreeMap © OpenMapTiles, OpenStreetMap
@@ -194,7 +280,7 @@ export function basemapStyle(opts: BasemapOptions = {}): StyleSpecification {
  * "Cloud-free mosaic, Sentinel-2 2025 (EOX)"), updated as the zoom crosses a fade midpoint.
  */
 export function mountBasemapCaption(map: MlMap, opts: BasemapOptions = {}): IControl {
-  const list = availableBasemaps(basemaps(opts.now), opts.keys);
+  const list = availableBasemaps(basemaps(opts.now, opts.live), opts.keys);
   const box = map.getContainer().ownerDocument.createElement("div"); // (no DOM lib in the test build)
   box.className = "maplibregl-ctrl bm-caption";
   const sync = () => {

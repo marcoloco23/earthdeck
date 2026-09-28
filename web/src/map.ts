@@ -1,7 +1,7 @@
 import maplibregl from "maplibre-gl";
 import { EASE_IN_OUT } from "./site/map/model";
 import { WEATHER_LAYERS, addLayer, mountLayerToggles, stormsLayer, type LayerHandle } from "./layers/weather";
-import { basemapStyle, mountBasemapCaption } from "./layers/basemap";
+import { basemapStyle, mountBasemapCaption, registerLiveImagery } from "./layers/basemap";
 import type { BBox, Card, EventItem, FireItem, QuakeItem } from "./types";
 
 let map: maplibregl.Map | null = null;
@@ -16,17 +16,18 @@ const FINDING_LAYER = "finding-src";
  * create a WebGL context, so the rest of the dashboard (the live feed) keeps working.
  */
 export function createMap(): boolean {
+  const liveSat = registerLiveImagery(maplibregl);
   try {
     map = new maplibregl.Map({
       container: "map",
       // Same globe + zoom-dependent imagery stack as the public site's map (web/src/layers/basemap.ts).
-      style: basemapStyle(),
+      style: basemapStyle({ live: liveSat }),
       center: [0, 20],
       zoom: 1.4,
       attributionControl: { compact: true },
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
-    mountBasemapCaption(map);
+    mountBasemapCaption(map, { live: liveSat });
     // Keyless weather overlays (local dashboard = personal use, so RainViewer radar is allowed here).
     const m = map;
     const container = document.getElementById("map");

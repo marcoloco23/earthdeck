@@ -74,7 +74,7 @@ export const WEATHER_LAYERS = {
     opacity: 0.85,
     attribution: `${GIBS_CREDIT} · VIIRS`,
     publicSafe: true,
-    note: "VIIRS true colour, latest day — one pass per place per day, not live.",
+    note: "VIIRS true colour, the last complete day — one pass per place per day, not live.",
   },
   precip: {
     kind: "raster",
