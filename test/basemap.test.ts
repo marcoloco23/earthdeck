@@ -3,7 +3,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { activeAt, availableBasemaps, basemaps, basemapStyle, captionAt, gibsDay, opacityFor } from "../web/src/layers/basemap.js";
+import { activeAt, availableBasemaps, basemaps, basemapStyle, captionAt, gibsDay, knockOutNoData, liveDays, opacityFor } from "../web/src/layers/basemap.js";
 
 const NOW = new Date("2026-09-27T12:00:00Z");
 
@@ -61,4 +61,30 @@ test("GIBS day: the last complete UTC day", () => {
   assert.equal(gibsDay(new Date("2026-09-27T12:00:00Z")), "2026-09-26");
   assert.equal(gibsDay(new Date("2026-09-27T03:00:00Z")), "2026-09-25", "early UTC: yesterday's last passes may still be processing");
   assert.equal(gibsDay(new Date("2026-03-01T08:00:00Z")), "2026-02-28");
+});
+
+test("live days: the partial days above the complete base day, oldest first", () => {
+  assert.deepEqual(liveDays(new Date("2026-09-27T12:00:00Z")), ["2026-09-27"]);
+  assert.deepEqual(liveDays(new Date("2026-09-27T03:00:00Z")), ["2026-09-26", "2026-09-27"], "before 06 UTC yesterday is partial too");
+  assert.deepEqual(liveDays(new Date("2026-03-01T00:30:00Z")), ["2026-02-28", "2026-03-01"]);
+});
+
+test("live imagery: today's passes sit right above the base, same zoom span; caption says today", () => {
+  const style = basemapStyle({ now: NOW, live: true });
+  const ids = style.layers.map((l) => l.id);
+  assert.deepEqual(ids.slice(0, 4), ["bm-gibs", "bm-live-2026-09-27-VIIRS_SNPP", "bm-live-2026-09-27-VIIRS_NOAA20", "bm-eox"]);
+  const overlay = style.layers[1]!;
+  assert.equal(overlay.maxzoom, 9, "fetched no deeper than the base");
+  assert.equal(
+    (style.sources[overlay.id] as { tiles: string[] }).tiles[0],
+    "gibs-live://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_SNPP_CorrectedReflectance_TrueColor/default/2026-09-27/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg",
+  );
+  assert.equal(captionAt(2, basemaps(NOW, true)), "Satellite view today (NASA), rest from Sep 26");
+  assert.ok(!basemapStyle({ now: NOW }).layers.some((l) => l.id.startsWith("bm-live")), "off unless the browser can do it");
+});
+
+test("knockOutNoData: black (with JPEG noise) goes transparent, dark ocean stays", () => {
+  const px = new Uint8ClampedArray([0, 0, 0, 255, 6, 3, 8, 255, 12, 20, 45, 255, 200, 200, 200, 255]);
+  assert.equal(knockOutNoData(px), 2);
+  assert.deepEqual([px[3], px[7], px[11], px[15]], [0, 0, 255, 255]);
 });

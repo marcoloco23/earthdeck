@@ -14,7 +14,7 @@ import maplibregl, { type GeoJSONSource, type MapLayerMouseEvent } from "maplibr
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./explore.css";
 import { el, reducedMotion } from "../../ui";
-import { BASEMAP_LABELS_BELOW, basemaps, basemapStyle, captionAt, mountBasemapCaption } from "../../layers/basemap";
+import { BASEMAP_LABELS_BELOW, basemaps, basemapStyle, captionAt, mountBasemapCaption, registerLiveImagery } from "../../layers/basemap";
 import { addLayer, stormsLayer, WEATHER_LAYERS, type LayerHandle, type RasterSpec } from "../../layers/weather";
 import { layerGroups, onLayerGroup, registerLayerGroup, type LayerGroup, type RegisteredLayer } from "../../layers/registry";
 import type { Hub } from "../hub";
@@ -128,10 +128,11 @@ export function mountExplorer({ figure, data, hub }: Options): void {
   figure.appendChild(xp);
 
   let map: maplibregl.Map;
+  const liveSat = registerLiveImagery(maplibregl);
   try {
     map = new maplibregl.Map({
       container: mapBox,
-      style: { ...basemapStyle(), sky: { "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 0.9, 4, 0.5, 7, 0] } },
+      style: { ...basemapStyle({ live: liveSat }), sky: { "atmosphere-blend": ["interpolate", ["linear"], ["zoom"], 0, 0.9, 4, 0.5, 7, 0] } },
       center: v0.center,
       zoom: v0.zoom,
       pitch: v0.pitch,
@@ -149,8 +150,8 @@ export function mountExplorer({ figure, data, hub }: Options): void {
   // Test hook (browser tests project a case to screen pixels); read-only use, nothing secret.
   (xp as HTMLElement & { xpMap?: maplibregl.Map }).xpMap = map;
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
-  let caption = mountBasemapCaption(map);
-  const capList = basemaps();
+  let caption = mountBasemapCaption(map, { live: liveSat });
+  const capList = basemaps(new Date(), liveSat);
   const capBox = document.getElementById("imagery-cap");
   const syncCap = () => {
     if (capBox) capBox.textContent = `Base imagery here: ${captionAt(map.getZoom(), capList)}.`;
